@@ -4,11 +4,15 @@
 #include "qd_buffer.h"
 #include "qd_io.h"
 #include "qd_assign.h"
+#include "qd_log.h"
+
+#include <set>
 
 _QD_BEGIN
 
+
 static const char* const identity[] = {
-    "if","elseif","else","true","false"
+    "if","elseif","else","true","false","jump","pass","for"
 };
 
 //全局函数判断第几个关键词
@@ -31,9 +35,8 @@ static inline int is_keyword(int i){
     return i >= 0 && i < len ? i : -1;
 }
 
-enum TTYPE {
+enum TOK_TYPE {
     T_ERR = -2,
-/* terminal symbols denoted by reserved words */
     T_EOF = -1,
 /*   keyword  */
     T_IF,                   //if
@@ -41,17 +44,24 @@ enum TTYPE {
     T_ELSE,                 //else
     T_TRUE,                 //true
     T_FALSE,                //false
-/*   variable    */
+    T_JUMP,                 //jump
+    T_PASS,                 //pass
+    T_FOR,                  //for
+/*   terminal    */
     T_NULL,                 //空值
     T_BLANK,                //空白
     T_END,                  //结束
+    T_COLON,                //冒号
     T_COMMENT,              //注释
+/*   variable    */
     T_INT,                  //整数
     T_DECIMAL,              //小数
     T_STRING,               //字符串
     T_UDATA,                //用户变量
     T_EQ,                   //=
     T_DEQ,                  //==
+    T_EXCLAMATION,          //!
+    T_NEQ,                  //!=
     T_PLUS,                 //+
     T_MINUS,                //-
     T_MUL,                  //*
@@ -60,19 +70,24 @@ enum TTYPE {
     T_DDIV,                 // //
     T_LPARENTH,             // (
     T_RPARENTH,             // )
+    T_AMPERSAND,            //&
+    T_VERTICAL_BAR,         //|    
 };
 
-
-union SemInfo{
-//   lua_Number r;
-//   lua_Integer i;
-//   TString *ts;
-};  /* semantics information */
+enum SEM_TYPE{
+    S_BOOL,
+    S_INT,
+    S_DOUBLE,
+    S_STRING,
+    S_ERROR,
+};
 
 
 struct Token {
     short token; //词法解析的类别
-    SemInfo seminfo;
+    /* semantics information */
+    //隐式转换规则
+    short semantic;
 
     Token();
     void init();
@@ -81,7 +96,8 @@ struct Token {
 struct LexState
 {
     short cur;   //当前token类型
-    unsigned int line_number;  //当前行
+    unsigned int _row;  //当前行
+    unsigned int _col;         //当前列
     unsigned int lastline; //上一个token行数
 
     Token t;  //当前token类型
@@ -89,6 +105,8 @@ struct LexState
     D_VAR dvar;//当前值记录
 
     Dbuffer* buff;//当前token字符
+
+    Logger* logger;
 
     LexState();
     ~LexState();

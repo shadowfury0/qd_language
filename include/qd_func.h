@@ -6,13 +6,14 @@
 
 _QD_BEGIN
 
+class FunState;
 //函数头
 struct FunHead{
-    unsigned char stacksize;             //栈参数大小
-    unsigned int max_line;              //总行数
+    unsigned int start;                  //起始指令行
+    unsigned int end;                    //结束指令行
 
-    std::vector<FunHead*>  lfuns;        //函数内函数
-    std::map<std::string,D_VAR> lv;            //局部变量
+    std::vector<FunState*>  lfuns;        //函数内函数
+    std::map<std::string,D_VAR> lv;       //局部变量
 
     FunHead();
     ~FunHead();
@@ -21,15 +22,14 @@ struct FunHead{
 //函数整体部分
 struct FunState
 {
-    unsigned int lastline;              //之前执行行
-    unsigned int curline;               //当前执行行
-    unsigned int rows;                  //函数总行数
+    unsigned int code_pos;              //解析当前行
+
     FunHead* proto;                     //当前函数头信息
     FunState* prev;                     //上一级函数  
 
-    std::vector<D_VAR> rets;              //返回集合
+    // std::vector<D_VAR> rets;              //返回集合
     //这个词法解析完成后就可以添加操作码了
-    std::deque<Instruction>  codes;    //指令集
+    std::vector<Instruction>  codes;    //指令集
 
     FunState();
     ~FunState();
@@ -39,5 +39,6 @@ struct FunState
 
 
 _QD_END
+
 
 #endif

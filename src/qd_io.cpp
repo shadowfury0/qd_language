@@ -41,6 +41,7 @@ void Dio::reset_off(){
 void Dio::move_off(unsigned int n){
     this->off = n;
 }
+
 void Dio::offset_off(int n){
     this->off += n;
     if (this->off < 0 ){
@@ -54,7 +55,6 @@ void Dio::offset_off(int n){
 const char Dio::get_ch(){
     return this->str[this->off];
 }
-
 
 
 _QD_END

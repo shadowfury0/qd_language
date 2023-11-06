@@ -34,10 +34,10 @@ enum OprCode {
     // OC_POW,               //幂
     OC_DIV,               //除  double
     OC_IDIV,              //整除
-    /* bitwise operators */
-    OC_BAND,              //与
-    OC_BOR,               //或
-    OC_BXOR,              //非
+    // /* bitwise operators */
+    // OC_BAND,              //与
+    // OC_BOR,               //或
+    // OC_BXOR,              //非
     /* string operator */
     OC_CONCAT,            //拼接
     /* comparison operators */
@@ -50,18 +50,20 @@ enum OprCode {
     /* logical operators */
     OC_AND,               //并
     OC_OR,                //或
+    OC_LEQ,               // ==
+    OC_LNEQ,              // !=
 //-------------------------------------------
-    OC_NULL,              //无
     /* basic   operator */
     OC_JMP,               //跳转指令
     OC_CALL,              //调用函数
     OC_RET,               //返回
+
+    // null
+    OC_NULL,              //无
 };
 
 //操作码
 struct Instruction{
-    bool lfin;              
-    bool rfin;
     unsigned char pretype;       //前缀类型 左值是否为负
     unsigned char sufftype;      //后缀类型，右值是否为负
     short type ;         //类型
@@ -71,6 +73,7 @@ struct Instruction{
     unsigned int lpos; //左子树 指令偏移位置
     unsigned int rpos; //右子树 指令偏移位置
 
+    D_VAR res;          //结果返回值
     D_VAR left;         //指令操作完成 可以当作返回值赋值
     D_VAR right;
 

@@ -3,13 +3,14 @@
 
 #include "qd_parser.h"
 
-//qd的主函数
-
 //程序运行模式目前只有交互式
 _QD_BEGIN
 
+
 class QDMAIN{
 public:
+    QDMAIN();
+    ~QDMAIN();
     //函数主窗口
     int qd_main(int argc, char **argv);
 
@@ -17,8 +18,11 @@ public:
     
 private:
     DParser parser;
+    Logger* logger;
 };
 
+
 _QD_END
+
 
 #endif

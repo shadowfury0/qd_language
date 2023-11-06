@@ -38,6 +38,7 @@ struct D_VAR{
     {
         bool bv;
         int iv;
+        unsigned int uiv;
         double dv;
         char* chv;
     } var;
@@ -46,6 +47,7 @@ struct D_VAR{
     D_VAR(const D_VAR& dv);
     D_VAR(const bool& v);
     D_VAR(const int& v);
+    D_VAR(const unsigned int& v);
     D_VAR(const double& v);
     D_VAR(const char* v);
     ~D_VAR();
@@ -56,10 +58,28 @@ struct D_VAR{
     void operator=(const D_VAR& dv);
     void operator=(const bool& b);
     void operator=(const int& v);
+    void operator=(const unsigned int& u);
     void operator=(const double& v);
     void operator=(const char* v);
+    
+    bool operator==(const D_VAR& dv);
+    bool operator==(const bool& b);
+    bool operator==(const int& dv);
+    bool operator==(const unsigned int& dv);
+    bool operator==(const double& dv);
+    //返回两个字符串完全相等的值
+    bool operator==(const char* dv);
+
+    bool operator!=(const D_VAR& dv);
+    bool operator!=(const bool& b);
+    bool operator!=(const int& dv);
+    bool operator!=(const unsigned int& dv);
+    bool operator!=(const double& dv);
+    //返回两个字符串完全相等的值
+    bool operator!=(const char* dv);
 
     D_VAR operator-();
+    
 };
 
 /*

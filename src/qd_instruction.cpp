@@ -2,20 +2,18 @@
 
 _QD_BEGIN
 
+
 Instruction::Instruction(){
-    lfin = false;              
-    rfin = false;
     pretype = OC_NIL; 
     sufftype = OC_NIL;   
-    type = OC_NULL;         //类型
-    ltype = OC_NULL;         //类型
-    curpos = -1;
-    lpos = -1;
-    rpos = -1;
+    type = OC_NULL;         
+    ltype = OC_NULL;         
+    curpos = FIN_END;
+    lpos = FIN_END;
+    rpos = FIN_END;
 }
+
 Instruction::Instruction(const Instruction& i){
-    this->lfin = i.lfin;
-    this->rfin = i.rfin;
     this->pretype = i.pretype;
     this->sufftype = i.sufftype;
     this->type = i.type;
@@ -26,6 +24,7 @@ Instruction::Instruction(const Instruction& i){
 
     this->left = i.left;
     this->right = i.right;
+    this->res = i.res;
 }
 
 Instruction::~Instruction(){

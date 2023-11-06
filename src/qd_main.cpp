@@ -12,31 +12,42 @@ inline const char* const helpings  =
 inline const char* const helpsargs = 
     "<-------------------------------------------------->\n"
     "Available  args are:\n"
-    "  help   view  args helping  documents \n"
-    "  codes  show  the  number  of  codes \n"
-    "  args   list  the  every single  arg  info\n"
+    "  quit     quit  the  interactive  mode \n"
+    "  help     view  args helping  documents \n"
+    "  codes    show  the  number  of  codes \n"
+    "  args     list  the  every single  arg  info\n"
+    "  curline  current  soruce code  line  \n"
     "<-------------------------------------------------->\n"
 ;
 
+QDMAIN::QDMAIN(){
+    logger = Logger::getInstance();
+}
+
+QDMAIN::~QDMAIN(){
+    logger->release();
+}
+
 int QDMAIN::qd_main(int argc, char **argv){
-    // std::cout << argc << std::endl;
     
     // 解析参数
-    for (int i = 1 ;i < argc ; i ++ ) {
-        if ( !strcmp(argv[i],"-h")) {
-            //如果是帮助参数直接退出
-            std::cout << helpings << std::endl;
-            break;
-        }
-        else if ( !strcmp(argv[i],"-i") ) {
-            interactive_mode();
-        }
-        else {
+    // for (int i = 1 ;i < argc ; i ++ ) {
+    //     if ( !strcmp(argv[i],"-h")) {
+    //         //如果是帮助参数直接退出
+    //         std::cout << helpings << std::endl;
+    //         break;
+    //     }
+    //     else if ( !strcmp(argv[i],"-i") ) {
+    //         interactive_mode();
+    //     }
+    //     else {
             //文件
-            parser.read_file(argv[i]);
-        }
-    }
-
+            // logger->setLogTime(false);
+            // logger->setLogPattern("%Y-%M------------");
+            parser.read_file(argv[1]);
+            parser.print_variables(parser.global.proto->lv);
+        // }
+    // }
 }
 
 void QDMAIN::interactive_mode(){
@@ -55,13 +66,41 @@ void QDMAIN::interactive_mode(){
             std::cout << parser.bytes_code_line() << std::endl;
         }
         else if (line == "args") {
-            parser.print_variables();
+            // parser.print_variables();
         }
         else if (line == "curline") {
-            std::cout << parser.source_code_line() << std::endl;
+            std::cout << parser.source_code_row() << std::endl;
+        }
+        else if (line == "jump"){
+            std::getline(std::cin,line);
+            parser.global.code_pos = atoi(line.c_str());
+            parser.analyse_code(parser.global,parser.global.code_pos);
         }
         else if ( parser.global.proto->lv.find(line) != parser.global.proto->lv.end() ) {
-            parser.print_variable(line);
+            // parser.print_variable(line);
+        }
+        else if (line == "quit") {
+            break;
+        }
+        //设置日志等级，这里稍后进行更改
+        else if (line == "level"){
+            std::cout << "please input log level " << std::endl;
+            std::getline(std::cin,line);
+            if ( line == "1" ) {
+                logger->setLogLevel(1);
+            }
+            else if (line == "2"){
+                logger->setLogLevel(2);
+            }
+            else if (line == "3"){
+                logger->setLogLevel(3);
+            } 
+            else if (line == "4"){
+                logger->setLogLevel(4);
+            }
+            else {
+                std::cout << "nothing happened " << std::endl;
+            }
         }
         else {
             line.push_back('\n');
@@ -71,7 +110,9 @@ void QDMAIN::interactive_mode(){
             //     std::cout << parser.global.codes.back().left.var.iv << std::endl;
             // }
         }
+    
     }
 }
+
 
 _QD_END

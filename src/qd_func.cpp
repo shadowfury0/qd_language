@@ -4,32 +4,31 @@ _QD_BEGIN
 
 
 FunHead::FunHead(){
-    this->stacksize = 0;
-    this->max_line = 0;
 }
 
 FunHead::~FunHead(){
-
+        //析构所有子函数的堆内存空间
+    for (auto iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
+    {
+        if (*iter != nullptr) {
+            delete *iter;
+            *iter = nullptr;
+        }
+    }
 }
 
-FunState::FunState(){
-    proto = NULL;
-    prev = NULL;
-    this->lastline = 0;
-    this->curline = 0;
-    this->rows = 0;
+FunState::FunState() : code_pos(0){
+    proto = nullptr;
+    prev = nullptr;
 
     init();
 }
 
 FunState::~FunState(){
-    if (proto != NULL){
+    if (proto != nullptr){
         delete proto;
     }
-
-    if (prev != NULL){
-        delete prev;
-    }
+    
 }
 
 void FunState::init(){

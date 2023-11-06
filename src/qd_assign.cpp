@@ -27,6 +27,12 @@ D_VAR::D_VAR(const int& v){
     init();
     *this = v;
 }
+
+D_VAR::D_VAR(const unsigned int& u){
+    init();
+    *this = u;
+}
+
 D_VAR::D_VAR(const double& v){
     init();
     *this = v;
@@ -47,19 +53,17 @@ void D_VAR::clear(){
           ){
         free(this->var.chv);
     }
-    //清0可能暂时不用
-    // memset(&this->var,0,sizeof(this->var));
+    this->type = VE_VOID;
 }
 
 void D_VAR::operator=(const D_VAR& dv){
     if (VE_STR == dv.type ||
         VE_USER == dv.type) {
         *this = dv.var.chv;
-        this->type = dv.type;
     }else{
-        this->type = dv.type;
         this->var = dv.var;
     }
+    this->type = dv.type;
 }
 
 void D_VAR::operator=(const bool& b){
@@ -68,10 +72,17 @@ void D_VAR::operator=(const bool& b){
     this->var.bv = b;
 }
 
+
 void D_VAR::operator=(const int& v){
     clear();
     this->type = VE_INT;
     this->var.iv = v;
+}
+
+void D_VAR::operator=(const unsigned int& u){
+    clear();
+    this->type = VE_INT;
+    this->var.uiv = u;
 }
 
 void D_VAR::operator=(const double& v){
@@ -106,6 +117,83 @@ D_VAR D_VAR::operator-(){
     }
     return tmp;
 }
+
+
+bool D_VAR::operator==(const D_VAR& dv){
+    switch (this->type)
+    {
+    case VE_INT:
+        return *this == dv.var.iv;
+    case VE_BOOL:
+        return *this == dv.var.bv;
+    case VE_FLT:
+        return *this == dv.var.dv;
+    case VE_STR:
+    case VE_USER:
+        return *this == dv.var.chv;
+    default:
+        return false;
+    }
+}
+
+bool D_VAR::operator==(const bool& b){
+    return this->var.bv == b;
+}
+
+bool D_VAR::operator==(const int& iv){
+    return this->var.iv == iv;
+}
+
+bool D_VAR::operator==(const unsigned int& uiv){
+    return this->var.uiv == uiv;
+}
+
+bool D_VAR::operator==(const double& bv){
+    return this->var.bv == bv;
+}
+
+bool D_VAR::operator==(const char* chv){
+    return 0 == strcmp(this->var.chv,chv);
+}
+
+
+bool D_VAR::operator!=(const D_VAR& dv){
+    switch (this->type)
+    {
+    case VE_INT:
+        return *this != dv.var.iv;
+    case VE_BOOL:
+        return *this != dv.var.bv;
+    case VE_FLT:
+        return *this != dv.var.dv;
+    case VE_STR:
+    case VE_USER:
+        return *this != dv.var.chv;
+    default:
+        return false;
+    }
+}
+
+bool D_VAR::operator!=(const bool& b){
+    return this->var.bv != b;
+}
+
+bool D_VAR::operator!=(const int& iv){
+    return this->var.iv != iv;
+}
+
+bool D_VAR::operator!=(const unsigned int& uiv){
+    return this->var.uiv == uiv;
+}
+
+bool D_VAR::operator!=(const double& bv){
+    return this->var.bv != bv;
+}
+
+bool D_VAR::operator!=(const char* chv){
+    return 0 != strcmp(this->var.chv,chv);
+}
+
 
 
 _QD_END

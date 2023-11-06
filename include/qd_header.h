@@ -13,10 +13,17 @@
 #include <list>
 #include <deque>
 
-#define _QD_BEGIN namespace d_header{
+#define _QD_BEGIN namespace qd_header{
 #define _QD_END }
-#define _USING_QD using namespace d_header;
+#define _USING_QD using namespace qd_header;
 
+_QD_BEGIN
+
+#define FIN_END  UINT32_MAX - 1
+#define ERR_END  UINT32_MAX
+
+
+_QD_END
 
 
 #endif
