@@ -12,7 +12,8 @@ _QD_BEGIN
 
 
 static const char* const identity[] = {
-    "if","elseif","else","true","false","jump","pass","for"
+    "if","elseif","else","true","false","jump","pass","for",
+    "global","func","return"
 };
 
 //全局函数判断第几个关键词
@@ -35,6 +36,7 @@ static inline int is_keyword(int i){
     return i >= 0 && i < len ? i : -1;
 }
 
+
 enum TOK_TYPE {
     T_ERR = -2,
     T_EOF = -1,
@@ -47,47 +49,50 @@ enum TOK_TYPE {
     T_JUMP,                 //jump
     T_PASS,                 //pass
     T_FOR,                  //for
+    T_GLOBAL,               //global
+    T_FUNC,                 //func
+    T_RETURN,               //return
 /*   terminal    */
     T_NULL,                 //空值
     T_BLANK,                //空白
     T_END,                  //结束
     T_COLON,                //冒号
     T_COMMENT,              //注释
+    T_COMMA,                //逗号
 /*   variable    */
     T_INT,                  //整数
     T_DECIMAL,              //小数
     T_STRING,               //字符串
     T_UDATA,                //用户变量
+/*   symbols    */
     T_EQ,                   //=
     T_DEQ,                  //==
     T_EXCLAMATION,          //!
     T_NEQ,                  //!=
+    T_GN,                   // >
+    T_GE,                   // >=
+    T_LN,                   // <
+    T_LE,                   // <=
     T_PLUS,                 //+
     T_MINUS,                //-
     T_MUL,                  //*
     T_MOD,                  //%
     T_DIV,                  // /
-    T_DDIV,                 // //
+    // T_DDIV,                 // //
     T_LPARENTH,             // (
     T_RPARENTH,             // )
+    T_LBRACKET,             // [
+    T_RBRACKET,             // ]
+    T_LBRACE,               // {
+    T_RBRACE,               // }
     T_AMPERSAND,            //&
     T_VERTICAL_BAR,         //|    
-};
-
-enum SEM_TYPE{
-    S_BOOL,
-    S_INT,
-    S_DOUBLE,
-    S_STRING,
-    S_ERROR,
 };
 
 
 struct Token {
     short token; //词法解析的类别
     /* semantics information */
-    //隐式转换规则
-    short semantic;
 
     Token();
     void init();

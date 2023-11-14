@@ -6,33 +6,54 @@ _QD_BEGIN
 FunHead::FunHead(){
 }
 
+FunHead::FunHead(const FunHead& head){
+    this->lv = head.lv;
+
+    for (unsigned int iter = 0 ; iter < head.lfuns.size() ; iter++) {
+        FunState* funstate = nullptr;
+        funstate = new FunState(*head.lfuns[iter]);
+        this->lfuns.push_back(funstate);
+    }
+}
+
 FunHead::~FunHead(){
-        //析构所有子函数的堆内存空间
-    for (auto iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
+    //析构所有子函数的堆内存空间
+    for (std::vector<FunState *>::iterator
+    iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
     {
         if (*iter != nullptr) {
             delete *iter;
             *iter = nullptr;
         }
     }
+
 }
 
-FunState::FunState() : code_pos(0){
-    proto = nullptr;
-    prev = nullptr;
+FunState::FunState(){
 
     init();
+    proto = new FunHead();
+}
+
+FunState::FunState(const FunState& func){
+    init();
+    prev = func.prev;
+    
+    proto = new FunHead(*func.proto);
+    this->codes = func.codes;
 }
 
 FunState::~FunState(){
     if (proto != nullptr){
         delete proto;
     }
-    
 }
 
 void FunState::init(){
-    proto = new FunHead();
+    proto = nullptr;
+    prev = nullptr;
+    this->code_pos = 0;
+
 }
 
 

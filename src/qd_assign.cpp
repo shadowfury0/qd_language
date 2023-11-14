@@ -49,7 +49,7 @@ D_VAR::~D_VAR(){
 
 void D_VAR::clear(){
     if ( this->type == VE_STR 
-        || this->type == VE_USER  
+        || this->type == VE_USER
           ){
         free(this->var.chv);
     }
@@ -60,7 +60,8 @@ void D_VAR::operator=(const D_VAR& dv){
     if (VE_STR == dv.type ||
         VE_USER == dv.type) {
         *this = dv.var.chv;
-    }else{
+    }
+    else{
         this->var = dv.var;
     }
     this->type = dv.type;
@@ -123,6 +124,7 @@ bool D_VAR::operator==(const D_VAR& dv){
     switch (this->type)
     {
     case VE_INT:
+    case VE_FUNC:
         return *this == dv.var.iv;
     case VE_BOOL:
         return *this == dv.var.bv;
@@ -161,6 +163,7 @@ bool D_VAR::operator!=(const D_VAR& dv){
     switch (this->type)
     {
     case VE_INT:
+    case VE_FUNC:
         return *this != dv.var.iv;
     case VE_BOOL:
         return *this != dv.var.bv;
@@ -195,5 +198,32 @@ bool D_VAR::operator!=(const char* chv){
 }
 
 
+D_ARRAY::D_ARRAY(){
+
+}
+
+D_ARRAY::D_ARRAY(const D_ARRAY& arr){
+    *this = arr;
+}
+
+void D_ARRAY::operator=(const D_ARRAY& arr){
+    for (std::vector<D_VAR>::const_iterator
+     iter =  arr.larr.begin(); iter != arr.larr.end() ;
+     iter ++ ) {
+        this->larr.push_back(*iter);
+    }
+}
+
+D_OBJ::D_OBJ(){
+
+}
+
+D_OBJ::D_OBJ(const D_OBJ& obj){
+
+}
+
+D_OBJ::~D_OBJ(){
+    
+}
 
 _QD_END

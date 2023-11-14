@@ -11,22 +11,25 @@ _QD_BEGIN
 /**
  * 变量或者表达式类型
 */
-enum VETYPE{
+enum VE_TYPE{
     VE_VOID = -1,           //非数据变量
     VE_NULL,                //空值
+    // VE_DELAY,               //延缓变量,作用是最低级的变量,不是空值而是未赋值的变量
     VE_BOOL,                //bool
     VE_INT,                 //整型
     VE_FLT,                 //浮点数
     VE_STR,                 //字符串
-    VE_ARRAY,               //数组(不不同类型数据数组)
     VE_USER,                //用户变量
-    //？？？？这个是啥变量
-    VE_DELAY,               //延缓变量
+    VE_FUNC,                //函数
+
+//------------------------------------------
+    VE_ARRAY,               //数组
+    VE_UNION,               //联合体
 };
 
 
 /*
-** ==================================================================
+** ===================================================================
 ** Original Data
 ** ===================================================================
 */
@@ -82,15 +85,35 @@ struct D_VAR{
     
 };
 
+
+
 /*
 ** ==================================================================
 ** Array
 ** ===================================================================
 */
 
-struct D_ARRY{
-    int type = VE_ARRAY;    //数组类型
-    std::vector<D_VAR> arry;
+//24
+struct D_ARRAY{
+    //默认类型
+    std::vector<D_VAR> larr;
+
+    D_ARRAY();
+    D_ARRAY(const D_ARRAY& arr);
+    void operator=(const D_ARRAY& arr);
+};
+
+
+struct D_OBJ
+{
+    union 
+    {
+        D_VAR  var;
+        D_ARRAY array;
+    };
+    D_OBJ();
+    D_OBJ(const D_OBJ& obj);
+    ~D_OBJ();
 };
 
 

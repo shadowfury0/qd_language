@@ -44,8 +44,9 @@ int QDMAIN::qd_main(int argc, char **argv){
             //文件
             // logger->setLogTime(false);
             // logger->setLogPattern("%Y-%M------------");
+            logger->setLogLevel(4);
+
             parser.read_file(argv[1]);
-            parser.print_variables(parser.global.proto->lv);
         // }
     // }
 }
@@ -74,7 +75,7 @@ void QDMAIN::interactive_mode(){
         else if (line == "jump"){
             std::getline(std::cin,line);
             parser.global.code_pos = atoi(line.c_str());
-            parser.analyse_code(parser.global,parser.global.code_pos);
+            parser.analyse_code(parser.global.code_pos,parser.global);
         }
         else if ( parser.global.proto->lv.find(line) != parser.global.proto->lv.end() ) {
             // parser.print_variable(line);

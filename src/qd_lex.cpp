@@ -21,7 +21,6 @@ LexState::~LexState(){
     if ( buff != nullptr){
         delete buff;
     }
-    logger->release();
 }
 
 void LexState::init(){
@@ -97,23 +96,52 @@ int LexState::llex(){
         // printf("comment \n");
         return T_COMMENT;
     }
+    case ',':{
+        printf(", ");
+        this->next();
+        return T_COMMA;
+    }
     case '"': case '\'':{
         printf("string ");
         return  read_string(this->cur);
     }
     case '.': {  /* '.', '..', '...', or number */
+        this->next();
+        logger->error("undefine lexical type period");
         //暂时不需要
         return T_ERR;
     }
     case '=': {
         this->next();
         if (check1_next('=')) {
-            printf(" == ");
+            printf("== ");
             return T_DEQ;  /* '==' */
         }
         else {
-            printf(" = ");
+            printf("= ");
             return T_EQ;
+        }
+    }
+    case '>':{
+        this->next();
+        if (check1_next('=')) {
+            printf(">= ");
+            return T_GE;  /* '>=' */
+        }
+        else {
+            printf("> ");
+            return T_GN;
+        }
+    }
+    case '<':{
+        this->next();
+        if (check1_next('=')) {
+            printf("<= ");
+            return T_LE;  /* '<=' */
+        }
+        else {
+            printf("< ");
+            return T_LN;
         }
     }
     case '!':{
@@ -144,118 +172,17 @@ int LexState::llex(){
     }
     case '%':{
         this->next();
-        printf("mod  ");
+        printf("% ");
         return T_MOD;
     }
     case '/':{
         this->next();
-        if (check1_next('/')) {
-            printf("divide ");
-            return T_DDIV;  /* '//' */
-        } else {
-            printf("dobule divide ");
-            return T_DIV;
-        }
+        printf("/ ");
+        return T_DIV;
     }
     case '(':{
-        //这里可能稍后还会进行更改
-        int lnum = 0;
-        int rnum = 0;
-        int negnum = 0;
-
-        //多个(嵌套
-        do {
-            lnum++;
-            this->next();
-            this->remove_blank();
-            //判断是否有负数
-            if (this->cur == '-') {
-                negnum ++;
-                this->next();
-                this->remove_blank();
-            }
-        }while(this->cur == '(');
-        if ( isdigit(this->cur) ) {
-            //还有一个问题就是小数没有进行判断是个麻烦
-            read_numeral();
-            this->remove_blank();
-            // if (neg) dvar = -dvar.var.iv;
-            if (negnum & 1 ) {
-                dvar = -dvar.var.iv;
-            }
-            
-            if (this->cur != ')') goto expr_st;
-
-            //判断有多少个()
-            do {
-                rnum ++;
-                this->next();
-                this->remove_blank();
-            }while(this->cur == ')');
-            // ((1) + 2)
-            if ( lnum > rnum ) {
-                while( rnum-- )
-                {
-                    this->prev();
-                    this->prev_blank();
-                }
-                this->prev_number();
-                this->prev_blank();
-
-                while( lnum -- ){
-                    this->prev();
-                    this->prev_blank();
-                    if (this->cur == '-') {
-                        this->prev();
-                        this->prev_blank();
-                    }
-                }
-                ///-----------
-                printf(" ( ");
-                this->prev();
-                this->prev_blank();
-                return T_LPARENTH;
-            }
-            // (1 + (2))
-            else if ( lnum < rnum ){
-                int tnum = rnum - lnum;
-                while ( tnum -- )
-                {
-                    this->prev();
-                    this->prev_blank();
-                }
-                printf(" int ");
-                return T_INT;
-            }
-            else {
-                printf("int ");
-                // this->next();
-                return T_INT;
-            }
-        }else {
-            return T_ERR;
-        }    
-        //如果是正常表达式 ( 1 + 2 )
-        //如果不是单个整型 
-    expr_st:
-        this->prev();
-        this->prev_blank();
-        this->prev_number();
-        this->prev_blank();
-
-        if (this->cur == '-') this->prev(),this->prev_blank();//如果有负数
-
-        while(--lnum) {
-            this->prev();
-            this->prev_blank();
-            if (this->cur == '-'){
-                this->prev();
-                this->prev_blank();
-            }
-        }
         printf(" ( ");
         this->next();
-        this->remove_blank();
         return T_LPARENTH;        
     }
     case ')':{
@@ -273,12 +200,37 @@ int LexState::llex(){
         this->next();
         return T_VERTICAL_BAR;
     }
+    case '{':{
+        printf("{ ");
+        this->next();
+        return T_LBRACE;
+    }
+    case '}':{
+        printf("} ");
+        this->next();
+        return T_RBRACE;
+    }
+    case '[':{
+        printf("[ ");
+        this->next();
+        return T_LBRACKET;
+    }
+    case ']':{
+        printf("] ");
+        this->next();
+        return T_RBRACKET;
+    }
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
     {
         read_numeral();
         if ( '.' == this->cur) {
             this->next();
+            //判断错误类型
+            if ( !isalnum(this->cur) ) {
+                logger->error("period back is not number");
+                return T_ERR;
+            }
             double tmp = (double)dvar.var.iv;
             read_decimal();//读取小数部分            
             tmp += dvar.var.dv;
@@ -289,8 +241,8 @@ int LexState::llex(){
         printf("int ");
         return T_INT;
     }
-    default:
-        //解析字母
+    default:{
+    //解析字母
         if (this->islalpha(this->cur)){
             std::string data;
             do{
@@ -316,6 +268,7 @@ int LexState::llex(){
             }
         } 
         return T_ERR;
+    }
     }
 }
 

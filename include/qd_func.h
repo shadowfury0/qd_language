@@ -7,15 +7,20 @@
 _QD_BEGIN
 
 class FunState;
-//函数头
+
+//函数头  144 b 字节已经对齐
 struct FunHead{
     unsigned int start;                  //起始指令行
     unsigned int end;                    //结束指令行
+    //返回值
+    D_VAR ret;
 
-    std::vector<FunState*>  lfuns;        //函数内函数
+    //匿名内部函数，如if  for
+    std::vector<FunState*>  lfuns;        
     std::map<std::string,D_VAR> lv;       //局部变量
 
     FunHead();
+    FunHead(const FunHead& head);
     ~FunHead();
 };
 
@@ -27,11 +32,11 @@ struct FunState
     FunHead* proto;                     //当前函数头信息
     FunState* prev;                     //上一级函数  
 
-    // std::vector<D_VAR> rets;              //返回集合
     //这个词法解析完成后就可以添加操作码了
     std::vector<Instruction>  codes;    //指令集
 
     FunState();
+    FunState(const FunState& func);
     ~FunState();
 
     void init();

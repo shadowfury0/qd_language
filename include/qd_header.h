@@ -12,6 +12,7 @@
 #include <vector>
 #include <list>
 #include <deque>
+#include <algorithm>
 
 #define _QD_BEGIN namespace qd_header{
 #define _QD_END }
@@ -21,7 +22,7 @@ _QD_BEGIN
 
 #define FIN_END  UINT32_MAX - 1
 #define ERR_END  UINT32_MAX
-
+#define QD_INT_32_MAX INT32_MAX
 
 _QD_END
 

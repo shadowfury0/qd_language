@@ -14,6 +14,10 @@ Instruction::Instruction(){
 }
 
 Instruction::Instruction(const Instruction& i){
+    *this = i;
+}
+
+void Instruction::operator=(const Instruction& i){
     this->pretype = i.pretype;
     this->sufftype = i.sufftype;
     this->type = i.type;

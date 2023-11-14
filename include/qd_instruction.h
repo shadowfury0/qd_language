@@ -14,7 +14,7 @@ static const int priority[][2] = {
     {11,11},    // *
     {12,11},    // %
     {12,11},    // /
-    {12,11},    // //
+    // {12,11},    // //
 };
 
 //前缀运算符
@@ -33,31 +33,36 @@ enum OprCode {
     OC_MOD,               //模
     // OC_POW,               //幂
     OC_DIV,               //除  double
-    OC_IDIV,              //整除
+    // OC_IDIV,              //整除
     // /* bitwise operators */
     // OC_BAND,              //与
     // OC_BOR,               //或
     // OC_BXOR,              //非
     /* string operator */
     OC_CONCAT,            //拼接
-    /* comparison operators */
-    OC_EQ,                //等于
-    OC_LT,                //小于
-    OC_LE,                //小于等于
-    OC_NE,                //不等于
-    OC_GT,                //大于
-    OC_GE,                //大于等于
+    /* arrays operators */
+    OC_ARR_VAL,            //数组值
+    OC_ARR_ASSIGN,         //数组赋值
+    OC_ARR_LASSIGN,        //数组列表赋值
+    OC_ARR_PASSIGN,        //数组部分赋值
+    OC_ARR_ACESS,          //数组访问
+    OC_ARR_LIST,           //数组区间访问
     /* logical operators */
-    OC_AND,               //并
-    OC_OR,                //或
-    OC_LEQ,               // ==
-    OC_LNEQ,              // !=
+    OC_GT,                // >
+    OC_GE,                // >=
+    OC_LT,                // <
+    OC_LE,                // <=
+    OC_DEQ,               // ==
+    OC_NEQ,               // !=
+    OC_AND,               //并 &
+    OC_OR,                //或 |
 //-------------------------------------------
-    /* basic   operator */
+    /* function  operator */
+    OC_IF,                // IF
+    OC_FOR,               // FOR 
     OC_JMP,               //跳转指令
     OC_CALL,              //调用函数
     OC_RET,               //返回
-
     // null
     OC_NULL,              //无
 };
@@ -81,6 +86,7 @@ struct Instruction{
     Instruction(const Instruction& i);
     ~Instruction();
 
+    void operator=(const Instruction& i);
 };
 
 
