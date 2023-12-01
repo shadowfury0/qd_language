@@ -6,34 +6,63 @@ _QD_BEGIN
 
 DParser::DParser(){
     logger = Logger::getInstance();
+
+    global = nullptr;
+    global = new FunState();
 }
 
 DParser::~DParser(){
-    
+    if ( !this->funstack.empty() ) {
+        for ( FunState* iter = this->funstack.back() ; 
+        iter != this->funstack.front()   ; -- iter ) {
+            if (iter != nullptr){
+                delete iter;
+            }
+            iter = nullptr;
+            this->funstack.pop_back();
+        }
+    }
 }
 
 unsigned int DParser::parseX_next(){
-    if ( ls.t.token != T_BLANK ) {
+
+    if ( T_BLANK != ls.t.token ) {
+        this->ls.prevhead.token = this->ls.lookahead.token;
         this->ls.lookahead.token = this->ls.t.token;
     }
+
     if ( T_ERR == (this->ls.t.token = ls.llex()) ) {
         logger->error("lexical error");
         return ERR_END;
     }
+    // logger->debug("debug token info : ",ls.t.token,":",ls.lookahead.token,":",ls.prevhead.token);
     
     return 0;
 }
 
 void DParser::parse(const char* str){
     ls.alloc_buff(str);
-
+    //null是函数开始时初始化值
+    if ( T_NULL == ls.t.token ) {
+        this->findX_next();
+    }
     //这里开始全局解析
-    unsigned int err = parse_Func(global);
+    unsigned int err = parse_Func(*global);
+
+    //把全局函数放进去
 
     //错误的检测
     if (!err) {
+        // FunState* start = new FunState(global);
+        
+        this->funstack.push_back(global);
+
         //只用解析一次就好了
-        err = analyse_code(global.code_pos,global);
+        err = analyse_code(
+            global->code_pos, *global );
+
+        // delete start;
+
         if (err) {
             logger->error("anaylsing code error ");
         }
@@ -42,13 +71,19 @@ void DParser::parse(const char* str){
         logger->error("compiling code error ");
     }
 
+    logger->info("function stack size is ",this->funstack.size());
+    //清理函数栈空间    
+
     ls.free_buff();
     
 }
 
 unsigned int DParser::parse_Func(FunState& fun){
     for(;;){
-        this->findX_next();
+        //因为if语句比较特殊不好解决
+        if ( T_END == ls.t.token ) {
+            this->findX_next();
+        }
         if( T_EOF == ls.t.token ) {
             logger->debug(" <------------------ end --------------------> ");
             break;//结束
@@ -62,52 +97,88 @@ unsigned int DParser::parse_Func(FunState& fun){
         switch (ls.t.token)
         {
         case T_COMMENT:{
-            logger->info(" comment line ");
+            logger->info("comment line ");
+            this->findX_next();
             break;
         }
         case T_UDATA:
-        case T_GLOBAL:{
+        case T_LOCAL:{
             if(statement(fun.code_pos,fun)) {
-                logger->error("statement error");
+                logger->error("user statement error");
                 return ERR_END;
             }
             break;
         }
-        // case T_JUMP:{
-        //     //跳转指令
-        //     jump_expr();
-        //     break;
-        // }
-        case T_IF:{
-            if( if_expr(fun) ){
-                logger->error("if statement error");
+        case T_JUMP:{
+            //跳转指令
+            if(jump_expr(fun)) {
+                logger->error("jump error");
                 return ERR_END;
             }
-            //函数应该结束
             break;
         }
         case T_FOR:{
             if ( for_expr(fun) ) {
-                logger->error("for statement error");
-                //错误处理
+                logger->error(ls._row,":",ls._col," for statement error");
+                return ERR_END;
+            }
+            break;
+        }
+        case T_WHILE:{
+            if ( while_expr(fun) ) {
+                logger->error(ls._row,":",ls._col," while statement error");
                 return ERR_END;
             }
             break;
         }
         case T_FUNC:{
             if ( function_expr(fun) ) {
-                logger->error("function statement error");
+                logger->error(ls._row,":",ls._col," function statement error");
                 //错误处理
                 return ERR_END;
             }
             break;
         }
         case T_RETURN:{
+            Instruction inc;
+            inc.curpos = fun.codes.size();
+            inc.left = QD_KYW_RET;
+            this->findX_next();
+
+            if ( T_END != ls.t.token ) {
+                if( assign_expr(inc,fun) ){
+                    logger->error(ls._row,":",ls._col," return assign expression error");
+                    return ERR_END;
+                }
+            }
+            fun.codes.push_back(inc);
+
+            Instruction ret;
+            ret.curpos = fun.codes.size();
+            ret.type = OC_RET;
+            fun.codes.push_back(ret);
             break;
         }
-        default:
+        case T_IF:{
+            if( if_expr(fun) ){
+                logger->error(ls._row,":",ls._col," if statement error");
+                return ERR_END;
+            }
+            break;
+        }
+        case T_ELIF:{
+            logger->error(ls._row,":",ls._col," only elif statement error");
+            return ERR_END;
+        }
+        case T_ELSE:{
+            logger->error(ls._row,":",ls._col," only else statement error");
+            return ERR_END;
+        }
+        default:{
+            this->ls._row ++ ;
             logger->info("do nothing  ");
             break;
+        }
         }  
     }
     return 0;
@@ -145,64 +216,61 @@ int DParser::parse_PreCode(short type){
     }
 }
 
-void DParser::parse_Opr(Instruction& inc,short type){
+unsigned int DParser::parse_Opr(Instruction& inc,short type){
     //判断操作符
     switch (type)
     {
     case T_PLUS:
-        inc.type = OC_ADD;
-        break;
+        return inc.type = OC_ADD;
     case T_MINUS:
-        inc.type = OC_SUB;
-        break;
+        return inc.type = OC_SUB;
     case T_MUL:
-        inc.type = OC_MUL;
-        break;
+        return inc.type = OC_MUL;
     case T_DIV:
-        inc.type = OC_DIV;
-        break;
+        return inc.type = OC_DIV;
     case T_MOD:
-        inc.type = OC_MOD;
-        break;
+        return inc.type = OC_MOD;
     // case T_DIV:
     //     inc.type = OC_IDIV;
     //     break;
     case T_AMPERSAND:
-        inc.type = OC_AND;
-        break;
+        return inc.type = OC_AND;
     case T_VERTICAL_BAR:
-        inc.type = OC_OR;
-        break;
+        return inc.type = OC_OR;
     case T_DEQ :
-        inc.type = OC_DEQ;
-        break;
+        return inc.type = OC_DEQ;
     case T_NEQ:
-        inc.type = OC_NEQ;
-        break;
+        return inc.type = OC_NEQ;
     case T_LE:
-        inc.type = OC_LE;
+        return inc.type = OC_LE;
         break;
     case T_LN:
-        inc.type = OC_LT;
-        break;
+        return inc.type = OC_LT;
     case T_GE:
-        inc.type = OC_GE;
-        break;
+        return inc.type = OC_GE;
     case T_GN:
-        inc.type = OC_GT;
-        break;
+        return inc.type = OC_GT;
     default:
-        inc.type = OC_NULL;
-        break;
+        return inc.type = OC_NULL;
     }
+}
+
+unsigned int DParser::symbol_reversal(Instruction& inc){
+    if ( OC_MINUS == inc.restype ) {
+        inc.restype = OC_NIL;
+    }
+    else {
+        inc.restype = OC_MINUS;
+    }
+    return 0;
 }
 
 unsigned int DParser::statement(unsigned int& pos,FunState& fun){
     Instruction inc;
 
     //全局变量
-    if ( T_GLOBAL == ls.t.token ) {
-        inc.res = true;
+    if ( T_LOCAL == ls.t.token ) {
+        inc.right = true;
         findX_next();
     }
 
@@ -212,34 +280,19 @@ unsigned int DParser::statement(unsigned int& pos,FunState& fun){
     }
 
     //记录左值
-    inc.left = ls.dvar.var.chv;
+    inc.left = ls.dvar;
+    this->findX_next();
 
-    findX_next();
     //下一个如果是函数调用的话
     if ( T_LPARENTH == ls.t.token ) {
-        inc.type = OC_CALL;
-        //这个返回值要进行更改一下
-        inc.rpos = 0;
-        D_VAR tmpvar = variable_check(inc.left.var.chv,fun,inc.rpos);
-        if ( VE_VOID == tmpvar.type ) {
-            logger->error(ls._row,":",ls._col," function name undefine ");
+        if(call_expr(inc.left.var.chv,fun)) {
+            logger->error(ls._row,":",ls._col," call  error");
             return ERR_END;
         }
-        inc.lpos = tmpvar.var.iv;
-
-        inc.curpos = fun.codes.size();
-        inc.res = 0;
-        fun.codes.push_back(inc);
-        findX_next();
-        //这里需要修改
-        if (T_RPARENTH == ls.t.token ) {
-            return 0;
-        }
+        return 0;
     }
     //数组下标赋值
     else if ( T_LBRACKET == ls.t.token ) {
-        inc.type = OC_ARR_PASSIGN;
-
         if(array_element_expr(inc,fun)){
             logger->error(ls._row,":",ls._col," array element assign error");
             return ERR_END;
@@ -251,44 +304,50 @@ unsigned int DParser::statement(unsigned int& pos,FunState& fun){
         logger->error(ls._row,":",ls._col," unkonwn expression error ");
         return ERR_END;
     }
-    
-    inc.type = OC_ASSIGN;
-    findX_next();
+
+    this->findX_next();
 
     //数组
-    if ( T_LBRACE == ls.t.token ) {
-        if(array_expr(inc.left.var.chv,fun)){
+    if ( T_LBRACKET == ls.t.token ) {
+        if(union_expr(inc.right.var.bv,inc.left.var.chv,fun)){
             logger->error(ls._row,":",ls._col," array parse error");
             return ERR_END;
         }
         return 0;
     }
-    
 
-    if(assign_expr(inc,fun)){
+    if ( assign_expr(inc,fun) ) {
         logger->error(ls._row,":",ls._col," assign expression error");
         return ERR_END;
     }
+
+    fun.codes.push_back(inc);
 
     return 0;//正常退出
 }
 
 unsigned int DParser::assign_expr(Instruction& inc,FunState& fun){
+    inc.type = OC_ASSIGN;
+
     short assigntype;
-    if ( T_MINUS == ls.t.token ) {
+    if ( T_MINUS == ls.t.token  
+    || T_LPARENTH == ls.t.token) {
         //do nothing
     }
     else if ( VE_USER == ls.dvar.type ) {
-        assigntype = variable_check(ls.dvar.var.chv,fun).type;
+        D_OBJ* tmpobj = variable_check(ls.dvar.var.chv,fun);
+        assigntype = tmpobj->type;
+
         //判断是否为数组，
-        if ( array_check(ls.dvar.var.chv) ) {
+        if ( VE_UNION == assigntype ) {
             if ( list_access_expr(inc.left.var.chv,fun) ) {
                 logger->error("list access expression error");
                 return ERR_END;
             }
             return 0;
         }
-        else {
+        else if ( VE_VOID == assigntype ){
+            delete tmpobj;
             logger->error(ls._row,":",ls._col," prefix user data undefine");
             return ERR_END;
         }
@@ -309,60 +368,88 @@ unsigned int DParser::assign_expr(Instruction& inc,FunState& fun){
         break;
     }
     case VE_FUNC:{
-        //判断返回值是否为空
+        //这里找函数的具体偏移位置
+        Instruction tmp;
+        tmp.type = OC_NULL;
+
+        D_OBJ* tmpobj = variable_check(ls.dvar.var.chv,fun);
+        if ( VE_VOID == tmpobj->type ){
+            delete tmpobj;
+            logger->error(ls._row,":",ls._col," prefix user data undefine");
+            return ERR_END;
+        }
+
+        tmp.left = tmpobj->var.iv;
+        tmp.left.type = VE_FUNC;
+        
+        tmp.curpos = fun.codes.size();
+        fun.codes.push_back(tmp);
+        inc.rpos = tmp.curpos;
+
+        this->findX_next();
+
+        if(call_expr(ls.dvar.var.chv,fun)) {
+            logger->error(ls._row,":",ls._col," call  error");
+            return ERR_END;
+        }
+        
+        //这个加在后面
         break;
     } 
     default:{
-        inc.rpos = this->prefix_expr(0,fun);
+        inc.rpos = this->simple_expr(fun);
+        
         if ( ERR_END == inc.rpos ) {
             logger->error("basic expression error");
             return ERR_END;
         }
-        fun.proto->lv[inc.left.var.chv] = 0;
-        fun.proto->lv[inc.left.var.chv].type = VE_NULL;
-
         break;
     }
     }
-    //先把user_data添加进行进行判断
 
+    //先把user_data添加进行进行判断
     if ( T_END != ls.t.token ){
         logger->error(ls._row,":",ls._col," error end");
         return ERR_END;
     }
-
+    
+    
+    fun.proto->lv[inc.left.var.chv] = 0;
+    fun.proto->lv[inc.left.var.chv].type = VE_NULL;
     inc.curpos = fun.codes.size();
-    fun.codes.push_back(inc);
+    // fun.codes.push_back(inc);
     return 0;
 }
 
-void DParser::jump_expr(){
+unsigned int DParser::jump_expr(FunState& fun){
     logger->debug("jumping to ");
     findX_next();
     //不是int类型
     if ( T_INT != ls.t.token ) {
         logger->error("jumping num  type is error");
         findX_next();
-        return;
+        return ERR_END;
     }
     //超出范围
     if ( ls.dvar.var.iv < 0) {
         logger->warn(" jump out of range ");
         findX_next();
-        return;
+        return ERR_END;
     }
     
     findX_next();
     //加入指令
     Instruction inc;
     inc.type = OC_JMP;
-    inc.lpos = ls.dvar.var.iv; 
-    inc.res = true;//跳转
+    inc.lpos = ls.dvar.var.iv - 1; 
     inc.curpos = bytes_code_line();
-    global.codes.push_back(inc);
+    fun.codes.push_back(inc);
+
+    return 0;
 }
 
 unsigned int DParser::if_expr(FunState& func){
+    
     if ( T_PASS == ls.t.token ) {
         return 0;
     }
@@ -370,7 +457,7 @@ unsigned int DParser::if_expr(FunState& func){
 
     findX_next();
     //判断跳转函数是否执行
-    inc.rpos = prefix_expr(0,func);
+    inc.rpos = simple_expr(func);
 
     inc.curpos = func.codes.size();
     //记录跳转的函数是第几个
@@ -381,108 +468,340 @@ unsigned int DParser::if_expr(FunState& func){
 
     //判断结束符号是否正确
     if (T_COLON != ls.t.token) {
-        logger->error("if condition judgment error");
+        logger->error(ls._row,":",ls._col," if condition judgment error");
         return ERR_END;
     }
     
     findX_next();//这里通常都是 line 换行符
-
 
     FunState* ifstate = new FunState();
     ifstate->prev = &func;
     parse_Func(*ifstate);
     func.proto->lfuns.push_back(ifstate);
     
+    // if 直接结束
     if ( T_PASS != ls.t.token) {
-        logger->error("missing pass end in if statement");
+        //pass
+        logger->error(ls._row,":",ls._col," missing pass end in if statement");
         return ERR_END;
     }
-    //pass
+    findX_next();
+    //end
+    if ( T_END != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing  end in elif statement");
+        return ERR_END;
+    }
     findX_next();
 
-    return 0;   //正常退出
-}
-
-unsigned int DParser::for_expr(FunState& func){
-    if ( T_PASS == ls.t.token ) {
-        return 0;
+    //出现elif
+    if ( T_ELIF == ls.t.token ) {
+        //解析elif 查找到最后的跳转位置挨个遍历
+        if (elif_expr(func)) {
+            logger->error(ls._row,":",ls._col," elif expression parse error");
+            return ERR_END;
+        }        
     }
     
-    Instruction inc;
-    findX_next();
-    
-    int ret = ls.t.token;
-
-    D_VAR iter = ls.dvar;
-    //判断该元素是否迭代
-    if ( T_UDATA == ret && VE_USER == ls.dvar.type) {
-        unsigned int tmptype = variable_check(ls.dvar.var.chv,func).var.iv;
-        //用户变量另作处理
-        if ( tmptype == VE_VOID ) {
-            logger->error(ls._row,":",ls._col," user data undefine");
+    //else语句
+    if ( T_ELSE == ls.t.token ) {
+        if (else_expr(func)) {
+            logger->error(ls._row,":",ls._col," else expression parse error");
             return ERR_END;
         }
-        else {
-            //判断迭代类型
-            iter = tmptype;
-        }
     }
-    
-    Instruction jump;
-    jump.type = OC_JMP;
-    jump.lpos = 0;
 
-    //迭代数据类型判断
-    if ( T_INT == ret ) {
-        //第一次进入函数已经调用过一次了
-        int jumloop = iter.var.iv - 1;
-        jump.res = true;
-        //判断for语句是否要执行
-        inc.res = jumloop < 0 ? 0 : jumloop;
+    unsigned int startpos = inc.curpos;
+    unsigned int endpos = func.codes.size();//解析都是最后的一个指令肯定是elif或else
+
+    //现在目前是给所有if elif指令赋值
+    unsigned int i;
+    for (i = startpos; i < endpos ; i++ ) { 
+        Instruction& cur = func.codes[i];
+        if ( OC_IF == cur.type ) {
+            cur.right = endpos;
+        } 
     }
+
+    return 0;
+}
+
+unsigned int DParser::elif_expr(FunState& func){
+
+    while ( T_ELIF == ls.t.token ) {
+        Instruction inc;
+        findX_next();
+        inc.rpos = simple_expr(func);
+
+        inc.curpos = func.codes.size();
+        inc.lpos = func.proto->lfuns.size(); 
+        inc.type = OC_IF;      //调用
+        func.codes.push_back(inc);
+
+        //判断结束符号是否正确
+        if (T_COLON != ls.t.token) {
+            logger->error(ls._row,":",ls._col," elif condition judgment error");
+            return ERR_END;
+        }
+        findX_next();
+        
+        FunState* elifstate = new FunState();
+        elifstate->prev = &func;
+        parse_Func(*elifstate);
+        func.proto->lfuns.push_back(elifstate);
+
+        if ( T_PASS != ls.t.token ) {
+            logger->error(ls._row,":",ls._col," missing pass end in elif statement");
+            return ERR_END;
+        }
+        findX_next();
+        //end
+        if ( T_END != ls.t.token ) {
+            logger->error(ls._row,":",ls._col," missing end in elif statement");
+            return ERR_END;
+        }
+        findX_next();
+    }
+
+    return 0;
+}
+
+unsigned int DParser::else_expr(FunState& func){
+    Instruction istrue;
+    istrue.curpos = func.codes.size();
+    istrue.type = OC_NULL;
+    istrue.left = true;
+    func.codes.push_back(istrue);
+
+    Instruction inc;
+    findX_next();
+    inc.rpos = istrue.curpos;
 
     inc.curpos = func.codes.size();
-    //记录跳转的函数是第几个
     inc.lpos = func.proto->lfuns.size(); 
-    inc.type = OC_FOR;      //调用
-
+    inc.type = OC_IF;      //调用
     func.codes.push_back(inc);
-
-    findX_next();
 
     //判断结束符号是否正确
     if (T_COLON != ls.t.token) {
-        logger->error("for condition judgment error");
+        logger->error(ls._row,":",ls._col," else condition judgment error");
+        return ERR_END;
+    }
+    findX_next();
+    
+    FunState* elsestate = new FunState();
+    elsestate->prev = &func;
+    parse_Func(*elsestate);
+    func.proto->lfuns.push_back(elsestate);
+
+    if ( T_PASS != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing pass end in else statement");
+        return ERR_END;
+    }
+    findX_next();
+    //end
+    if ( T_END != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing end in else statement");
+        return ERR_END;
+    }
+    findX_next();
+    
+    
+    return 0;
+}
+
+unsigned int DParser::for_expr(FunState& func){
+    findX_next();
+
+    Instruction forinc;
+    forinc.type = OC_FOR;
+    forinc.curpos = func.codes.size();
+    forinc.lpos = func.proto->lfuns.size();
+    func.codes.push_back(forinc);
+
+    FunState* forstate = new FunState();
+    forstate->prev = &func;
+
+    //初始化值
+    Instruction first;
+    first.left = 1;
+    first.type = OC_NULL;
+    first.curpos = forstate->codes.size();
+    forstate->codes.push_back(first);
+
+    Instruction assign;
+    assign.curpos = forstate->codes.size();
+
+    if ( T_UDATA != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," for initialization type is not correct");
+        return ERR_END;
+    }
+    std::string varname = ls.dvar.var.chv;
+    assign.left = ls.dvar;//迭代计数器
+    assign.rpos = first.curpos;
+    assign.type = OC_ASSIGN;
+    forstate->codes.push_back(assign);
+    forstate->proto->lv[ls.dvar.var.chv] = 0;
+    forstate->proto->lv[ls.dvar.var.chv].type = VE_NULL;
+    findX_next();
+
+    
+    if (T_IN != ls.t.token) {
+        logger->error(ls._row,":",ls._col," for condition missing in symbol");
+        return ERR_END;
+    }
+    findX_next();
+
+    Instruction second;
+    if ( T_UDATA != ls.t.token && T_INT != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," for iterator type is not correct");
+        return ERR_END;
+    }
+    second.left = ls.dvar;//这个值到时候可以改改
+    second.type = OC_NULL;
+    second.curpos = forstate->codes.size();
+    forstate->codes.push_back(second);
+    //迭代类型变量
+    assign.left = "for";
+    assign.left.type = VE_USER;
+    assign.curpos = forstate->codes.size();
+    assign.rpos = second.curpos;
+    forstate->proto->lv["for"] = 0;
+    forstate->proto->lv["for"].type = VE_NULL;
+    forstate->codes.push_back(assign);
+
+    findX_next();
+    unsigned int forstart = forstate->codes.size();
+
+    //判断结束符号是否正确
+    if (T_COLON != ls.t.token) {
+        logger->error(ls._row,":",ls._col," for condition judgment error");
         return ERR_END;
     }
     //line
     findX_next();
 
-    FunState* forstate = new FunState();
-    forstate->prev = &func;
+    //解析内部for函数
     parse_Func(*forstate);
-    func.proto->lfuns.push_back(forstate);
-    func.proto->lfuns[inc.lpos]->codes.push_back(jump);
-    
     if ( T_PASS != ls.t.token) {
         logger->error("missing pass end in for statement");
         return ERR_END;
     }
     //pass
     findX_next();
+
+    //自增操作 区间
+//--------------------------------------------------------------------------------------- 
+    Instruction incre;
+    incre.type = OC_NULL;
+    incre.left = 1;
+    incre.curpos = forstate->codes.size();
+    forstate->codes.push_back(incre);
+    
+    Instruction add;
+    add.type = OC_ADD;
+    add.left = varname.c_str();
+    add.left.type = VE_USER;
+    add.rpos = incre.curpos;
+    add.curpos = forstate->codes.size();
+    forstate->codes.push_back(add);
+
+    assign.left = varname.c_str();
+    assign.left.type = VE_USER;
+    assign.rpos = add.curpos;
+    assign.curpos = forstate->codes.size();
+    forstate->codes.push_back(assign);
+    
+//---------------------------------------------------------------------------------------    
+
+    //比较大小是否跳转
+    Instruction cmp;
+    cmp.curpos = forstate->codes.size();
+    cmp.type = OC_GT;
+    cmp.left = varname.c_str();
+    cmp.left.type = VE_USER;
+    cmp.rpos = second.curpos;
+    forstate->codes.push_back(cmp);
+    Instruction jmp;
+    jmp.lpos = forstart - 1;
+    jmp.curpos = forstate->codes.size();
+    jmp.type = OC_JMP;
+    jmp.rpos = cmp.curpos;
+    forstate->codes.push_back(jmp);
+
+    func.proto->lfuns.push_back(forstate);
     
     return 0;//正常退出
 }
 
+unsigned int DParser::while_expr(FunState& func){
+    findX_next();
+
+    FunState* whilestate = new FunState();
+    whilestate->prev = &func;
+
+    //添加一个jump指令，
+    Instruction jump1;
+    jump1.type = OC_JMP;
+    //判断跳转函数是否执行
+    jump1.rpos = simple_expr(*whilestate);
+
+    //判断结束符号是否正确
+    if (T_COLON != ls.t.token) {
+        logger->error(ls._row,":",ls._col," while condition judgment error");
+        return ERR_END;
+    }    
+    findX_next();//这里通常都是 line 换行符
+
+    Instruction inc;
+    inc.curpos = func.codes.size();
+    //记录跳转的函数是第几个
+    inc.lpos = func.proto->lfuns.size();
+    inc.type = OC_WHILE;
+    func.codes.push_back(inc);
+
+    jump1.curpos = whilestate->codes.size();
+    whilestate->codes.push_back(jump1); // lpos在后面改
+    parse_Func(*whilestate);
+
+
+    Instruction jump2;
+    jump2.curpos = whilestate->codes.size();
+    jump2.lpos = -1; //最开始位置
+    jump2.type = OC_JMP;
+    whilestate->codes.push_back(jump2);
+    //jump1跳转到最后位置
+    whilestate->codes[jump1.curpos].lpos = whilestate->codes.size() ;
+    
+    func.proto->lfuns.push_back(whilestate);
+
+    if ( T_PASS != ls.t.token) {
+        //pass
+        logger->error(ls._row,":",ls._col," missing pass end in while statement");
+        return ERR_END;
+    }
+    findX_next();
+    //end
+    if ( T_END != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing  end in while statement");
+        return ERR_END;
+    }
+    findX_next();
+
+
+    return 0;
+}
+
 unsigned int DParser::array_element_expr(Instruction& inc,FunState& fun){
-    if ( !array_check(inc.left.var.chv) ){
+    D_OBJ* tmpobj = variable_check(inc.left.var.chv,fun);
+    if ( VE_VOID == tmpobj->type ){
+        delete tmpobj;
         logger->error(ls._row,":",ls._col," array is not exist");
         return ERR_END;
     }
     //[
     this->findX_next();
-    //数字
-    inc.lpos = ls.dvar.var.iv;
+    //用户变量或数字
+    inc.right = ls.dvar;
     this->findX_next();
     //]
     if ( T_RBRACKET != ls.t.token ) {
@@ -496,16 +815,22 @@ unsigned int DParser::array_element_expr(Instruction& inc,FunState& fun){
     }
     this->findX_next();
 
-    //rpos,left
-    if( assign_expr(inc,fun) ){
-        logger->error(ls._row,":",ls._col," assign expression error");
+
+    inc.rpos = simple_expr(fun);
+
+    if( ERR_END == inc.rpos ){
+        logger->error(ls._row,":",ls._col," array assign expression error");
         return ERR_END;
     }
+    inc.type = OC_ARR_PASSIGN;
 
+    inc.curpos = fun.codes.size();
+    fun.codes.push_back(inc);
     return 0;
 }
 
 unsigned int DParser::function_expr(FunState& func){
+
     if ( T_PASS == ls.t.token ) {
         return 0;
     }
@@ -513,7 +838,7 @@ unsigned int DParser::function_expr(FunState& func){
     findX_next();
 
     if ( T_UDATA != ls.t.token ) {
-        logger->error("error function name ");
+        logger->error(ls._row,":",ls._col," illegal function name ");
         return ERR_END;
     }
     std::string funcname = ls.dvar.var.chv;
@@ -539,7 +864,8 @@ unsigned int DParser::function_expr(FunState& func){
             return ERR_END;
         }
         //添加变量
-        func.proto->lv[ls.dvar.var.chv] = 0;
+        // func.proto->lv[ls.dvar.var.chv] = 0;
+        //暂时没有
 
         findX_next();
         if ( T_RPARENTH == ls.t.token ) {
@@ -547,14 +873,14 @@ unsigned int DParser::function_expr(FunState& func){
             break;    
         }
         else if ( T_COMMA != ls.t.token ) {
-            logger->error("missing comma in function");
+            logger->error(ls._row,":",ls._col," missing comma in function");
             return ERR_END;
         }
         findX_next();
     }
     
     if ( T_COLON != ls.t.token ) {
-        logger->error("error ending function statement ");
+        logger->error(ls._row,":",ls._col," error ending function statement ");
         return ERR_END;
     }
 
@@ -566,6 +892,7 @@ unsigned int DParser::function_expr(FunState& func){
 
     //添加return命令
     Instruction inc;
+    inc.curpos = func.codes.size();
     inc.type = OC_RET;
     function->codes.push_back(inc);
 
@@ -577,22 +904,26 @@ unsigned int DParser::function_expr(FunState& func){
         logger->error("missing pass end in function statement");
         return ERR_END;
     }
+    this->findX_next();
+    
     return 0;
 }
 
-unsigned int DParser::array_expr(const std::string& name,FunState& fun){
+unsigned int DParser::union_expr(bool global,const std::string& name,FunState& fun){
     unsigned int lastpos = FIN_END;
     Instruction assign;
+
     for (;;) {
         Instruction inc;
 
         this->findX_next();
+
         if ( T_EOF == ls.t.token ) {
-            logger->error("parser end error");
+            logger->error(ls._row,":",ls._col," parser end error");
             return ERR_END;
         }
         else if ( T_END == ls.t.token ) {
-            logger->error(ls._row,":",ls._col," missing right brace ");
+            logger->error(ls._row,":",ls._col," missing right bracket ");
             return ERR_END;        
         }
         
@@ -603,25 +934,31 @@ unsigned int DParser::array_expr(const std::string& name,FunState& fun){
         fun.codes.push_back(inc);
         
         this->findX_next();
-
-        if ( T_RBRACE == ls.t.token ) {
+        if ( T_RBRACKET == ls.t.token ) {
             //正常退出
             break;
         }
         else if ( T_COMMA != ls.t.token ) {
-            logger->error(ls._row,":",ls._col," missing comma in array ");
+            logger->error(ls._row,":",ls._col," missing comma in array or array is null");
             return ERR_END;
         }
-
     }
     
     assign.left = name.c_str();
     assign.type = OC_ARR_ASSIGN;
     assign.rpos = lastpos;
+    assign.right = global;
     assign.curpos = fun.codes.size();
     fun.codes.push_back(assign);
 
-    this->arrays[name] = {};
+    fun.proto->lv[name] = 0;
+    fun.proto->lv[name].type = VE_UNION;
+
+    if ( T_RBRACKET != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing right bracket ");
+        return ERR_END;
+    }
+    this->findX_next();
     return 0;
 }
 
@@ -629,11 +966,36 @@ unsigned int DParser::list_access_expr(const std::string& name,FunState& func){
     this->findX_next();
     std::string varname = ls.dvar.var.chv;
     if ( T_END == ls.t.token ) {
-        logger->error("array not allow copy assign now");
-        // print_array(name);
-        return ERR_END;
+        Instruction ll;
+        ll.type = OC_NULL;
+        ll.left = 0;
+        ll.curpos = func.codes.size();
+        func.codes.push_back(ll);
+        
+        Instruction rr;
+        rr.type = OC_NULL;
+        rr.left = QD_INT_32_MAX;
+        rr.curpos = func.codes.size();
+        func.codes.push_back(rr);
+        
+        Instruction inc;
+        inc.type = OC_ARR_LIST;
+        inc.lpos = ll.curpos;
+        inc.rpos = rr.curpos;
+        inc.left = varname.c_str();
+
+        inc.curpos = func.codes.size();
+        func.codes.push_back(inc);
+        Instruction ass;
+        ass.type = OC_ARR_LASSIGN;
+        ass.left = name.c_str();
+        ass.rpos = inc.curpos;
+        ass.curpos = func.codes.size();
+        func.codes.push_back(ass);
+        func.proto->lv[name] = 0;
+        func.proto->lv[name].type = VE_UNION;
+        return 0;
     }
-    //列表访问中间不允许空格
     else  if ( T_LBRACKET != ls.t.token ) {
         logger->error(ls._row,":",ls._col," list access expression error");
         return ERR_END;
@@ -642,13 +1004,13 @@ unsigned int DParser::list_access_expr(const std::string& name,FunState& func){
     this->findX_next();
 
     int ret = parse_PreCode(ls.t.token);
-    if (OC_NIL != ret){
+    if ( OC_NIL != ret ){
         findX_next();
     }
     
     D_VAR left = 0;
     if ( T_INT == ls.t.token ) {
-        left = ret == OC_MINUS ?  -ls.dvar.var.iv :  ls.dvar.var.iv ;
+        left = ls.dvar.var.iv ;
         this->findX_next();
     }
     else if ( T_UDATA == ls.t.token ) {
@@ -657,15 +1019,13 @@ unsigned int DParser::list_access_expr(const std::string& name,FunState& func){
     }
 
     //如果只有一个负数符号
-    if ( ( OC_MINUS == ret && T_INT == ls.lookahead.token ) 
-      || ( T_UDATA != ls.lookahead.token && T_INT != ls.lookahead.token ) ) {
+    if ( T_COLON != ls.t.token && T_MINUS == ls.lookahead.token ) {
         logger->error(ls._row,":",ls._col," missing int value with minus symbol");
         return ERR_END;
     }
     
     //如果访问一个下标
     if ( T_RBRACKET == ls.t.token ) {
-        
         Instruction inc;
         inc.type = OC_ARR_ACESS;
         inc.left = varname.c_str();
@@ -681,6 +1041,11 @@ unsigned int DParser::list_access_expr(const std::string& name,FunState& func){
         func.codes.push_back(assign);
 
         this->findX_next();
+
+        if ( T_END != ls.t.token ) {
+            logger->error(ls._row,":",ls._col," error ending in array assign");
+            return ERR_END;
+        }
 
         return 0;
     }
@@ -718,11 +1083,23 @@ unsigned int DParser::list_access_expr(const std::string& name,FunState& func){
         return ERR_END;
     }
 
+    Instruction ll;
+    ll.type = OC_NULL;
+    ll.left = left;
+    ll.curpos = func.codes.size();
+    func.codes.push_back(ll);
+    
+    Instruction rr;
+    rr.type = OC_NULL;
+    rr.left = right;
+    rr.curpos = func.codes.size();
+    func.codes.push_back(rr);
+
     Instruction alist;
     alist.type = OC_ARR_LIST;
-    alist.left = left;
-    alist.right = right;
-    alist.res = varname.c_str();
+    alist.lpos = ll.curpos;
+    alist.rpos = rr.curpos;
+    alist.left = varname.c_str();
     alist.curpos = func.codes.size();
     func.codes.push_back(alist);
 
@@ -734,246 +1111,174 @@ unsigned int DParser::list_access_expr(const std::string& name,FunState& func){
     func.codes.push_back(assign);
 
     this->findX_next();
-    this->arrays[name] = {};
+
+    func.proto->lv[name] = 0;
+    func.proto->lv[name].type = VE_UNION;
 
     return 0;
 }
 
-unsigned int DParser::expr_stat(int ltype,FunState& fun){
-    if ( 
-       T_INT != ls.t.token && T_UDATA != ls.t.token 
-    && T_DECIMAL != ls.t.token && T_MINUS != ls.t.token 
-    && T_TRUE != ls.t.token && T_FALSE != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," express_stat type error  ");
-        return ERR_END;
+unsigned int DParser::simple_expr(FunState& fun){
+    std::vector<unsigned int> values; // 存放计算值位置
+    //存放运算符
+    std::vector<int> ops; //存放符号运算token
+
+    int negative = 0;
+
+    while ( T_END != ls.t.token && T_COLON != ls.t.token ) {
+        int tok = ls.t.token;
+        if ( T_EOF == tok ) {
+            return ERR_END;
+        }
+        
+        if ( ls.is_variable(tok) ) {
+            Instruction inc;
+            inc.left = ls.dvar;
+            inc.type = OC_NULL;
+            inc.curpos = fun.codes.size();
+
+            if (negative % 2 != 0) {
+                symbol_reversal(inc); // 处理负数前缀
+                --negative;
+            }
+            fun.codes.push_back(inc);
+            values.push_back(inc.curpos);
+        } else if ( T_MINUS == ls.t.token ) {
+            if ( ls.lookahead.token != T_RPARENTH 
+            && !ls.is_variable(ls.lookahead.token) ){
+                // 负数前缀检测
+                ++negative;
+            }
+            else {
+            Instruction tmp;
+                while (!ops.empty() && 
+            priority[parse_Opr(tmp,ops.back())] >= priority[parse_Opr(tmp,tok)] ) {
+                    unsigned int val2 = values.back();
+                    values.pop_back();
+                    unsigned int val1 = values.back();
+                    values.pop_back();
+                    int op = ops.back();
+                    ops.pop_back();
+                    Instruction inc;
+                    inc.lpos = val1;
+                    inc.rpos = val2;
+                    parse_Opr(inc,op);
+                    inc.curpos = fun.codes.size();
+                    values.push_back(inc.curpos);
+                    fun.codes.push_back(inc);
+                }
+                ops.push_back(tok);
+            }
+        } else if ( T_LPARENTH == tok ) {
+            if ( T_MINUS == ls.lookahead.token 
+            && ( ls.is_operator(ls.prevhead.token) 
+            ||   T_LPARENTH == ls.prevhead.token ) ) {
+                --negative;
+                ops.push_back(T_XMINUS);
+            }
+            ops.push_back(tok);
+        } else if ( T_RPARENTH == tok ) {
+            while ( ops.back() != T_LPARENTH ) {
+                unsigned int val2 = values.back();
+                values.pop_back();
+                unsigned int val1 = values.back();
+                values.pop_back();
+                int op = ops.back();
+                ops.pop_back();
+                Instruction inc;
+                inc.lpos = val1;
+                inc.rpos = val2;
+                parse_Opr(inc,op);
+                inc.curpos = fun.codes.size();
+                values.push_back(inc.curpos);
+                fun.codes.push_back(inc);
+            }
+            ops.pop_back();
+            
+            if (!ops.empty() && ops.back() == T_XMINUS ) {
+                symbol_reversal(fun.codes[values.back()]);
+                ops.pop_back();
+            }
+        } else if ( ls.is_operator(tok) ) {
+            Instruction tmp;
+            while (!ops.empty() && 
+            priority[parse_Opr(tmp,ops.back())] >= priority[parse_Opr(tmp,tok)] ) {
+                unsigned int val2 = values.back();
+                values.pop_back();
+                unsigned int val1 = values.back();
+                values.pop_back();
+                int op = ops.back();
+                ops.pop_back();
+                Instruction inc;
+                inc.lpos = val1;
+                inc.rpos = val2;
+                parse_Opr(inc,op);
+                inc.curpos = fun.codes.size();
+                values.push_back(inc.curpos);
+                fun.codes.push_back(inc);
+            }
+            ops.push_back(tok);
+        }
+        else {
+            logger->error(ls._row,":",ls._col," simple expression error");
+            return ERR_END;
+        }
+        this->findX_next();
     }
-    else if ( 
-       T_END == ls.t.token 
-    || T_LPARENTH == ls.t.token 
-    || T_COLON == ls.t.token ) {
-        return FIN_END;
-    }
 
-    //如果用户变量定义
-    if ( T_UDATA == ls.t.token && this->variable_check(ls.dvar.var.chv,fun).var.iv == VE_VOID) {
-        logger->error(ls._row,":",ls._col," user data undefine");
-        return ERR_END;
-    }
-
-    Instruction inc;
-    inc.ltype = ltype;
-
-    int ret = parse_PreCode(ls.t.token);
-    if (OC_NIL != ret){
-        findX_next();
-    }
-    inc.pretype = ret;
-
-    inc.left = ls.dvar;
-    findX_next();
-    //判断运算符
-    parse_Opr(inc,ls.t.token);
-
-    if ( T_END == ls.t.token 
-    || priority[inc.type][1] < priority[inc.ltype][0] 
-    || T_COLON == ls.t.token ) {
-        inc.res = inc.left;
-        inc.type = OC_NULL;
+    while (!ops.empty()) {
+        unsigned int val2 = values.back();
+        values.pop_back();
+        unsigned int val1 = values.back();
+        values.pop_back();
+        int op = ops.back();
+        ops.pop_back();
+        Instruction inc;
+        inc.lpos = val1;
+        inc.rpos = val2;
+        parse_Opr(inc,op);
         inc.curpos = fun.codes.size();
+        values.push_back(inc.curpos);
         fun.codes.push_back(inc);
-        return inc.curpos;
     }
-    findX_next();
 
+    return values.back();
+}
 
-    ret =  expr_stat(inc.type,fun);
-    if (ERR_END == ret) {
+unsigned int DParser::call_expr(std::string name,FunState& fun){
+    Instruction inc;
+    inc.left = name.c_str();
+    inc.type = OC_CALL;
+        //这个返回值要进行更改一下
+    inc.rpos = 0;
+    D_OBJ* tmpobj = variable_check(inc.left.var.chv,fun);
+    if ( VE_VOID == tmpobj->type ) {
+        delete tmpobj;
+        logger->error(ls._row,":",ls._col," function name undefine ");
         return ERR_END;
     }
-
-    inc.rpos = ret;    
+    inc.lpos = tmpobj->var.iv;
 
     inc.curpos = fun.codes.size();
     fun.codes.push_back(inc);
+    findX_next();
 
-    return inc.curpos;
-}
-
-unsigned int DParser::prefix_expr(int type,FunState& fun){
-    unsigned int ret = expr_stat(type,fun);
-
-    if ( T_END == ls.t.token || T_COLON == ls.t.token ) {
-        return ret;
+    if ( T_RPARENTH != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," function call missing right parentheses");
+        return ERR_END;
     }
+    this->findX_next();
 
-    for (;;) {
-        if (ERR_END == ret || T_EOF == ls.t.token) {
-            logger->error("prefix expression error ");
-            return ERR_END;
-        }
-        Instruction inc;
-
-        inc.lpos = ret;
-        parse_Opr(inc,ls.t.token);
-        findX_next();
-        
-        ret = expr_stat(inc.type,fun);
-        
-        if ( ERR_END == ret) {
-            logger->error("prefix expression expr_stat error");
-            return ERR_END;
-        }
-
-        inc.rpos = ret;
-        inc.curpos = fun.codes.size();
-        fun.codes.push_back(inc);
-        
-        ret = inc.curpos;
-
-        if ( T_END == ls.t.token || T_COLON == ls.t.token ) {
-            return ret;
-        }
-        //表达式解析到最后
-        // if ( T_END ==  ls.t.token || ls.t.token == T_RPARENTH || ls.t.token == T_LPARENTH ){
-        //     break;
-        // }
-    }  
-
-    return ERR_END;
+    if ( T_END != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," function call end is not correct");
+        return ERR_END;
+    }
+    return 0;
 }
 
-unsigned int DParser::suffix_expr(int type,int pretype){ 
-    //  unsigned int est = FIN_END;
-    // int pretmp;
-    // Instruction inc;
-    // inc.ltype = type;
-
-    // switch (ls.t.token)
-    // {
-    // case T_LPARENTH:{//括号在前
-    //     inc.pretype = pretype;
-
-    //     findX_next();
-    //     pretmp = parse_PreCode(ls.t.token);
-    //     if (OC_NIL != pretmp){
-    //         findX_next();
-    //     }
-
-    //     inc.lpos = this->suffix_expr(0,pretmp);
-        
-    //     //只有一个
-    //     if ( FIN_END == inc.lpos ) {
-    //         inc.left = ls.dvar;
-    //     }
-
-    //     if ( T_RPARENTH == ls.t.token ) {
-    //         findX_next();
-    //         //已经结束
-    //         if ( T_END == ls.t.token ) {
-    //             //如果是一个表达式
-    //             return inc.lpos;
-    //         } 
-            
-    //         //嵌套
-    //         if (T_RPARENTH == ls.t.token) {
-    //             //如果是)返回出去
-    //             return inc.lpos;
-    //         }
-            
-    //         parse_Opr(inc,ls.t.token);
-            
-    //         //运算符优先级小
-    //         if ( priority[inc.ltype][0] > priority[inc.type][1] ) {
-    //             return inc.lpos;
-    //         }
-    //         findX_next();
-
-    //         pretmp = parse_PreCode(ls.t.token);
-    //         if (OC_NIL != pretmp){
-    //             findX_next();
-    //         }
-    //         //紧挨着下一个()
-    //         //例如 () * ()
-    //         if (T_LPARENTH == ls.t.token) {
-    //             inc.rpos = suffix_expr(inc.type,pretmp);
-    //             inc.right = ls.dvar;
-    //             //判断最后一个是不是()
-    //             if ( T_RPARENTH == ls.lookahead.token) inc.sufftype = pretmp;
-                
-    //             inc.curpos = global.codes.size();
-    //             global.codes.push_back(inc);
-    //             return inc.curpos;
-    //         }
-
-    //         //-----------------------------------------------这里需要更改
-    //         //临时变量
-    //         // inc.rpos = expr_stat(inc.type,pretmp);
-
-    //         if (FIN_END == inc.rpos ) {
-    //             inc.right = ls.dvar;
-    //             inc.sufftype = pretmp;
-    //         }
-    //         inc.curpos = global.codes.size();
-    //         global.codes.push_back(inc);
-
-    //         //------------------上面expr
-    //         inc.lpos = inc.curpos;
-    //         parse_Opr(inc,ls.t.token);
-    //         inc.pretype = inc.sufftype = OC_NIL;//需要清空
-
-    //         if ( OC_NULL == inc.type ) {
-    //             return  inc.curpos;
-    //         }
-    //         findX_next();
-
-    //         pretmp = parse_PreCode(ls.t.token);
-    //         if (OC_NIL != pretmp){
-    //             findX_next();
-    //         }
-
-    //         inc.rpos = this->suffix_expr(0,pretmp);
-    //         if (FIN_END == inc.rpos ) {
-    //             inc.right = ls.dvar;
-    //             inc.sufftype = pretmp;
-    //         }            
-
-    //         inc.curpos = global.codes.size();
-    //         global.codes.push_back(inc);
-    //         return inc.curpos;
-    //     } 
-    //     else {
-    //         //错误处理
-    //     }
-
-    //     return FIN_END;
-    // }
-    // default:{//括号在后
-    //     // est = prefix_expr(type,pretype);
-    //     if ( T_LPARENTH == ls.t.token ) {
-    //         parse_Opr(inc,ls.lookahead.token);
-    //         //这里判断优先级
-    //         if ( priority[global.codes[est].ltype][0] > priority[inc.type][1]  ) {
-    //             global.codes.pop_back();
-    //             inc.rpos = this->suffix_expr(inc.type,pretmp);
-    //             inc.lpos = est - 1;
-    //             inc.curpos = global.codes.size();
-    //             global.codes.push_back(inc);
-    //             return inc.curpos;
-    //         }else{
-    //             //错误处理
-    //         }
-    //     }
-    //     else {
-    //         //错误处理
-    //     }
-    //     return est; 
-    // }
-    // }
-}
-
-void DParser::print_variable(const std::string& name,std::map<std::string,D_VAR>& variables){
+void DParser::print_variable(const std::string& name,std::map<std::string,D_OBJ>& variables){
     std::cout << name ;
-    const D_VAR& dv = variables[name.c_str()];
+    const D_OBJ& dv = variables[name];
     switch (dv.type)
     {
     case VE_INT:
@@ -995,17 +1300,21 @@ void DParser::print_variable(const std::string& name,std::map<std::string,D_VAR>
     }
 }
 
-void DParser::print_variables(std::map<std::string,D_VAR> lv){
+void DParser::print_variables(std::map<std::string,D_OBJ> lv){
     //打印全局变量
     for (auto i: lv){
         print_variable(i.first,lv);
     }
 }
 
-void DParser::print_array(const std::string& name){
-    std::vector<D_VAR>& vec = this->arrays[name].larr;
+void DParser::print_union(const std::string& name,std::map<std::string,D_OBJ>& variables){
+    const std::vector<D_VAR>& vec = variables[name].uni->larr;
     std::cout <<  name << "  |  ";
-    for (std::vector<D_VAR>::iterator ater = vec.begin() ; ater != vec.end() ; ater ++) {
+    if (!vec.size()){
+        logger->error("vector size is zero");
+        return;
+    }
+    for (std::vector<D_VAR>::const_iterator ater = vec.begin() ; ater != vec.end() ; ater ++) {
         switch (ater->type)
         {
         case VE_INT:
@@ -1022,16 +1331,14 @@ void DParser::print_array(const std::string& name){
             break;
         }
     }
+    
     std::cout << std::endl;
 }
 
-void DParser::print_arrays(){
-    for (std::map<std::string, D_ARRAY>::iterator
-         iter = this->arrays.begin() ; 
-         iter != this->arrays.end(); iter++) {
-        
-        print_array(iter->first);
-        std::cout << std::endl;
+void DParser::print_unions(std::map<std::string,D_OBJ>& variables){
+    //打印全局变量
+    for (auto i: variables){
+        print_union(i.first,variables);
     }
 }
 
@@ -1044,26 +1351,17 @@ unsigned int DParser::source_code_col(){
 }
 
 unsigned int DParser::bytes_code_line(){
-    return global.codes.size();
+    return global->codes.size();
 }
 
 unsigned int DParser::variable_count(){
-    return global.proto->lv.size();
+    return global->proto->lv.size();
 }
 
-bool DParser::array_check(const std::string& name){
-    if ( arrays.find(name) != arrays.end() ) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-D_VAR DParser::variable_check(const std::string& name,const FunState& fun){
-    if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
+D_OBJ* DParser::variable_check(const std::string& name,const FunState& fun){
+     if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
         // if ( VE_NULL != fun.proto->lv[name].type ) {
-            return fun.proto->lv[name];
+            return &fun.proto->lv[name];
         // }
     }
 
@@ -1073,144 +1371,176 @@ D_VAR DParser::variable_check(const std::string& name,const FunState& fun){
     {
         if (tmpfunc->proto->lv.find(name) != tmpfunc->proto->lv.end() ) {
             // if ( VE_NULL != fun.proto->lv[name].type ) {
-                return tmpfunc->proto->lv[name];
+                return &tmpfunc->proto->lv[name];
             // }
         }
         tmpfunc = tmpfunc->prev;
     }
-    return D_VAR();
+
+    D_OBJ* tmp = new D_OBJ(); 
+    return tmp;
 }
 
-D_VAR DParser::variable_check(const std::string& name,const FunState& fun,unsigned int& recurse){
-    D_VAR tmp;
-    if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
-        return fun.proto->lv[name];
-    }
+D_OBJ* DParser::variable_check(const std::string& name,const FunState& fun,unsigned int& recurse){
+    // D_OBJ tmp;
+    // if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
+    //     return &fun.proto->lv[name];
+    // }
 
-    FunState* tmpfunc = fun.prev;
-    unsigned int cur = recurse;
-    while ( tmpfunc )
-    {
-        cur++;
-        if ( tmpfunc->proto->lv.find(name) != tmpfunc->proto->lv.end() ) {
-            recurse = cur;
-            return tmpfunc->proto->lv[name];
-        }
-        tmpfunc = tmpfunc->prev;
-    }
-    recurse = cur;
-    return D_VAR();
+    // FunState* tmpfunc = fun.prev;
+    // unsigned int cur = recurse;
+    // while ( tmpfunc )
+    // {
+    //     cur++;
+    //     if ( tmpfunc->proto->lv.find(name) != tmpfunc->proto->lv.end() ) {
+    //         recurse = cur;
+    //         return &tmpfunc->proto->lv[name];
+    //     }
+    //     tmpfunc = tmpfunc->prev;
+    // }
+    // recurse = cur;
+
+    D_OBJ* obj = new D_OBJ();
+    return obj;
 }
 
-D_ARRAY DParser::list_access(int start, int end,const D_ARRAY& arr){
-    D_ARRAY tmp;
+D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
+    D_UNION tmp;
     int i ;
     int len = arr.larr.size();
     if ( start < 0 ) {
         start = len + start + 1;
     }
+
     if ( end < 0 ) {
         end = len + end + 1;
     }
     else if ( end == QD_INT_32_MAX ) {
         end = len;
     }
+    else if ( end > len ) {
+        logger->warn("array index out of range");
+    }
+
+    if ( end < start ) {
+        logger->warn("array is null");
+    }
 
     for ( i = start ; i < len && i < end; i++ ) {
         tmp.larr.push_back(arr.larr[i]);
     }
+    
     return tmp; 
 }
 
-D_VAR DParser::analyse_assign(Instruction& inc,std::vector<Instruction>& codes){
+D_OBJ DParser::analyse_assign(Instruction& inc,FunState& fun){
     logger->debug("<-----  analyse  assign  ----->");
 
     logger->debug("cur line is :  ",inc.curpos);
     logger->debug("left pos is :  ",inc.lpos);
     logger->debug("right pos is :  ",inc.rpos);
     logger->debug("left  value is :  ",inc.left.var.chv);
-    logger->debug("operator code is :  ",inc.type);
-    
+    logger->debug("operator code is :  ",(int)inc.type);
     if ( FIN_END ==  inc.rpos ) {
         logger->error("assigment right expression is null");
         return ERR_END;
     }
 
-    Instruction& tmp = codes[inc.rpos];
+    Instruction& tmp = fun.codes[inc.rpos];
 
-    switch (tmp.res.type)
+    switch (tmp.right.type)
     {
     case VE_BOOL:
-        return tmp.res.var.bv;
+        return tmp.right.var.bv;
     case VE_INT:
-        return OC_MINUS == inc.sufftype ? -tmp.res.var.iv : tmp.res.var.iv;
+        return tmp.right.var.iv;
     case VE_STR:
-        return tmp.res.var.chv;
+        return tmp.right.var.chv;
     case VE_FLT:
-        return OC_MINUS == inc.sufftype ? -tmp.res.var.dv : tmp.res.var.dv;
+        return tmp.right.var.dv;
+    case VE_FUNC:{
+
+        // D_OBJ* tmpobj =  variable_check(
+        //     QD_KYW_RET,
+        // *global.proto->lfuns[0]);
+        // if ( VE_VOID == tmpobj->type ) {
+        //     delete tmpobj;
+        //     logger->error(ls._row,":",ls._col," variable name undefine ");
+        //     return ERR_END;
+        // }
+        //  if ( !this->funstack.empty() ) {
+        //         // 出栈
+        //         this->funstack.pop_back();
+        //     }
+        //这里做函数返回值
+        // return *tmpobj;
+    }
     default:
         logger->error("assign nothing happend");
-        return D_VAR();
+        return D_OBJ();//这里潜在错误
     }
 }
 
 unsigned int DParser::analyse_expr(Instruction& inc,FunState& fun){
     logger->debug("<-----  analyse expression  ----->");
-    D_VAR& tleft =  inc.left;
-    D_VAR& tright = inc.right;
-    D_VAR& tres = inc.res;
-    D_VAR tmpleft;
-    D_VAR tmpright;
+    D_VAR tleft;
+    D_VAR tright ;
+    D_VAR& tres = inc.right;
 
     logger->debug("cur line is :  ",inc.curpos);
     logger->debug("left pos is :  ",inc.lpos);
     logger->debug("right pos is :  ",inc.rpos);
-    logger->debug("operator code is :  ",inc.type);
-    logger->debug("last code is :  ",inc.ltype);
-    logger->debug("left    value  ",inc.left.var.iv);
-    logger->debug("right   value  ",inc.right.var.iv);
-    logger->debug((int)inc.pretype,(int)inc.sufftype);
+    logger->debug("operator code is :  ",(int)inc.type);
 
-
-    // 判断用户变量
-    if (VE_USER == inc.left.type ) {
-        tmpleft = tleft;
-        tleft = variable_check(tleft.var.chv,fun);
-    }
-    if (VE_USER == inc.right.type ) {
-        tmpright = tright;
-        tright = variable_check(tright.var.chv,fun);
-    }
-    
-    if ( FIN_END != inc.lpos) {
-        Instruction& tmp = fun.codes[inc.lpos];
-        tleft = tmp.res;
-    }
-    if ( FIN_END != inc.rpos){
-        Instruction& tmp = fun.codes[inc.rpos];
-        tright = tmp.res;
+    if ( FIN_END != inc.lpos ) {
+        tleft = fun.codes[inc.lpos].right;
     }
 
-    //如果为负数
-    if (OC_MINUS == inc.pretype){
-        tleft = -tleft;
+    if ( FIN_END != inc.rpos ) {
+        tright = fun.codes[inc.rpos].right;
     }
-    if (OC_MINUS == inc.sufftype){
-        tright = -tright;
+    logger->debug("left type is  : ",tleft.type);
+    logger->debug("right type is  : ",tright.type);
+
+    if ( VE_USER == tleft.type  ) {
+        D_OBJ* tmpvar = variable_check(tleft.var.chv,fun);
+        if ( VE_VOID == tmpvar->type ) {
+            delete tmpvar;
+            return ERR_END;
+        }
+        tleft = *tmpvar;
     }
 
+    if ( VE_USER == tright.type ) {
+        D_OBJ* tmpvar = variable_check(tright.var.chv,fun);
+        if ( VE_VOID == tmpvar->type ) {
+            delete tmpvar;
+            return ERR_END;
+        }
+        tright = *tmpvar;
+    }
+
+    //如果只有一个值
+    if ( VE_VOID == tleft.type && VE_USER == inc.left.type ) {
+        D_OBJ* tmpvar = variable_check(inc.left.var.chv,fun);
+        if ( VE_VOID == tmpvar->type ) {
+            delete tmpvar;
+            return ERR_END;
+        }
+        tleft = *tmpvar;
+    }
+
+    logger->debug("left type is  : ",tleft.type);
+    logger->debug("right type is  : ",tright.type);
     //解析指令
     switch (inc.type)
     {
-    case OC_ADD:
+    case OC_ADD:{
+        result_add(tres,tleft,tright);
+        break;
+    }
     case OC_SUB:{
-        //这里进行数据类别的判断,例如整型,浮点数的转换
-        if ( (OC_ADD == inc.type && OC_SUB != inc.ltype ) || 
-                OC_SUB == inc.type && OC_SUB == inc.ltype ) {
-            result_add(tres,tleft,tright);
-        }else{
-            result_sub(tres,tleft,tright);
-        }
+        result_sub(tres,tleft,tright);
         break;
     }
     case OC_MUL:{
@@ -1291,15 +1621,26 @@ unsigned int DParser::analyse_expr(Instruction& inc,FunState& fun){
         break;
     }
     case OC_ARR_ACESS:{
-        if ( tright.var.iv < 0 || tright.var.iv >= this->arrays[tleft.var.chv].larr.size() ) {
+        D_OBJ* tmpobj = variable_check(tleft.var.chv,fun);
+        if ( VE_VOID == tmpobj->type ) {
+            delete tmpobj;
+            logger->error("variable not exist int array");
+            return ERR_END;
+        }
+        if ( tright.var.iv < 0 || tright.var.iv >= tmpobj->uni->larr.size() ) {
             logger->error("variable access out of range");
             return ERR_END;
         }
-        inc.res = this->arrays[tleft.var.chv].larr[tright.var.iv];
+        inc.right = tmpobj->uni->larr[tright.var.iv];
         break;
     }
     case OC_NULL:{
-        inc.res = inc.left;
+        if ( VE_VOID == tleft.type ) {
+            tres = inc.left;
+        }
+        else {
+            tres = tleft;
+        }
         break; 
     }
     default:{
@@ -1308,13 +1649,12 @@ unsigned int DParser::analyse_expr(Instruction& inc,FunState& fun){
     }
     }
 
-    if ( VE_USER == tmpleft.type  ) {
-        tleft = tmpleft;
-    }
-    if ( VE_USER == tmpright.type ) {
-        tright = tmpright;
+    //结果数据为负数
+    if ( OC_MINUS == inc.restype ) {
+        tres = -tres;
     }
 
+    logger->debug("result   type   ",tres.type);
     logger->debug("result   value  ",tres.var.dv);
     logger->debug("result   value  ",tres.var.iv);
     logger->debug("result   value  ",tres.var.bv);
@@ -1323,25 +1663,49 @@ unsigned int DParser::analyse_expr(Instruction& inc,FunState& fun){
 }
 
 unsigned int DParser::analyse_array(Instruction& inc,const FunState& fun){
+    logger->debug("<-----  analyse  array assign  ----->");
+
+    logger->debug("cur line is :  ",inc.curpos);
+    logger->debug("left pos is :  ",inc.lpos);
+    logger->debug("right pos is :  ",inc.rpos);
+    logger->debug("left  value is :  ",inc.left.var.chv);
     std::string name = inc.left.var.chv;
     unsigned int pos = inc.rpos;
-
     if ( FIN_END == pos ) {
         //do nothing
         return 0;
     }    
-    D_ARRAY array;
+
+    D_UNION array;
     Instruction tmp = fun.codes[inc.rpos];
+    //检查一下是否为拷贝
+    if ( VE_USER == tmp.left.type ) {
+        D_OBJ* tmpobj = variable_check(tmp.left.var.chv,fun);
+        if ( VE_VOID == tmpobj->type ) {
+            delete tmpobj;
+            return ERR_END;
+        }
+        array = tmpobj->uni;
+        fun.proto->lv[name] = array;
+        return 0;
+    }
     array.larr.push_back(tmp.left);
-    while ( FIN_END != pos) {
+    pos = tmp.rpos;
+    while ( FIN_END != pos ) {
         tmp = fun.codes[tmp.rpos];
         pos = tmp.rpos;
         array.larr.push_back(tmp.left);
     }
     //反转了一下数组,有点麻烦暂时先保留这个条件。
     std::reverse(array.larr.begin(),array.larr.end());
-    this->arrays[name] = array;
-    print_array(name);
+
+    if (inc.right.var.bv) {
+        // (*this->funstack.begin())->proto->lv[name] = array;
+        global->proto->lv[name] = array;
+    }
+    else{
+        fun.proto->lv[name] = array;
+    }
     return 0;
 }
 
@@ -1350,12 +1714,11 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
     unsigned int i = pos;
     logger->debug("<------  function  analyse  start   ------>");
     
-    FunState* function = nullptr;
-
+    // FunState* function = nullptr;
     for (;i < clen;i++){
         Instruction& inc = fun.codes[i];
         //在这里判断解析类型
-        logger->debug("operator code is :  ",inc.type);
+        logger->debug("operator code is :  ",(int)inc.type);
 
         switch (inc.type)
         {
@@ -1364,25 +1727,29 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("cur line is :  ",inc.curpos);
             logger->debug("left pos is :  ",inc.lpos);
             logger->debug("right pos is :  ",inc.rpos);
-            logger->debug("result  value  is :  ",inc.res.var.iv);
+            logger->debug("result  value  is :  ",inc.right.var.iv);
             logger->debug("stack deep size is ",this->funstack.size());
             
             //function
             //第几层函数的调用
-            FunState* curfun = &fun;
-            unsigned int recur = inc.rpos;
-            while (recur) {
-                curfun = curfun->prev;
-                recur --;
-            }
-            //分配内存空间
-            function =  new FunState(*curfun->proto->lfuns[inc.lpos]);
+            // FunState* curfun = &fun;
+            // unsigned int recur = inc.rpos;
+            // while (recur) {
+            //     curfun = curfun->prev;
+            //     recur --;
+            // }
+            // 分配内存空间
+            // FunState function  =  *fun.proto->lfuns[inc.lpos];
+
+            FunState* function =  new FunState(*fun.proto->lfuns[inc.lpos]);
             function->proto->lv.clear();
             function->code_pos = 0;
-            this->funstack.push_back(*function);
+            this->funstack.push_back(function);
+            
             analyse_code(function->code_pos,*function);
-            //释放内存
+            // 释放内存
             delete function;
+            // return 0;
             break;
         }
         case OC_JMP:{
@@ -1390,37 +1757,38 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("cur line is :  ",inc.curpos);
             logger->debug("left pos is :  ",inc.lpos);
             logger->debug("right pos is :  ",inc.rpos);
-            logger->debug("result value is :  ",inc.res.var.bv);
-            logger->debug("operator code is :  ",inc.type);
-
+            logger->debug("operator code is :  ",(int)inc.type);
             //判断是否跳转
             if ( FIN_END != inc.rpos ) {
-                if (!inc.rpos) {
-                    //保存下一次跳转的条件
-                    continue;//次数为0
+                Instruction& jump = fun.codes[inc.rpos];
+                //收集到的bool类型好像大于1
+                if ( !jump.right.var.bv && true ) {
+                    i = inc.lpos;
                 }
-                --inc.rpos;
             }
-
-            if (inc.res.var.bv) {
-                if (FIN_END != inc.lpos) {
-                    i = inc.lpos - 1;
-                }
+            //单纯跳转指令
+            else{
+                i = inc.lpos ;
             }
             break;
         }      
         case OC_ASSIGN:{
-            D_VAR result ;
-            if (inc.res.var.bv) {
-                result = analyse_assign(inc,fun.codes);
+            D_OBJ result ;
+            if (inc.right.var.bv) {
+                result = analyse_assign(inc,fun);
                 if ( VE_VOID == result.type ) {
                     return ERR_END;
                 }
-                global.proto->lv[inc.left.var.chv] = result;
-                print_variable(inc.left.var.chv,global.proto->lv);
+                //因为global是第一个函数,这里可能到时候要改
+                // (*this->funstack.begin())->proto->lv[inc.left.var.chv] = result;
+                global->proto->lv[inc.left.var.chv] = result;
+                // global.proto->lv[inc.left.var.chv] = result;
+                print_variable( inc.left.var.chv,
+                // (*this->funstack.begin())->proto->lv);
+                global->proto->lv);
             }
             else {
-                result = analyse_assign(inc,fun.codes);
+                result = analyse_assign(inc,fun);
                 if ( VE_VOID == result.type ) {
                     return ERR_END;
                 }
@@ -1431,37 +1799,38 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
         }
         case OC_RET:{
             logger->debug("analyse  return    !!!!!!!!! ");
-            logger->debug("stack deep size is ",this->funstack.size());
-            if ( this->funstack.size() ) {
-                // 出栈
-                this->funstack.pop_back();
-            }
-            logger->debug("<------  function  analyse  end   ------>");
-            pos = clen;
-            return 0;
+            logger->debug("cur line is :  ",inc.curpos);
+
+            i = clen;
+            break;
         }
         case OC_IF:{
             logger->debug("analyse  if    !!!!!!!!! ");
             logger->debug("cur line is :  ",inc.curpos);
             logger->debug("left pos is :  ",inc.lpos);
             logger->debug("right pos is :  ",inc.rpos);
-            logger->debug("result  value  is :  ",inc.res.var.iv);
-            //if
-            if ( FIN_END != inc.rpos && FIN_END != inc.lpos ) {
-                if ( fun.codes[inc.rpos].res.var.bv ) {
+            logger->debug("result  value  is :  ",inc.right.var.iv);
+            //if elif else
+            if ( fun.codes[inc.rpos].right.var.bv ) {
+                if ( FIN_END != inc.rpos && FIN_END != inc.lpos ) {
                     FunState& jumpfun = *fun.proto->lfuns[inc.lpos];
                     //一定要清空所有变量防止有变量信息记录
                     jumpfun.proto->lv.clear();
                     jumpfun.code_pos = 0;  
                     analyse_code(jumpfun.code_pos,jumpfun);
+                    //执行成功跳转到最后位置
+                    if ( VE_VOID != inc.right.type ) {
+                        //因为会自增加一
+                        i = inc.right.var.iv - 1;
+                    }
                 }
-                else {
-                    logger->debug("if  function  dont  jump  in");
+                else{
+                    logger->error("if  expression  analyse  error");
+                    return ERR_END;
                 }
             }
-            else  {
-                logger->error("if  expression  analyse  error");
-                return ERR_END;
+            else{
+                logger->debug("jump next if or elif function");
             }
             break;
         }
@@ -1470,25 +1839,38 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("cur line is :  ",inc.curpos);
             logger->debug("left pos is :  ",inc.lpos);
             logger->debug("right pos is :  ",inc.rpos);
-            logger->debug("result  value  is :  ",inc.res.var.iv);
+            logger->debug("result  value  is :  ",inc.right.var.iv);
             //for 
             if ( FIN_END != inc.lpos ) {
-                if ( inc.res.var.iv ) {
-                    FunState& jumpfun =  *fun.proto->lfuns[inc.lpos];
-                    //一定要清空所有变量防止有变量信息记录
-                    jumpfun.proto->lv.clear();
-                    jumpfun.codes.back().rpos = inc.res.var.iv;
-                    //重置偏移量为0
-                    jumpfun.code_pos = 0;   
-                    //最后一个指令是jump所以
-                    analyse_code(jumpfun.code_pos,jumpfun);
-                }
-                else {
-                    logger->debug("for  function  dont  jump  in");
-                }
+                FunState& jumpfun =  *fun.proto->lfuns[inc.lpos];
+                //一定要清空所有变量防止有变量信息记录
+                jumpfun.proto->lv.clear();
+                //重置偏移量为0
+                jumpfun.code_pos = 0;   
+                //最后一个指令是jump所以
+                analyse_code(jumpfun.code_pos,jumpfun);
             }
             else {
                 logger->error("for  expression  analyse  error");
+                return ERR_END;
+            }
+            break;
+        }
+        case OC_WHILE:{
+            logger->debug("analyse  while    !!!!!!!!! ");
+            logger->debug("cur line is :  ",inc.curpos);
+            logger->debug("left pos is :  ",inc.lpos);
+            //while
+            if ( FIN_END != inc.lpos ) {
+                FunState& jumpfun = *fun.proto->lfuns[inc.lpos];
+                //一定要清空所有变量防止有变量信息记录
+                jumpfun.proto->lv.clear();
+                jumpfun.code_pos = 0;  
+                analyse_code(jumpfun.code_pos,jumpfun);
+                //执行成功跳转到最后位置
+            }
+            else{
+                logger->error("while  expression  analyse  error");
                 return ERR_END;
             }
             break;
@@ -1498,50 +1880,91 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
                 logger->error("arrray assign error");
                 return ERR_END;
             }
+            if (inc.right.var.bv) {
+                // print_union(inc.left.var.chv,(*this->funstack.begin())->proto->lv);
+                print_union(inc.left.var.chv,global->proto->lv);
+            }
+            else {
+                print_union(inc.left.var.chv,fun.proto->lv);
+            }
             break;
         }
         case OC_ARR_LASSIGN:{
             Instruction& arr = fun.codes[inc.rpos];
 
-            D_VAR lval;
-            D_VAR rval;
-            if ( VE_USER == arr.left.type ) {
-                lval = variable_check(arr.left.var.chv,fun);
+            D_OBJ lval;
+            D_OBJ rval;
+            if ( VE_USER == fun.codes[arr.lpos].right.type ) {
+                lval = variable_check(fun.codes[arr.lpos].right.var.chv,fun);
                 if ( VE_INT !=  lval.type ) {
                     logger->error("error in array is not int type");
                     return ERR_END;
                 }
             }
             else {
-                lval = arr.left.var.iv;
+                lval = fun.codes[arr.lpos].right.var.iv;
             }
             
-            if ( VE_USER == arr.right.type ) {
-                rval = variable_check(arr.right.var.chv,fun);
+            if ( VE_USER == fun.codes[arr.rpos].right.type ) {
+                rval = variable_check(fun.codes[arr.rpos].right.var.chv,fun);
                 if ( VE_INT !=  rval.type ) {
                     logger->error("error in array is not int type");
                     return ERR_END;
                 }
             }
             else{
-                rval = arr.right.var.iv;
+                rval = fun.codes[arr.rpos].right.var.iv;
             }
-            
-            D_ARRAY tmparr = list_access(
-                        lval.var.iv,rval.var.iv,
-                        this->arrays[arr.res.var.chv]);
-            this->arrays[inc.left.var.chv].larr.clear();
-            this->arrays[inc.left.var.chv] = tmparr;
+            D_OBJ* tmpobj = variable_check(arr.left.var.chv,fun);
+            if ( VE_VOID == tmpobj->type ) {
+                logger->error("array list assign  variable not exist");
+                delete tmpobj;
+                return ERR_END;
+            }
+            D_UNION tmparr = 
+            union_access(lval.var.iv,rval.var.iv,*tmpobj->uni);
+            if ( !strcmp(arr.left.var.chv,inc.left.var.chv) ) {
+               fun.proto->lv[arr.left.var.chv].uni->larr.clear();
+            }
+            fun.proto->lv[inc.left.var.chv] = tmparr;
 
-            print_array(inc.left.var.chv);
+            print_union(inc.left.var.chv,fun.proto->lv);
             break;
         }
         case OC_ARR_PASSIGN:{
-            this->arrays[inc.left.var.chv].larr[inc.lpos] = analyse_assign(inc,global.codes);
+            D_OBJ* tmpobj = variable_check(inc.left.var.chv,fun);
+            if ( VE_VOID == tmpobj->type ) {
+                logger->error("array list assign  variable not exist");
+                delete tmpobj;
+                return ERR_END;
+            }
+            D_VAR restmp;
+            if ( VE_STR == inc.right.type || VE_USER == inc.right.type ) {
+                D_OBJ* tmpvar = variable_check(inc.right.var.chv,fun);
+                if ( VE_VOID == tmpvar->type ) {
+                    logger->error("array position  variable not exist");
+                    delete tmpvar;
+                    return ERR_END;
+                }
+                else if ( VE_INT == tmpvar->type ) {
+                    restmp = inc.right; 
+                    inc.right = tmpvar->var.iv;
+                }
+                else{
+                    logger->error("error varibale type to access array");
+                    return ERR_END;
+                }
+            }
+            tmpobj->uni->larr[inc.right.var.iv] = analyse_assign(inc,fun);
+            // print_union(inc.left.var.chv,fun.proto->lv);
+            if ( VE_STR == restmp.type || VE_USER == restmp.type ) { 
+                inc.right = restmp;
+            }
             break;
         }
         case OC_ARR_LIST:
         case OC_ARR_VAL:{
+            logger->debug("cur line is :  ",inc.curpos);
             //跳过，
             break;
         }
@@ -1558,6 +1981,13 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
 
     logger->debug("<------  function  analyse  end   ------>");
     pos = clen;
+    
+    logger->debug("stack  size is ",this->funstack.size());
+    // if ( !this->funstack.empty() ) {
+    //     delete this->funstack.back();
+    //     // 出栈
+    //     this->funstack.pop_back();
+    // }
 
     return 0;
 }
@@ -1681,7 +2111,7 @@ unsigned int DParser::result_eq(D_VAR& result,const D_VAR& left,const D_VAR& rig
     unsigned int rtype = right.type;
 
     if ( ltype != rtype ) {
-        logger->error(" left  right  type  is  not  equals");
+        logger->error("left  right  type  is  not  equals");
         return ERR_END;
     }
 
@@ -1828,7 +2258,6 @@ unsigned int DParser::result_ge(D_VAR& result,const D_VAR& left,const D_VAR& rig
         logger->error("these  type  can  not  compare  in  greater  equal  expression ");
         return ERR_END;
     }
-
     return 0;
 }
 

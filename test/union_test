@@ -1,0 +1,21 @@
+#warning out of range test
+a = [ 1212,"asdqw",12.3,"asd" ]
+a = a[3:2]
+
+
+# union not allow null
+# a = []
+
+# assign  variables
+#a[1] = 12.3
+#out of range
+# b = a[4]
+# b = a[3]
+# b = a[0:3]
+#a[2] = 2--(-1 + 2 * 3)
+
+#i = 0 
+#j = 3
+#a[j] = 12
+
+#a = a

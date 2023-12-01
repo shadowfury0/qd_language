@@ -2,26 +2,24 @@
 #define __QD_VARIABLE_H__
 
 #include "qd_header.h"
-/*
-    记录全局变量等信息
-*/
+
 
 _QD_BEGIN
 
 /**
  * 变量或者表达式类型
 */
-enum VE_TYPE{
-    VE_VOID = -1,           //非数据变量
+
+//词法解析阶段,暂存的数据类型。
+enum VE_TYPE {
+    VE_VOID,                //未初始化值
     VE_NULL,                //空值
-    // VE_DELAY,               //延缓变量,作用是最低级的变量,不是空值而是未赋值的变量
     VE_BOOL,                //bool
     VE_INT,                 //整型
     VE_FLT,                 //浮点数
     VE_STR,                 //字符串
     VE_USER,                //用户变量
     VE_FUNC,                //函数
-
 //------------------------------------------
     VE_ARRAY,               //数组
     VE_UNION,               //联合体
@@ -33,18 +31,21 @@ enum VE_TYPE{
 ** Original Data
 ** ===================================================================
 */
+struct D_OBJ;
+
+union D_PRO
+{
+    bool bv;
+    int iv;
+    unsigned int uiv;
+    double dv;
+    char* chv;
+};
 
 //16
 struct D_VAR{
     short type;
-    union d_assign
-    {
-        bool bv;
-        int iv;
-        unsigned int uiv;
-        double dv;
-        char* chv;
-    } var;
+    D_PRO var;
 
     D_VAR();
     D_VAR(const D_VAR& dv);
@@ -59,6 +60,7 @@ struct D_VAR{
     void clear();
 
     void operator=(const D_VAR& dv);
+    void operator=(const D_OBJ& dv);
     void operator=(const bool& b);
     void operator=(const int& v);
     void operator=(const unsigned int& u);
@@ -82,9 +84,7 @@ struct D_VAR{
     bool operator!=(const char* dv);
 
     D_VAR operator-();
-    
 };
-
 
 
 /*
@@ -92,32 +92,81 @@ struct D_VAR{
 ** Array
 ** ===================================================================
 */
-
-//24
-struct D_ARRAY{
+struct D_ARRAY {
+    short type;
     //默认类型
-    std::vector<D_VAR> larr;
+    std::vector<D_PRO> larr;
 
     D_ARRAY();
     D_ARRAY(const D_ARRAY& arr);
     void operator=(const D_ARRAY& arr);
 };
 
+/*
+** ==================================================================
+** Union
+** ===================================================================
+*/
 
+//24
+struct D_UNION {
+    //默认类型
+    std::vector<D_VAR> larr;
+
+    D_UNION();
+    D_UNION(const D_UNION& arr);
+    D_UNION(const D_OBJ& arr);
+    ~D_UNION();
+
+    void operator=(const D_UNION& arr);
+    void operator=(const D_OBJ& obj);
+};
+
+
+/*
+** ==================================================================
+** Object Type 
+** ===================================================================
+*/
+
+// 32
 struct D_OBJ
 {
+    short type;
     union 
     {
-        D_VAR  var;
-        D_ARRAY array;
+        D_PRO var;
+        D_UNION* uni;
     };
+
+    void init();
+    void clear();
+
     D_OBJ();
-    D_OBJ(const D_OBJ& obj);
     ~D_OBJ();
+
+    D_OBJ(const D_VAR& var);
+    D_OBJ(const D_UNION& arr);
+    D_OBJ(const D_OBJ& obj);
+    D_OBJ(const bool& b);
+    D_OBJ(const int& v);
+    D_OBJ(const unsigned int& u);
+    D_OBJ(const double& v);
+    D_OBJ(const char* v);
+    
+    void operator=(const D_VAR& dv);
+    void operator=(const D_OBJ& dv);
+    void operator=(const D_UNION& arr);
+    void operator=(const bool& b);
+    void operator=(const int& v);
+    void operator=(const unsigned int& u);
+    void operator=(const double& v);
+    void operator=(const char* v);
 };
 
 
 
 _QD_END
+
 
 #endif

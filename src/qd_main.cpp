@@ -44,75 +44,77 @@ int QDMAIN::qd_main(int argc, char **argv){
             //文件
             // logger->setLogTime(false);
             // logger->setLogPattern("%Y-%M------------");
-            logger->setLogLevel(4);
+            logger->setLogLevel(3);
 
             parser.read_file(argv[1]);
+            logger->setLogLevel(0);
+
         // }
     // }
 }
 
 void QDMAIN::interactive_mode(){
-    std::cout << " Welcome to QD 1.0 !!!" << std::endl;
-//交互模式
-    std::string line;
+//     std::cout << " Welcome to QD 1.0 !!!" << std::endl;
+// //交互模式
+//     std::string line;
 
-    for(;;){
-        std::cout << ">>> ";
-        std::getline(std::cin,line);
+//     for(;;){
+//         std::cout << ">>> ";
+//         std::getline(std::cin,line);
 
-        if (line == "help") {
-            std::cout << helpsargs << std::endl;
-        }
-        else if (line == "codes") {
-            std::cout << parser.bytes_code_line() << std::endl;
-        }
-        else if (line == "args") {
-            // parser.print_variables();
-        }
-        else if (line == "curline") {
-            std::cout << parser.source_code_row() << std::endl;
-        }
-        else if (line == "jump"){
-            std::getline(std::cin,line);
-            parser.global.code_pos = atoi(line.c_str());
-            parser.analyse_code(parser.global.code_pos,parser.global);
-        }
-        else if ( parser.global.proto->lv.find(line) != parser.global.proto->lv.end() ) {
-            // parser.print_variable(line);
-        }
-        else if (line == "quit") {
-            break;
-        }
-        //设置日志等级，这里稍后进行更改
-        else if (line == "level"){
-            std::cout << "please input log level " << std::endl;
-            std::getline(std::cin,line);
-            if ( line == "1" ) {
-                logger->setLogLevel(1);
-            }
-            else if (line == "2"){
-                logger->setLogLevel(2);
-            }
-            else if (line == "3"){
-                logger->setLogLevel(3);
-            } 
-            else if (line == "4"){
-                logger->setLogLevel(4);
-            }
-            else {
-                std::cout << "nothing happened " << std::endl;
-            }
-        }
-        else {
-            line.push_back('\n');
-            parser.read_line(line.c_str());
-            //判断是否有变量接收
-            // if ( OC_ASSIGN != parser.global.codes.back().type ) {
-            //     std::cout << parser.global.codes.back().left.var.iv << std::endl;
-            // }
-        }
+//         if (line == "help") {
+//             std::cout << helpsargs << std::endl;
+//         }
+//         else if (line == "codes") {
+//             std::cout << parser.bytes_code_line() << std::endl;
+//         }
+//         else if (line == "args") {
+//             // parser.print_variables();
+//         }
+//         else if (line == "curline") {
+//             std::cout << parser.source_code_row() << std::endl;
+//         }
+//         else if (line == "jump"){
+//             std::getline(std::cin,line);
+//             parser.global.code_pos = atoi(line.c_str());
+//             parser.analyse_code(parser.global.code_pos,parser.global);
+//         }
+//         else if ( parser.global.proto->lv.find(line) != parser.global.proto->lv.end() ) {
+//             // parser.print_variable(line);
+//         }
+//         else if (line == "quit") {
+//             break;
+//         }
+//         //设置日志等级，这里稍后进行更改
+//         else if (line == "level"){
+//             std::cout << "please input log level " << std::endl;
+//             std::getline(std::cin,line);
+//             if ( line == "1" ) {
+//                 logger->setLogLevel(1);
+//             }
+//             else if (line == "2"){
+//                 logger->setLogLevel(2);
+//             }
+//             else if (line == "3"){
+//                 logger->setLogLevel(3);
+//             } 
+//             else if (line == "4"){
+//                 logger->setLogLevel(4);
+//             }
+//             else {
+//                 std::cout << "nothing happened " << std::endl;
+//             }
+//         }
+//         else {
+//             line.push_back('\n');
+//             parser.read_line(line.c_str());
+//             //判断是否有变量接收
+//             // if ( OC_ASSIGN != parser.global.codes.back().type ) {
+//             //     std::cout << parser.global.codes.back().left.var.iv << std::endl;
+//             // }
+//         }
     
-    }
+//     }
 }
 
 

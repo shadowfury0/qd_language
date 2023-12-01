@@ -78,9 +78,11 @@ int LexState::llex(){
     /* line breaks */
     case '\n': case '\r':{
         printf("line \n");
+        //暂时先搁置打印行数有问题
         this->remove_line();
-        ++_row;
         _col = 0;
+        ++_row;
+        // inclinenumber();
         return T_END;
     }
      /* spaces */
@@ -93,6 +95,7 @@ int LexState::llex(){
     case '#':{
         read_comment();
         ++_row;
+        _col = 0;
         // printf("comment \n");
         return T_COMMENT;
     }
@@ -157,17 +160,17 @@ int LexState::llex(){
     }
     case '+':{
         this->next();
-        printf("plus ");
+        printf("+ ");
         return T_PLUS;
     }
     case '-':{
         this->next();
-        printf("minus ");
+        printf("- ");
         return T_MINUS;
     }
     case '*':{
         this->next();
-        printf("multiply ");
+        printf("* ");
         return T_MUL;
     }
     case '%':{
@@ -383,7 +386,13 @@ int LexState::read_string(unsigned int c){
                 case 'v': ch = '\v'; goto push_ch;
                 case '\n': case '\r':
                     //这里要往前移一下
-                    inclinenumber(); this->prev(); break;
+                    inclinenumber();
+                    //^M  CRLF
+                    // if ( '\^\M' == this->cur ) this->prev();
+                    if ( '13' == this->cur ) this->prev();
+                    //LF
+                    this->prev();
+                    break;
                 default:
                     ch = this->cur;
                 push_ch:
@@ -458,6 +467,20 @@ void LexState::remove_line(){
     {
         this->next();
     }
+}
+
+bool LexState::is_operator(unsigned int tok){
+    if ( tok >= T_EQ && tok <= T_VERTICAL_BAR ){
+        return true;
+    }
+    return false;
+}
+
+bool LexState::is_variable(unsigned int tok){
+    if ( (tok >= T_INT && tok <= T_UDATA ) || T_TRUE == tok || T_FALSE == tok ){
+        return true;
+    }
+    return false;
 }
 
 /** =======================================================*/

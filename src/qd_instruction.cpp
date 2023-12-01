@@ -4,10 +4,8 @@ _QD_BEGIN
 
 
 Instruction::Instruction(){
-    pretype = OC_NIL; 
-    sufftype = OC_NIL;   
+    restype = OC_NIL;
     type = OC_NULL;         
-    ltype = OC_NULL;         
     curpos = FIN_END;
     lpos = FIN_END;
     rpos = FIN_END;
@@ -18,17 +16,15 @@ Instruction::Instruction(const Instruction& i){
 }
 
 void Instruction::operator=(const Instruction& i){
-    this->pretype = i.pretype;
-    this->sufftype = i.sufftype;
+    this->restype = i.restype;
     this->type = i.type;
-    this->ltype = i.ltype;
     this->curpos = i.curpos;
     this->lpos = i.lpos;
     this->rpos = i.rpos;
 
     this->left = i.left;
+    // this->right = i.right;
     this->right = i.right;
-    this->res = i.res;
 }
 
 Instruction::~Instruction(){

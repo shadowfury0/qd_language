@@ -18,7 +18,7 @@ FunHead::FunHead(const FunHead& head){
 
 FunHead::~FunHead(){
     //析构所有子函数的堆内存空间
-    for (std::vector<FunState *>::iterator
+    for ( std::vector<FunState *>::iterator
     iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
     {
         if (*iter != nullptr) {
@@ -30,30 +30,32 @@ FunHead::~FunHead(){
 }
 
 FunState::FunState(){
-
     init();
     proto = new FunHead();
+    // std::cout << "+++++++++++++++++++++++++++++" << std::endl;
 }
 
 FunState::FunState(const FunState& func){
     init();
     prev = func.prev;
+    this->codes = func.codes;
     
     proto = new FunHead(*func.proto);
-    this->codes = func.codes;
+    // std::cout << "+++++++++++++++++++++++++++++" << std::endl;
+
 }
 
 FunState::~FunState(){
     if (proto != nullptr){
         delete proto;
     }
+    // std::cout << "____________________ " << std::endl;
 }
 
 void FunState::init(){
     proto = nullptr;
     prev = nullptr;
     this->code_pos = 0;
-
 }
 
 

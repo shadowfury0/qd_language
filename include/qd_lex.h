@@ -10,10 +10,12 @@
 
 _QD_BEGIN
 
+//定义关键字
+
 
 static const char* const identity[] = {
-    "if","elseif","else","true","false","jump","pass","for",
-    "global","func","return"
+    QD_KYW_IF,QD_KYW_ELIF,QD_KYW_ELSE,QD_KYW_TRUE,QD_KYW_FALSE,QD_KYW_JUMP,QD_KYW_PASS,QD_KYW_FOR,QD_KYW_WHILE,
+    QD_KYW_GLOBAL,QD_KYW_FUNC,QD_KYW_RET,QD_KYW_IN,
 };
 
 //全局函数判断第几个关键词
@@ -49,9 +51,11 @@ enum TOK_TYPE {
     T_JUMP,                 //jump
     T_PASS,                 //pass
     T_FOR,                  //for
-    T_GLOBAL,               //global
+    T_WHILE,                //while
+    T_LOCAL,                //local
     T_FUNC,                 //func
     T_RETURN,               //return
+    T_IN,                   //in
 /*   terminal    */
     T_NULL,                 //空值
     T_BLANK,                //空白
@@ -78,6 +82,9 @@ enum TOK_TYPE {
     T_MUL,                  //*
     T_MOD,                  //%
     T_DIV,                  // /
+    T_AMPERSAND,            //&
+    T_VERTICAL_BAR,         //|   
+/*    others    */
     // T_DDIV,                 // //
     T_LPARENTH,             // (
     T_RPARENTH,             // )
@@ -85,8 +92,8 @@ enum TOK_TYPE {
     T_RBRACKET,             // ]
     T_LBRACE,               // {
     T_RBRACE,               // }
-    T_AMPERSAND,            //&
-    T_VERTICAL_BAR,         //|    
+/*    auxiliary    */
+    T_XMINUS,               // -
 };
 
 
@@ -107,6 +114,7 @@ struct LexState
 
     Token t;  //当前token类型
     Token lookahead; //前一个token类型
+    Token prevhead;  // 上上一个token类型
     D_VAR dvar;//当前值记录
 
     Dbuffer* buff;//当前token字符
@@ -151,6 +159,11 @@ struct LexState
     void remove_blank();
     //跳过结束符
     void remove_line();
+
+    //判断是否为运算符
+    bool is_operator(unsigned int tok);
+    //判断是否为用户数据类型
+    bool is_variable(unsigned int tok);
 
     void alloc_buff(const char* buff);
     void free_buff();

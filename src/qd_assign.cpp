@@ -3,9 +3,9 @@
 
 _QD_BEGIN
 
+
 void D_VAR::init(){
     memset(&this->var,0,sizeof(this->var));
-    // clear();
     this->type = VE_VOID;
 }
 
@@ -44,12 +44,11 @@ D_VAR::D_VAR(const char* v){
 
 D_VAR::~D_VAR(){
     clear();
-    this->type = VE_VOID;//这个必须在后
 }
 
 void D_VAR::clear(){
-    if ( this->type == VE_STR 
-        || this->type == VE_USER
+    if (  VE_STR == this->type ||
+         VE_USER == this->type
           ){
         free(this->var.chv);
     }
@@ -57,6 +56,7 @@ void D_VAR::clear(){
 }
 
 void D_VAR::operator=(const D_VAR& dv){
+    clear();
     if (VE_STR == dv.type ||
         VE_USER == dv.type) {
         *this = dv.var.chv;
@@ -65,6 +65,21 @@ void D_VAR::operator=(const D_VAR& dv){
         this->var = dv.var;
     }
     this->type = dv.type;
+}
+
+void D_VAR::operator=(const D_OBJ& dv){
+    clear();
+    if ( VE_ARRAY == this->type || 
+         VE_UNION == this->type ) {
+    }
+    else if ( VE_STR == dv.type ||
+         VE_USER == dv.type ) {
+        *this = dv.var.chv;
+    }
+    else {
+        this->var = dv.var;
+        this->type = dv.type;
+    }
 }
 
 void D_VAR::operator=(const bool& b){
@@ -95,7 +110,7 @@ void D_VAR::operator=(const double& v){
 void D_VAR::operator=(const char* v){
     clear();
     this->type = VE_STR;
-    this->var.chv = (char*)malloc( strlen(v) + 1);
+    this->var.chv = (char*)malloc( strlen(v) + 1 );
     strcpy(this->var.chv,v);
 }
 
@@ -113,7 +128,7 @@ D_VAR D_VAR::operator-(){
         tmp = -this->var.dv;
         break;
     default:
-        printf("dvar type is string\n");
+        printf("dvar type is string or void or null \n");
         break;
     }
     return tmp;
@@ -198,15 +213,23 @@ bool D_VAR::operator!=(const char* chv){
 }
 
 
-D_ARRAY::D_ARRAY(){
+D_UNION::D_UNION(){
 
 }
 
-D_ARRAY::D_ARRAY(const D_ARRAY& arr){
+D_UNION::D_UNION(const D_UNION& arr){
     *this = arr;
 }
 
-void D_ARRAY::operator=(const D_ARRAY& arr){
+D_UNION::D_UNION(const D_OBJ& obj){
+    *this = obj;
+}
+
+D_UNION::~D_UNION(){
+}
+
+void D_UNION::operator=(const D_UNION& arr){
+    this->larr.clear();
     for (std::vector<D_VAR>::const_iterator
      iter =  arr.larr.begin(); iter != arr.larr.end() ;
      iter ++ ) {
@@ -214,16 +237,149 @@ void D_ARRAY::operator=(const D_ARRAY& arr){
     }
 }
 
-D_OBJ::D_OBJ(){
-
+void D_UNION::operator=(const D_OBJ& obj){
+    if ( VE_UNION == obj.type ) {
+        for (std::vector<D_VAR>::iterator iter = obj.uni->larr.begin() ;
+            iter != obj.uni->larr.end() ; iter ++ ) {
+            this->larr.push_back(*iter);
+        }
+    }
 }
 
-D_OBJ::D_OBJ(const D_OBJ& obj){
 
+void D_OBJ::init(){
+    memset(&this->var,0,sizeof(this->var));
+    this->type = VE_VOID;
+}
+
+void D_OBJ::clear(){
+    if ( VE_STR == this->type ||
+         VE_USER == this->type
+          ){
+        free(this->var.chv);
+    }
+    else if ( VE_UNION == this->type ) {
+        if (this->uni != nullptr){
+            delete this->uni;
+        }
+    }
+    this->type = VE_VOID;
+}
+
+D_OBJ::D_OBJ()  {
+    init();
 }
 
 D_OBJ::~D_OBJ(){
-    
+    clear();
 }
+
+D_OBJ::D_OBJ(const D_VAR& var){
+    init();
+    *this = var;
+}
+
+D_OBJ::D_OBJ(const D_OBJ& obj) {
+    init();
+    *this = obj;
+}
+
+D_OBJ::D_OBJ(const D_UNION& arr){
+    init();
+    *this = arr;
+}
+
+D_OBJ::D_OBJ(const bool& b){
+    init();
+    *this = b;
+}
+
+D_OBJ::D_OBJ(const int& v){
+    init();
+    *this = v;
+}
+
+D_OBJ::D_OBJ(const unsigned int& u){
+    init();
+    *this = u;
+}
+
+D_OBJ::D_OBJ(const double& v){
+    init();
+    *this = v;
+}
+
+D_OBJ::D_OBJ(const char* v){
+    init();
+    *this = v;
+}
+
+void D_OBJ::operator=(const D_VAR& dv){
+    clear();
+    if ( VE_STR == dv.type ||
+         VE_USER == dv.type ) {
+        *this = dv.var.chv;
+    }
+    else {
+        this->var = dv.var;
+    }
+    this->type = dv.type;
+}
+
+void D_OBJ::operator=(const D_OBJ& ob) {
+    clear();
+    switch (ob.type)
+    {
+    case VE_STR:
+    case VE_USER:
+        *this = ob.var.chv;
+        break;
+    case VE_UNION:
+        *this = ob.uni;
+    default:
+        this->var = ob.var;
+        break;
+    }
+    this->type = ob.type;
+}
+
+void D_OBJ::operator=(const D_UNION& arr){
+    clear();
+    this->uni = new D_UNION(arr);
+    this->type = VE_UNION;
+}
+
+void D_OBJ::operator=(const bool& b){
+    clear();
+    this->type = VE_BOOL;
+    this->var.bv = b;
+}
+
+void D_OBJ::operator=(const int& v){
+    clear();
+    this->type = VE_INT;
+    this->var.iv = v;
+}
+
+void D_OBJ::operator=(const unsigned int& u){
+    clear();
+    this->type = VE_INT;
+    this->var.uiv = u;
+}
+
+void D_OBJ::operator=(const double& v){
+    clear();
+    this->type = VE_FLT;
+    this->var.dv = v;
+}
+
+void D_OBJ::operator=(const char* v){
+    clear();
+    this->type = VE_STR;
+    this->var.chv = (char*)malloc( strlen(v) + 1 );
+
+    strcpy(this->var.chv,v);
+}
+
 
 _QD_END

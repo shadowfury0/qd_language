@@ -4,6 +4,7 @@
 #include "qd_header.h"
 
 _QD_BEGIN
+
 //16
 struct Dbuffer {
     char *buffer;

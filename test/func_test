@@ -1,0 +1,13 @@
+n = 10
+
+n1 = 1
+n2 = 1
+func fab():
+    for i in 5:
+        tmp = n1 + n2
+        global n1 = n2
+        global n2 = tmp
+    pass
+pass
+
+fab()

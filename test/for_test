@@ -1,0 +1,22 @@
+a = 0
+for i in 2 :
+    if a < 20 :
+        a = 10 
+    pass
+    elif a >= 20 & a < 40:
+        a = 30
+    pass
+    elif a >= 40 & a < 60:
+        a = 50
+    pass
+    elif a >= 60 & a < 80 :
+        a = 70
+    pass
+    elif a >= 80 & a < 100:
+        a = 90
+    pass
+    else:
+        a = 100
+    pass
+    a = a + 20
+pass

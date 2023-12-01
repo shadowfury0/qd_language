@@ -8,16 +8,14 @@ _QD_BEGIN
 
 class FunState;
 
-//函数头  144 b 字节已经对齐
+//函数头  80 b 字节已经对齐
 struct FunHead{
     unsigned int start;                  //起始指令行
     unsigned int end;                    //结束指令行
-    //返回值
-    D_VAR ret;
 
     //匿名内部函数，如if  for
     std::vector<FunState*>  lfuns;        
-    std::map<std::string,D_VAR> lv;       //局部变量
+    std::map<std::string,D_OBJ> lv;       //局部变量
 
     FunHead();
     FunHead(const FunHead& head);

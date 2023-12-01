@@ -24,4 +24,3 @@ file(GLOB_RECURSE SRC_FILE "src/*.cpp" "src/*.c")
 # add_library(clac SHARED ${SRC_LIST})
 
 add_executable(main ${PROJECT_SOURCE_DIR}/src/main.cpp ${SRC_FILE})
-add_executable(test ${PROJECT_SOURCE_DIR}/test/test.cpp )
