@@ -115,11 +115,13 @@ public:
     //返回当前全局变量个数
     unsigned int variable_count();
 
-    //这个函数用于检查阶段
+
     //检查用户变量是否存在
     D_OBJ* variable_check(const std::string& name,const FunState& fun);
-    //查找函数在哪一个位置，哪一层函数
-    D_OBJ* variable_check(const std::string& name,const FunState& fun,unsigned int& recurse);
+    //查找函数在哪一个位置，哪一层函
+    FunState* function_check(const std::string& name,FunState* fun);
+
+    FunState* function_stack_top();
 
     FunState* global;
 

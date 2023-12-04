@@ -25,6 +25,8 @@ struct FunHead{
 //函数整体部分
 struct FunState
 {
+    //if elif for while
+    bool  anonymous;                    //是否为匿名函数
     unsigned int code_pos;              //解析当前行
 
     FunHead* proto;                     //当前函数头信息

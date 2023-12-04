@@ -7,6 +7,8 @@ FunHead::FunHead(){
 }
 
 FunHead::FunHead(const FunHead& head){
+    //这个变量做一下更改，如果为VE_NULL 不进行拷贝
+
     this->lv = head.lv;
 
     for (unsigned int iter = 0 ; iter < head.lfuns.size() ; iter++) {
@@ -17,13 +19,15 @@ FunHead::FunHead(const FunHead& head){
 }
 
 FunHead::~FunHead(){
-    //析构所有子函数的堆内存空间
-    for ( std::vector<FunState *>::iterator
-    iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
-    {
-        if (*iter != nullptr) {
-            delete *iter;
-            *iter = nullptr;
+    if ( !lfuns.empty()) {
+        //析构所有子函数的堆内存空间
+        for ( std::vector<FunState *>::iterator
+        iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
+        {
+            if (*iter != nullptr) {
+                delete *iter;
+                *iter = nullptr;
+            }
         }
     }
 
@@ -38,6 +42,9 @@ FunState::FunState(){
 FunState::FunState(const FunState& func){
     init();
     prev = func.prev;
+    this->anonymous = func.anonymous;
+    this->code_pos = func.code_pos;
+
     this->codes = func.codes;
     
     proto = new FunHead(*func.proto);
@@ -56,6 +63,7 @@ void FunState::init(){
     proto = nullptr;
     prev = nullptr;
     this->code_pos = 0;
+    this->anonymous = false;
 }
 
 

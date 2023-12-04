@@ -1,0 +1,9 @@
+a = 3
+func vv():
+        global a = a -1
+    
+    vv()
+pass
+
+vv()
+

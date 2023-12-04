@@ -1,3 +1,4 @@
+#斐波那契
 n = 10
 
 n1 = 1
@@ -11,3 +12,18 @@ func fab():
 pass
 
 fab()
+
+#递归测试
+#目前打印顺序有点混乱
+b = 1
+j = 1
+func a():
+    global b = 5 + b
+    if b < 10:
+        a()
+    pass
+    j = j + 1
+    ret j
+pass
+
+a()

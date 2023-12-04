@@ -12,16 +12,34 @@ DParser::DParser(){
 }
 
 DParser::~DParser(){
+    if ( global != nullptr ) {
+        delete global;
+        global = nullptr;
+    }
+    
     if ( !this->funstack.empty() ) {
         for ( FunState* iter = this->funstack.back() ; 
-        iter != this->funstack.front()   ; -- iter ) {
+        iter != this->funstack.front() ; -- iter ) {
             if (iter != nullptr){
                 delete iter;
+                iter = nullptr;
             }
-            iter = nullptr;
             this->funstack.pop_back();
         }
     }
+    // if ( !this->funstack.empty() ) {
+    //     for (unsigned int i = this->funstack.size() - 1; i > 0 ; i -- ) {
+    //         FunState* iter = this->funstack[i];
+    //         // if ( iter != nullptr ) {
+    //             std::cout << &iter << std::endl;
+    //             delete iter;
+    //             iter = nullptr;
+    //         // }
+    //         this->funstack.pop_back();
+    //     }
+    // }
+    
+    
 }
 
 unsigned int DParser::parseX_next(){
@@ -49,19 +67,11 @@ void DParser::parse(const char* str){
     //这里开始全局解析
     unsigned int err = parse_Func(*global);
 
-    //把全局函数放进去
-
     //错误的检测
     if (!err) {
-        // FunState* start = new FunState(global);
-        
         this->funstack.push_back(global);
-
         //只用解析一次就好了
-        err = analyse_code(
-            global->code_pos, *global );
-
-        // delete start;
+        err = analyse_code( global->code_pos, *global );
 
         if (err) {
             logger->error("anaylsing code error ");
@@ -71,8 +81,6 @@ void DParser::parse(const char* str){
         logger->error("compiling code error ");
     }
 
-    logger->info("function stack size is ",this->funstack.size());
-    //清理函数栈空间    
 
     ls.free_buff();
     
@@ -139,7 +147,7 @@ unsigned int DParser::parse_Func(FunState& fun){
             }
             break;
         }
-        case T_RETURN:{
+        case T_RETURN: {
             Instruction inc;
             inc.curpos = fun.codes.size();
             inc.left = QD_KYW_RET;
@@ -283,6 +291,13 @@ unsigned int DParser::statement(unsigned int& pos,FunState& fun){
     inc.left = ls.dvar;
     this->findX_next();
 
+    //暂时不允许空值
+    // if ( T_END == ls.t.token ) {
+    //     fun.proto->lv[inc.left.var.chv] = 0;
+    //     fun.proto->lv[inc.left.var.chv].type = VE_NULL;
+    //     return 0;
+    // }
+
     //下一个如果是函数调用的话
     if ( T_LPARENTH == ls.t.token ) {
         if(call_expr(inc.left.var.chv,fun)) {
@@ -368,7 +383,6 @@ unsigned int DParser::assign_expr(Instruction& inc,FunState& fun){
         break;
     }
     case VE_FUNC:{
-        //这里找函数的具体偏移位置
         Instruction tmp;
         tmp.type = OC_NULL;
 
@@ -392,8 +406,7 @@ unsigned int DParser::assign_expr(Instruction& inc,FunState& fun){
             logger->error(ls._row,":",ls._col," call  error");
             return ERR_END;
         }
-        
-        //这个加在后面
+
         break;
     } 
     default:{
@@ -476,6 +489,7 @@ unsigned int DParser::if_expr(FunState& func){
 
     FunState* ifstate = new FunState();
     ifstate->prev = &func;
+    ifstate->anonymous = true;
     parse_Func(*ifstate);
     func.proto->lfuns.push_back(ifstate);
     
@@ -546,6 +560,7 @@ unsigned int DParser::elif_expr(FunState& func){
         
         FunState* elifstate = new FunState();
         elifstate->prev = &func;
+        elifstate->anonymous = true;
         parse_Func(*elifstate);
         func.proto->lfuns.push_back(elifstate);
 
@@ -590,6 +605,7 @@ unsigned int DParser::else_expr(FunState& func){
     
     FunState* elsestate = new FunState();
     elsestate->prev = &func;
+    elsestate->anonymous = true;
     parse_Func(*elsestate);
     func.proto->lfuns.push_back(elsestate);
 
@@ -619,6 +635,7 @@ unsigned int DParser::for_expr(FunState& func){
     func.codes.push_back(forinc);
 
     FunState* forstate = new FunState();
+    forstate->anonymous = true;
     forstate->prev = &func;
 
     //初始化值
@@ -761,6 +778,7 @@ unsigned int DParser::while_expr(FunState& func){
 
     jump1.curpos = whilestate->codes.size();
     whilestate->codes.push_back(jump1); // lpos在后面改
+    whilestate->anonymous = true;
     parse_Func(*whilestate);
 
 
@@ -890,11 +908,6 @@ unsigned int DParser::function_expr(FunState& func){
     function->prev = &func;
     parse_Func(*function);
 
-    //添加return命令
-    Instruction inc;
-    inc.curpos = func.codes.size();
-    inc.type = OC_RET;
-    function->codes.push_back(inc);
 
     func.proto->lv[funcname] = (unsigned int)func.proto->lfuns.size();
     func.proto->lv[funcname].type = VE_FUNC;
@@ -1249,8 +1262,8 @@ unsigned int DParser::call_expr(std::string name,FunState& fun){
     Instruction inc;
     inc.left = name.c_str();
     inc.type = OC_CALL;
-        //这个返回值要进行更改一下
-    inc.rpos = 0;
+    // inc.rpos = 0;
+    //这个返回值要进行更改一下
     D_OBJ* tmpobj = variable_check(inc.left.var.chv,fun);
     if ( VE_VOID == tmpobj->type ) {
         delete tmpobj;
@@ -1273,6 +1286,8 @@ unsigned int DParser::call_expr(std::string name,FunState& fun){
         logger->error(ls._row,":",ls._col," function call end is not correct");
         return ERR_END;
     }
+
+
     return 0;
 }
 
@@ -1281,6 +1296,9 @@ void DParser::print_variable(const std::string& name,std::map<std::string,D_OBJ>
     const D_OBJ& dv = variables[name];
     switch (dv.type)
     {
+    case VE_NULL:
+        std::cout << "  type  is  null"  << std::endl;
+        break;
     case VE_INT:
         std::cout << "  " << dv.var.iv << " |  type  int   "   << std::endl;
         break;
@@ -1293,6 +1311,9 @@ void DParser::print_variable(const std::string& name,std::map<std::string,D_OBJ>
     case VE_STR:
     case VE_USER:
         std::cout <<"  " <<  dv.var.chv << " |  type  string    "   << std::endl;
+        break;
+    case VE_FUNC:
+        std::cout << "  type  is  function  "   << std::endl;
         break;
     default:
         std::cout << "  variables  no  found " << std::endl;
@@ -1359,10 +1380,9 @@ unsigned int DParser::variable_count(){
 }
 
 D_OBJ* DParser::variable_check(const std::string& name,const FunState& fun){
-     if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
-        // if ( VE_NULL != fun.proto->lv[name].type ) {
-            return &fun.proto->lv[name];
-        // }
+    if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
+        //如果是null 必须满足不是编译期的条件
+        return &fun.proto->lv[name];
     }
 
     FunState* tmpfunc = fun.prev;
@@ -1370,9 +1390,7 @@ D_OBJ* DParser::variable_check(const std::string& name,const FunState& fun){
     while ( tmpfunc )
     {
         if (tmpfunc->proto->lv.find(name) != tmpfunc->proto->lv.end() ) {
-            // if ( VE_NULL != fun.proto->lv[name].type ) {
-                return &tmpfunc->proto->lv[name];
-            // }
+            return &tmpfunc->proto->lv[name];
         }
         tmpfunc = tmpfunc->prev;
     }
@@ -1381,27 +1399,25 @@ D_OBJ* DParser::variable_check(const std::string& name,const FunState& fun){
     return tmp;
 }
 
-D_OBJ* DParser::variable_check(const std::string& name,const FunState& fun,unsigned int& recurse){
-    // D_OBJ tmp;
-    // if ( fun.proto->lv.find(name) != fun.proto->lv.end() ) {
-    //     return &fun.proto->lv[name];
-    // }
+FunState* DParser::function_check(const std::string& name,FunState* fun){
+    FunState* tmp = fun;
+    if ( tmp->proto->lv.find(name) != tmp->proto->lv.end() ) {
+        return tmp;
+    }
 
-    // FunState* tmpfunc = fun.prev;
-    // unsigned int cur = recurse;
-    // while ( tmpfunc )
-    // {
-    //     cur++;
-    //     if ( tmpfunc->proto->lv.find(name) != tmpfunc->proto->lv.end() ) {
-    //         recurse = cur;
-    //         return &tmpfunc->proto->lv[name];
-    //     }
-    //     tmpfunc = tmpfunc->prev;
-    // }
-    // recurse = cur;
+    while ( tmp )
+    {
+        if ( tmp->proto->lv.find(name) != tmp->proto->lv.end() ) {
+            return tmp;
+        }
+        tmp = tmp->prev;
+    }
+    //这里返回函数自身的原因是prev很可能为空
+    return fun;
+}
 
-    D_OBJ* obj = new D_OBJ();
-    return obj;
+FunState* DParser::function_stack_top(){
+    return this->funstack.back();
 }
 
 D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
@@ -1447,7 +1463,6 @@ D_OBJ DParser::analyse_assign(Instruction& inc,FunState& fun){
     }
 
     Instruction& tmp = fun.codes[inc.rpos];
-
     switch (tmp.right.type)
     {
     case VE_BOOL:
@@ -1458,22 +1473,15 @@ D_OBJ DParser::analyse_assign(Instruction& inc,FunState& fun){
         return tmp.right.var.chv;
     case VE_FLT:
         return tmp.right.var.dv;
-    case VE_FUNC:{
-
-        // D_OBJ* tmpobj =  variable_check(
-        //     QD_KYW_RET,
-        // *global.proto->lfuns[0]);
-        // if ( VE_VOID == tmpobj->type ) {
-        //     delete tmpobj;
-        //     logger->error(ls._row,":",ls._col," variable name undefine ");
-        //     return ERR_END;
-        // }
-        //  if ( !this->funstack.empty() ) {
-        //         // 出栈
-        //         this->funstack.pop_back();
-        //     }
-        //这里做函数返回值
-        // return *tmpobj;
+    case VE_FUNC: {
+        D_OBJ* tmpobj =  variable_check( QD_KYW_RET, fun );
+        //这里要改返回值有问题,
+        if ( VE_VOID == tmpobj->type ) {
+            delete tmpobj;
+            logger->error(ls._row,":",ls._col," variable name undefine ");
+            return D_OBJ();
+        }
+        return *tmpobj;
     }
     default:
         logger->error("assign nothing happend");
@@ -1499,8 +1507,7 @@ unsigned int DParser::analyse_expr(Instruction& inc,FunState& fun){
     if ( FIN_END != inc.rpos ) {
         tright = fun.codes[inc.rpos].right;
     }
-    logger->debug("left type is  : ",tleft.type);
-    logger->debug("right type is  : ",tright.type);
+
 
     if ( VE_USER == tleft.type  ) {
         D_OBJ* tmpvar = variable_check(tleft.var.chv,fun);
@@ -1536,11 +1543,17 @@ unsigned int DParser::analyse_expr(Instruction& inc,FunState& fun){
     switch (inc.type)
     {
     case OC_ADD:{
-        result_add(tres,tleft,tright);
+        if(result_add(tres,tleft,tright)){
+            logger->error("error  in  add  expression");
+            return ERR_END;
+        }
         break;
     }
     case OC_SUB:{
-        result_sub(tres,tleft,tright);
+        if(result_sub(tres,tleft,tright)) {
+            logger->error("error  in  sub  expression");
+            return ERR_END;
+        }
         break;
     }
     case OC_MUL:{
@@ -1709,13 +1722,14 @@ unsigned int DParser::analyse_array(Instruction& inc,const FunState& fun){
     return 0;
 }
 
-unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
+unsigned int DParser::analyse_code(unsigned int& i,FunState& fun){
     unsigned int clen = fun.codes.size();
-    unsigned int i = pos;
+    // unsigned int i = pos;
     logger->debug("<------  function  analyse  start   ------>");
-    
-    // FunState* function = nullptr;
-    for (;i < clen;i++){
+    logger->debug("function is anonymous ? ",fun.anonymous);
+
+    for (;i < clen;i++) {
+
         Instruction& inc = fun.codes[i];
         //在这里判断解析类型
         logger->debug("operator code is :  ",(int)inc.type);
@@ -1727,29 +1741,27 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("cur line is :  ",inc.curpos);
             logger->debug("left pos is :  ",inc.lpos);
             logger->debug("right pos is :  ",inc.rpos);
-            logger->debug("result  value  is :  ",inc.right.var.iv);
-            logger->debug("stack deep size is ",this->funstack.size());
+            // logger->error("result  value  is :  ",inc.right.var.iv);
             
-            //function
-            //第几层函数的调用
-            // FunState* curfun = &fun;
-            // unsigned int recur = inc.rpos;
-            // while (recur) {
-            //     curfun = curfun->prev;
-            //     recur --;
-            // }
-            // 分配内存空间
-            // FunState function  =  *fun.proto->lfuns[inc.lpos];
+            FunState* curfun = function_stack_top();
+            //检查函数前后地址变化
+            // logger->error(&*curfun);
+            curfun = function_check(inc.left.var.chv,curfun);
+            // logger->error(&*curfun);
 
-            FunState* function =  new FunState(*fun.proto->lfuns[inc.lpos]);
-            function->proto->lv.clear();
-            function->code_pos = 0;
-            this->funstack.push_back(function);
-            
-            analyse_code(function->code_pos,*function);
-            // 释放内存
-            delete function;
-            // return 0;
+            FunState* callfun = new FunState(*curfun->proto->lfuns[inc.lpos]);
+            //一定要清空所有变量防止有变量信息记录，对运算操作进行规划，防止有null值
+            callfun->proto->lv.clear();
+            // callfun->code_pos = 0;
+            callfun->prev = function_stack_top();
+
+            this->funstack.push_back(callfun);
+
+            analyse_code(callfun->code_pos,*callfun);
+
+            // // 内存回收
+            delete function_stack_top();
+            this->funstack.pop_back();
             break;
         }
         case OC_JMP:{
@@ -1780,20 +1792,35 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
                     return ERR_END;
                 }
                 //因为global是第一个函数,这里可能到时候要改
-                // (*this->funstack.begin())->proto->lv[inc.left.var.chv] = result;
                 global->proto->lv[inc.left.var.chv] = result;
-                // global.proto->lv[inc.left.var.chv] = result;
-                print_variable( inc.left.var.chv,
-                // (*this->funstack.begin())->proto->lv);
-                global->proto->lv);
+                print_variable( inc.left.var.chv,global->proto->lv );
             }
             else {
                 result = analyse_assign(inc,fun);
                 if ( VE_VOID == result.type ) {
                     return ERR_END;
                 }
-                fun.proto->lv[inc.left.var.chv] = result;
-                print_variable(inc.left.var.chv,fun.proto->lv);
+                
+                //判断return所在位置
+                if ( !strcmp(QD_KYW_RET,inc.left.var.chv) ) {
+                    FunState* cur = function_stack_top();
+                    bool any = cur->anonymous;
+                    //if else while
+                    while (any)
+                    {
+                        cur = cur->prev;
+                        any = cur->anonymous;
+                    }
+                    //如果是全局变量则不执行
+                    if ( cur->prev != nullptr ) {
+                        cur->prev->proto->lv[QD_KYW_RET] = result;
+                        print_variable(QD_KYW_RET,cur->prev->proto->lv);
+                    }
+                }
+                else{
+                    fun.proto->lv[inc.left.var.chv] = result;
+                    print_variable(inc.left.var.chv,fun.proto->lv);
+                }
             }
             break;
         }
@@ -1801,7 +1828,18 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("analyse  return    !!!!!!!!! ");
             logger->debug("cur line is :  ",inc.curpos);
 
-            i = clen;
+            //这个一定要是最后一个栈空间，因为开辟新空间上下文信息不一样
+            //这里有问题检查检查
+            FunState* cur = &fun;
+            bool any = cur->anonymous;
+            cur->code_pos = clen;
+            while (any)
+            {
+                cur = cur->prev;
+                any = cur->anonymous;
+                cur->code_pos = cur->codes.size();
+            }
+            
             break;
         }
         case OC_IF:{
@@ -1813,16 +1851,17 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             //if elif else
             if ( fun.codes[inc.rpos].right.var.bv ) {
                 if ( FIN_END != inc.rpos && FIN_END != inc.lpos ) {
-                    FunState& jumpfun = *fun.proto->lfuns[inc.lpos];
+                    FunState* jumpfun = new FunState(*function_stack_top()->proto->lfuns[inc.lpos]);
                     //一定要清空所有变量防止有变量信息记录
-                    jumpfun.proto->lv.clear();
-                    jumpfun.code_pos = 0;  
-                    analyse_code(jumpfun.code_pos,jumpfun);
-                    //执行成功跳转到最后位置
-                    if ( VE_VOID != inc.right.type ) {
-                        //因为会自增加一
-                        i = inc.right.var.iv - 1;
-                    }
+                    jumpfun->proto->lv.clear();
+                    // jumpfun->code_pos = 0;
+                    jumpfun->prev = function_stack_top();
+                    this->funstack.push_back(jumpfun);
+                    
+                    analyse_code(jumpfun->code_pos,*jumpfun);
+
+                    delete function_stack_top();
+                    this->funstack.pop_back();
                 }
                 else{
                     logger->error("if  expression  analyse  error");
@@ -1842,13 +1881,16 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("result  value  is :  ",inc.right.var.iv);
             //for 
             if ( FIN_END != inc.lpos ) {
-                FunState& jumpfun =  *fun.proto->lfuns[inc.lpos];
+                FunState* jumpfun = new FunState(*function_stack_top()->proto->lfuns[inc.lpos]);
                 //一定要清空所有变量防止有变量信息记录
-                jumpfun.proto->lv.clear();
-                //重置偏移量为0
-                jumpfun.code_pos = 0;   
-                //最后一个指令是jump所以
-                analyse_code(jumpfun.code_pos,jumpfun);
+                jumpfun->proto->lv.clear();
+                jumpfun->prev = function_stack_top();
+                this->funstack.push_back(jumpfun);
+                
+                analyse_code(jumpfun->code_pos,*jumpfun);
+
+                delete function_stack_top();
+                this->funstack.pop_back();
             }
             else {
                 logger->error("for  expression  analyse  error");
@@ -1862,12 +1904,16 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
             logger->debug("left pos is :  ",inc.lpos);
             //while
             if ( FIN_END != inc.lpos ) {
-                FunState& jumpfun = *fun.proto->lfuns[inc.lpos];
+                FunState* jumpfun = new FunState(*function_stack_top()->proto->lfuns[inc.lpos]);
                 //一定要清空所有变量防止有变量信息记录
-                jumpfun.proto->lv.clear();
-                jumpfun.code_pos = 0;  
-                analyse_code(jumpfun.code_pos,jumpfun);
-                //执行成功跳转到最后位置
+                jumpfun->proto->lv.clear();
+                jumpfun->prev = function_stack_top();
+                this->funstack.push_back(jumpfun);
+                
+                analyse_code(jumpfun->code_pos,*jumpfun);
+
+                delete function_stack_top();
+                this->funstack.pop_back();
             }
             else{
                 logger->error("while  expression  analyse  error");
@@ -1980,15 +2026,8 @@ unsigned int DParser::analyse_code(unsigned int& pos,FunState& fun){
     }
 
     logger->debug("<------  function  analyse  end   ------>");
-    pos = clen;
-    
-    logger->debug("stack  size is ",this->funstack.size());
-    // if ( !this->funstack.empty() ) {
-    //     delete this->funstack.back();
-    //     // 出栈
-    //     this->funstack.pop_back();
-    // }
-
+    // print_variables(fun.proto->lv);
+    // logger->error("stack  size is ",this->funstack.back()->proto->lv.size());
     return 0;
 }
 
