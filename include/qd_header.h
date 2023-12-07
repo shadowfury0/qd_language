@@ -14,11 +14,14 @@
 #include <deque>
 #include <algorithm>
 
+
 #define _QD_BEGIN namespace qd_header{
 #define _QD_END }
 #define _USING_QD using namespace qd_header;
 
 _QD_BEGIN
+
+#define QD_API		extern
 
 // NUM 
 #define FIN_END  UINT32_MAX - 1
@@ -26,7 +29,7 @@ _QD_BEGIN
 #define QD_INT_32_MAX INT32_MAX
 
 
-//KEY WORD
+// KEY WORD
 #define QD_KYW_IF       "if"
 #define QD_KYW_ELIF     "elif"
 #define QD_KYW_ELSE     "else"
@@ -37,9 +40,20 @@ _QD_BEGIN
 #define QD_KYW_FOR      "for"
 #define QD_KYW_WHILE    "while"
 #define QD_KYW_GLOBAL   "global"
-#define QD_KYW_FUNC     "func"
+#define QD_KYW_LOCAL    "local"
+#define QD_KYW_FUNC     "fun"
 #define QD_KYW_RET      "ret"
 #define QD_KYW_IN       "in"
+
+//这个以后再全部重新改一下
+using  _qd_b       =  bool;
+using  _qd_int     =  int;
+using  _qd_uint    =  unsigned int;
+using  _qd_char    =  char;
+using  _qd_doub    =  double;
+
+#define  QD_STACK_MAX  100
+#define  QD_CRLF  '13'
 
 
 _QD_END

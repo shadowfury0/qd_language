@@ -4,9 +4,7 @@
 #include "qd_buffer.h"
 #include "qd_io.h"
 #include "qd_assign.h"
-#include "qd_log.h"
 
-#include <set>
 
 _QD_BEGIN
 
@@ -14,8 +12,9 @@ _QD_BEGIN
 
 
 static const char* const identity[] = {
-    QD_KYW_IF,QD_KYW_ELIF,QD_KYW_ELSE,QD_KYW_TRUE,QD_KYW_FALSE,QD_KYW_JUMP,QD_KYW_PASS,QD_KYW_FOR,QD_KYW_WHILE,
-    QD_KYW_GLOBAL,QD_KYW_FUNC,QD_KYW_RET,QD_KYW_IN,
+    QD_KYW_IF,QD_KYW_ELIF,QD_KYW_ELSE,QD_KYW_TRUE,QD_KYW_FALSE,
+    QD_KYW_JUMP,QD_KYW_PASS,QD_KYW_FOR,QD_KYW_WHILE,
+    QD_KYW_GLOBAL,QD_KYW_LOCAL,QD_KYW_FUNC,QD_KYW_RET,QD_KYW_IN,
 };
 
 //全局函数判断第几个关键词
@@ -52,6 +51,7 @@ enum TOK_TYPE {
     T_PASS,                 //pass
     T_FOR,                  //for
     T_WHILE,                //while
+    T_GLOBAL,               //global
     T_LOCAL,                //local
     T_FUNC,                 //func
     T_RETURN,               //return
@@ -160,6 +160,8 @@ struct LexState
     //跳过结束符
     void remove_line();
 
+    //判断是否为关键字
+    bool is_keyw(unsigned int tok);
     //判断是否为运算符
     bool is_operator(unsigned int tok);
     //判断是否为用户数据类型

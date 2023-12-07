@@ -4,68 +4,50 @@ _QD_BEGIN
 
 
 FunHead::FunHead(){
+    // this->anonymous = false;
 }
 
 FunHead::FunHead(const FunHead& head){
+    // this->anonymous = head.anonymous;
     //这个变量做一下更改，如果为VE_NULL 不进行拷贝
-
-    this->lv = head.lv;
+    this->codes = head.codes;
 
     for (unsigned int iter = 0 ; iter < head.lfuns.size() ; iter++) {
-        FunState* funstate = nullptr;
-        funstate = new FunState(*head.lfuns[iter]);
+        FunHead* funstate = nullptr;
+        funstate = new FunHead(*head.lfuns[iter]);
         this->lfuns.push_back(funstate);
     }
 }
 
 FunHead::~FunHead(){
+    //可能会重复释放
+    // if ( !lfuns.empty()) {
+    //     //析构所有子函数的堆内存空间
+    //     for ( std::vector<FunHead *>::iterator
+    //     iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
+    //     {
+    //         if (*iter != nullptr) {
+    //             delete *iter;
+    //             *iter = nullptr;
+    //         }
+    //     }
+    // }
+}
+
+void FunHead::clear() {
     if ( !lfuns.empty()) {
         //析构所有子函数的堆内存空间
-        for ( std::vector<FunState *>::iterator
+        for ( std::vector<FunHead *>::iterator
         iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
         {
             if (*iter != nullptr) {
+                (*iter)->clear();
                 delete *iter;
                 *iter = nullptr;
             }
         }
     }
-
 }
-
-FunState::FunState(){
-    init();
-    proto = new FunHead();
-    // std::cout << "+++++++++++++++++++++++++++++" << std::endl;
-}
-
-FunState::FunState(const FunState& func){
-    init();
-    prev = func.prev;
-    this->anonymous = func.anonymous;
-    this->code_pos = func.code_pos;
-
-    this->codes = func.codes;
-    
-    proto = new FunHead(*func.proto);
-    // std::cout << "+++++++++++++++++++++++++++++" << std::endl;
-
-}
-
-FunState::~FunState(){
-    if (proto != nullptr){
-        delete proto;
-    }
-    // std::cout << "____________________ " << std::endl;
-}
-
-void FunState::init(){
-    proto = nullptr;
-    prev = nullptr;
-    this->code_pos = 0;
-    this->anonymous = false;
-}
-
 
 
 _QD_END

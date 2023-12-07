@@ -2,6 +2,7 @@
 #define __QD_VARIABLE_H__
 
 #include "qd_header.h"
+#include "qd_log.h"
 
 
 _QD_BEGIN
@@ -25,6 +26,11 @@ enum VE_TYPE {
     VE_UNION,               //联合体
 };
 
+enum VA_SCOPE {
+    VA_DEFAULT,
+    VA_LOCAL,
+    VA_GLOBAL,
+};
 
 /*
 ** ===================================================================
@@ -35,17 +41,18 @@ struct D_OBJ;
 
 union D_PRO
 {
-    bool bv;
-    int iv;
-    unsigned int uiv;
-    double dv;
-    char* chv;
+    _qd_b bv;
+    _qd_int iv;
+    _qd_uint uiv;
+    _qd_doub dv;
+    _qd_char* chv;
 };
+
+#define QD_VAR_FIELDS D_PRO var; unsigned char type;
 
 //16
 struct D_VAR{
-    short type;
-    D_PRO var;
+    QD_VAR_FIELDS
 
     D_VAR();
     D_VAR(const D_VAR& dv);
@@ -84,6 +91,8 @@ struct D_VAR{
     bool operator!=(const char* dv);
 
     D_VAR operator-();
+
+    friend std::ostream& operator<<(std::ostream& os, const D_VAR& p);
 };
 
 

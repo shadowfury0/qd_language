@@ -23,12 +23,23 @@ void Instruction::operator=(const Instruction& i){
     this->rpos = i.rpos;
 
     this->left = i.left;
-    // this->right = i.right;
     this->right = i.right;
 }
 
 Instruction::~Instruction(){
 
+}
+
+std::ostream& operator<<(std::ostream& os, const Instruction& p){
+    os << " Instruction :  " 
+    << " | restype : " << (int)p.restype 
+    << " | type : " << (int)p.type 
+    << " | curpos : " << p.curpos 
+    << " | lpos : " << p.lpos 
+    << " | rpos : " << p.rpos 
+    << " | left value is " << p.left 
+    << " | right value is " << p.right ;
+    return os;
 }
 
 

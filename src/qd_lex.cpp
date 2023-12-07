@@ -389,7 +389,7 @@ int LexState::read_string(unsigned int c){
                     inclinenumber();
                     //^M  CRLF
                     // if ( '\^\M' == this->cur ) this->prev();
-                    if ( '13' == this->cur ) this->prev();
+                    if ( QD_CRLF == this->cur ) this->prev();
                     //LF
                     this->prev();
                     break;
@@ -467,6 +467,13 @@ void LexState::remove_line(){
     {
         this->next();
     }
+}
+
+bool LexState::is_keyw(unsigned int tok) {
+    if ( tok >= T_IF && tok <= T_IN ) {
+        return true;
+    }
+    return false;
 }
 
 bool LexState::is_operator(unsigned int tok){

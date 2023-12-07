@@ -1,29 +1,37 @@
 #斐波那契
-n = 10
+#n = 10
 
-n1 = 1
-n2 = 1
-func fab():
-    for i in 5:
-        tmp = n1 + n2
-        global n1 = n2
-        global n2 = tmp
-    pass
+#n1 = 1
+#n2 = 1
+#func fab():
+#    for i in 5:
+#        tmp = n1 + n2
+#        global n1 = n2
+#        global n2 = tmp
+#    pass
+#pass
+
+#fab()
+
+a = 3
+fun abc():
+	global a = a * a
+	if a > 10000:
+		ret 1
+	pass
+	abc()
 pass
 
-fab()
+abc()
 
-#递归测试
-#目前打印顺序有点混乱
-b = 1
-j = 1
-func a():
-    global b = 5 + b
-    if b < 10:
-        a()
-    pass
-    j = j + 1
-    ret j
+
+a = 10
+fun dd():
+	global a = a - 1
+	if a < 0:
+		ret 1
+	pass
+	ret dd() * 2
 pass
 
-a()
+p = dd()

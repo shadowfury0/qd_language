@@ -22,10 +22,26 @@ inline const char* const helpsargs =
 
 QDMAIN::QDMAIN(){
     logger = Logger::getInstance();
+
+    parser = nullptr;
+    parser = new DParser();
+
+    vm = nullptr;
+    vm = new D_VM();
 }
 
 QDMAIN::~QDMAIN(){
     logger->release();
+
+    if ( parser != nullptr ) {
+        delete parser;
+        parser = nullptr;
+    }
+
+    if ( vm != nullptr ) {
+        delete vm;
+        vm = nullptr;
+    }
 }
 
 int QDMAIN::qd_main(int argc, char **argv){
@@ -44,13 +60,19 @@ int QDMAIN::qd_main(int argc, char **argv){
             //文件
             // logger->setLogTime(false);
             // logger->setLogPattern("%Y-%M------------");
+            logger->setLogPattern("");
             logger->setLogLevel(3);
 
-            parser.read_file(argv[1]);
-            logger->setLogLevel(0);
+            parser->read_file(argv[1]);
 
+            //这里把funhead传入给虚拟机
+            vm->fun = parser->env_stack_top()->cur;
+            vm->execute();
+
+            logger->setLogLevel(0);
         // }
     // }
+    return 0;
 }
 
 void QDMAIN::interactive_mode(){

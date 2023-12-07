@@ -113,7 +113,11 @@ struct Instruction{
     ~Instruction();
 
     void operator=(const Instruction& i);
+
+    friend std::ostream& operator<<(std::ostream& os, const Instruction& p);
 };
+
+
 
 
 _QD_END

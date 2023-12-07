@@ -2,6 +2,7 @@
 #define __QD_MAIN_F_H__
 
 #include "qd_parser.h"
+#include "qd_vm.h"
 
 //程序运行模式目前只有交互式
 _QD_BEGIN
@@ -17,7 +18,8 @@ public:
     void interactive_mode();
     
 private:
-    DParser parser;
+    D_VM* vm;
+    DParser* parser;
     Logger* logger;
 };
 

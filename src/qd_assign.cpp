@@ -212,6 +212,31 @@ bool D_VAR::operator!=(const char* chv){
     return 0 != strcmp(this->var.chv,chv);
 }
 
+std::ostream& operator<<(std::ostream& os, const D_VAR& p){
+    switch (p.type)
+    {
+    case VE_BOOL:
+        os << " bool : " << p.var.bv ;
+        break;
+    case VE_INT:
+        os << " int : " << p.var.iv ;
+        break;
+    case VE_FLT:
+        os << " double : " << p.var.dv ;
+        break;
+    case VE_STR:
+    case VE_USER:
+        os << " string : " << p.var.chv ;
+        break;
+    case VE_FUNC:
+        os << " function : " << p.var.iv; 
+        break;
+    default:
+        os << " error type ";
+        break;
+    }
+    return os << " ";
+}
 
 D_UNION::D_UNION(){
 
