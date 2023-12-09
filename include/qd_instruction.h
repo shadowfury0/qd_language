@@ -88,12 +88,14 @@ enum OprCode {
     OC_ARR_LIST,           //数组区间访问
 //-------------------------------------------
     /* function  operator */
+    OC_END,               // 函数终止状态，虚拟机清空状态，目前只有if用到
     OC_IF,                // IF
     OC_FOR,               // FOR 
     OC_WHILE,             // WHILE
     OC_JMP,               //跳转指令
     OC_CALL,              //调用函数
     OC_RET,               //返回
+    OC_ARG,               // 函数参数
 };
 
 //操作码

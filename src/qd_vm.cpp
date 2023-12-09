@@ -93,11 +93,63 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
         // logger->error(inc);
         switch (inc.type)
         {
+            case OC_JMP:
+            {
+                logger->debug("<-----  analyse  jump  ----->");
+                logger->debug("cur line is :  ",inc.curpos);
+                logger->debug("left pos is :  ",inc.lpos);
+                logger->debug("right pos is :  ",inc.rpos);
+                logger->debug("operator code is :  ",(int)inc.type);
+
+                //判断是否跳转
+                if ( FIN_END != inc.rpos ) {
+                    Instruction& jump = info->f->codes[inc.rpos];
+                    if ( !jump.right.var.bv ) {
+                        i = inc.lpos;
+                    }
+                }
+                // 单纯跳转指令
+                else{
+                    i = inc.lpos;
+                }
+                break;
+            }
+            case OC_WHILE:
+            {
+                logger->debug("<-----  analyse  while  ----->");
+                logger->debug("cur line is :  ",inc.curpos);
+                logger->debug("left pos is :  ",inc.lpos);
+                
+                CallInfo* call = new CallInfo();
+                call->f = new FunHead(*cur_fun()->f->lfuns[inc.lpos]);
+
+                this->push_call(call);
+                if(analyse_code(cur_fun()->pos,cur_fun())){
+                    return ERR_END;
+                }
+                //结束 释放
+                delete this->cur_fun();
+                this->pop_call();
+
+                break;
+            }
+            case OC_ARG:
+            {
+                logger->debug("<-----  analyse  args  ----->");
+                logger->debug("cur line is :  ",inc.curpos);
+                logger->debug("left pos is :  ",inc.lpos);
+                logger->debug("right pos is :  ",inc.rpos);
+                logger->debug("left value is ->  ",inc.left);
+                logger->debug("right value is ->  ",inc.right);
+
+                break;
+            }
             case OC_CALL:
             {
                 logger->debug("<-----  analyse  call  ----->");
                 logger->debug("cur line is :  ",inc.curpos);
                 logger->debug("left pos is :  ",inc.lpos);
+                logger->debug("right pos is :  ",inc.rpos);
                 logger->debug("function name is ",inc.left.var.chv);
                 
                 CallInfo* call = new CallInfo();
@@ -108,6 +160,13 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
                     return ERR_END;
                 }
                 this->push_call(call);
+                
+                //输入参数
+                if(this->input_args(inc,info,call)){
+                    logger->error("args input error");
+                    return ERR_END;
+                }
+
                 if(analyse_code(cur_fun()->pos,cur_fun())){
                     return ERR_END;
                 }
@@ -150,13 +209,9 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
                 call->anonymous = true;
                 call->f = new FunHead(*cur_fun()->f->lfuns[inc.lpos]);
 
-                if (!call->f){
-                    logger->error("function error");
-                    return ERR_END;
-                }
-                
                 Instruction& tmp = info->f->codes[inc.rpos];
-                if (tmp.right.var.bv) {
+                if (tmp.right.var.bv && !info->ifstate) {
+                    info->ifstate = true;
                     this->push_call(call);
                     if(analyse_code(cur_fun()->pos,cur_fun())){
                         return ERR_END;
@@ -165,6 +220,11 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
                     this->pop_call();
                 }
                 
+                break;
+            }
+            case OC_END:
+            {
+                info->ifstate = false;
                 break;
             }
             case OC_ASSIGN:
@@ -183,15 +243,17 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
                     }
                     else if ( VA_DEFAULT == inc.lpos ) {
                         info->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
+                        logger->error(inc.left.var.chv," -> ",info->v(inc.left.var.chv));
                     }
                     else if ( VA_LOCAL == inc.lpos ) {
                         last_function(info)->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
+                        logger->error(inc.left.var.chv," -> ",last_function(info)->v(inc.left.var.chv));
                     }
                     else if ( VA_GLOBAL == inc.lpos ) {
                         this->head_fun()->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
+                        logger->error(inc.left.var.chv," -> ",this->head_fun()->v(inc.left.var.chv));
                     }
                 }
-                // logger->error(inc.left.var.chv," -> ",info->v(inc.left.var.chv));
                 break;
             }
             default:
@@ -204,11 +266,11 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
             }
         }
     }
+    
     logger->debug("<------  function  analyse  end   ------>");
     logger->debug("after stack size is ",this->st->cs.size());
 
-    logger->error("---------------> ",&*info->f);
-    print_variables(*info);
+    // print_variables(*info);
 
     return 0;
 }
@@ -216,7 +278,7 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
 unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     logger->debug("<-----  analyse expression  ----->");
     D_VAR tleft;
-    D_VAR tright ;
+    D_VAR tright;
     D_VAR& tres = inc.right;
 
     logger->debug("cur line is :  ",inc.curpos);
@@ -357,8 +419,8 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         }
         break;
     }
-    case OC_NULL:{
-        if ( VE_VOID == tleft.type ) {
+    case OC_NULL: {
+        if ( VE_VOID == tleft.type  ) {
             tres = inc.left;
         }
         else {
@@ -373,10 +435,12 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     }
     }
 
+
     //结果数据为负数
     if ( OC_MINUS == inc.restype ) {
         tres = -tres;
     }
+
 
     logger->debug("result   type   ",(int)tres.type);
     logger->debug("result   value  ",tres);
@@ -384,17 +448,71 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     return 0;
 }
 
+unsigned int D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
+    //空参
+    if (inc.rpos == FIN_END){
+        return 0;
+    }
+    //push func
+    Instruction tmp = cur->f->codes[inc.rpos];
+    unsigned int len = push->f->args_size();
+    unsigned int i = len - 1;
+    for (; i >= 0 ; i--) {
+        //查找变量值
+        if ( VE_USER == tmp.right.type ) {
+            D_VAR* t = find_variable(tmp.right.var.chv,cur);
+            if(!t){
+                logger->error("function args name not found");
+                return ERR_END;
+            }
+            tmp.right = *t;
+        }
+
+        push->v(push->f->args[i]) = tmp.right;
+        if (tmp.rpos == FIN_END) break;
+        tmp = cur->f->codes[tmp.rpos];
+    }
+
+    if (i) {
+        return ERR_END;
+    }
+
+    return 0;
+}
+
 FunHead* D_VM::find_function(const std::string& name,CallInfo* info ) {
-    CallInfo* tmpin;
-    // CallInfo* tmpin = info;
-    unsigned int i = this->st->cs.size();
-    while ( tmpin && i-- )
+    unsigned int i = this->st->cs.size() - 1;
+    if ( i < 0 ) return nullptr;
+    CallInfo* tmpin = this->st->cs[i];
+
+    while ( tmpin )
     {
-        tmpin = this->st->cs[i];
         if ( tmpin->sv.find(name) != tmpin->sv.end() ) {
             return tmpin->f;
         }
+        --i;
+        if ( i < 0 ) return nullptr;
+        tmpin =  this->st->cs[i];
     }
+
+    return nullptr;
+}
+
+D_VAR* D_VM::find_variable(const std::string& name,CallInfo* info) {
+    unsigned int i = this->st->cs.size() - 1;
+    if ( i < 0 ) return nullptr;
+    CallInfo* tmpin = this->st->cs[i];
+
+    while ( tmpin )
+    {
+        if ( tmpin->sv.find(name) != tmpin->sv.end() ) {
+            return &tmpin->sv[name];
+        }
+        --i;
+        if ( i < 0 ) return nullptr;
+        tmpin =  this->st->cs[i];
+    }
+
     return nullptr;
 }
 
@@ -440,7 +558,6 @@ CallInfo* D_VM::last_return(CallInfo* info) {
         --i;
         if ( i < 0 ) return nullptr;
         tmpin = this->st->cs[i];
-        // tmpin->pos = tmpin->f->codes.size();
     }
 
     //返回全局函数
@@ -450,7 +567,7 @@ CallInfo* D_VM::last_return(CallInfo* info) {
 CallInfo* D_VM::last_function(CallInfo* info) {
     unsigned int i = this->st->cs.size() - 1;
     if ( i < 0 ) return nullptr;
-    CallInfo* tmpin = tmpin = this->st->cs[i];
+    CallInfo* tmpin =  this->st->cs[i];
 
     //匿名函数查找
     while (tmpin)
@@ -459,21 +576,6 @@ CallInfo* D_VM::last_function(CallInfo* info) {
         --i;
         if ( i < 0 ) return nullptr;
         tmpin =  this->st->cs[i];
-    }
-
-    return nullptr;
-}
-
-D_VAR* D_VM::find_variable(const std::string& name,CallInfo* info) {
-    CallInfo* tmpin ;
-    unsigned int i = this->st->cs.size();
-    
-    while ( tmpin && i-- )
-    {
-        tmpin = this->st->cs[i];
-        if ( tmpin->sv.find(name) != tmpin->sv.end() ) {
-            return &tmpin->sv[name];
-        }
     }
 
     return nullptr;

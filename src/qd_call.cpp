@@ -14,6 +14,7 @@ CallInfo::CallInfo(const CallInfo& ca) {
     this->sv = ca.sv;
     this->pos = ca.pos;
     this->anonymous = ca.anonymous;
+    this->ifstate = ca.ifstate;
 }
 
 CallInfo::~CallInfo() {
@@ -28,6 +29,7 @@ void CallInfo::init() {
     this->f = nullptr;
     this->pos = 0;
     this->anonymous = false;
+    this->ifstate = false;
 }
 
 CallInfo::Stack_V& CallInfo::v(const std::string name){

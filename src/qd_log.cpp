@@ -48,7 +48,9 @@ void Logger::fprint_curtime(){
     }
     curtime = std::chrono::system_clock::now();
     time_t in_time_t = std::chrono::system_clock::to_time_t(curtime);
-    std::cout << std::put_time(std::localtime(&in_time_t), this->pattern.c_str()) ;
+#if defined(__GNUC__) && (__GNUC__ > 5)
+    std::cout << std::put_time(std::localtime(&in_time_t), this->pattern.c_str());
+#endif
 }
 
 

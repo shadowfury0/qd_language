@@ -21,6 +21,7 @@ enum VE_TYPE {
     VE_STR,                 //字符串
     VE_USER,                //用户变量
     VE_FUNC,                //函数
+    VE_DELAY,               //滞后变量(用于函数)
 //------------------------------------------
     VE_ARRAY,               //数组
     VE_UNION,               //联合体

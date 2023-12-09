@@ -2,14 +2,14 @@
 
 _QD_BEGIN
 
-inline const char* const helpings  = 
+const char* const helpings  = 
     "usage: %s [options] [script [args]]\n"
     "Available options are:\n"
     "  -h help         viewing help  documents\n"
     "  -i interactive  enter interactive mode after executing 'script'\n"
 ;
 
-inline const char* const helpsargs = 
+const char* const helpsargs = 
     "<-------------------------------------------------->\n"
     "Available  args are:\n"
     "  quit     quit  the  interactive  mode \n"
@@ -60,10 +60,13 @@ int QDMAIN::qd_main(int argc, char **argv){
             //文件
             // logger->setLogTime(false);
             // logger->setLogPattern("%Y-%M------------");
+
             logger->setLogPattern("");
             logger->setLogLevel(3);
 
-            parser->read_file(argv[1]);
+            if (parser->read_file(argv[1])){
+                return -1;
+            }
 
             //这里把funhead传入给虚拟机
             vm->fun = parser->env_stack_top()->cur;

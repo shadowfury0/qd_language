@@ -225,11 +225,16 @@ std::ostream& operator<<(std::ostream& os, const D_VAR& p){
         os << " double : " << p.var.dv ;
         break;
     case VE_STR:
-    case VE_USER:
         os << " string : " << p.var.chv ;
+        break;
+    case VE_USER:
+        os << " user : " << p.var.chv ;
         break;
     case VE_FUNC:
         os << " function : " << p.var.iv; 
+        break;
+    case VE_DELAY:
+        os << " delay ";
         break;
     default:
         os << " error type ";

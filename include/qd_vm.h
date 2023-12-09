@@ -29,6 +29,9 @@ struct D_VM
     //解析表达式指令集
     unsigned int analyse_expr(Instruction& inc,CallInfo* fun);
 
+    //第一个call是当前指令所在位置，第二个是变量输入函数位置,函数参数输入,性能会有点差
+    unsigned int input_args(const Instruction& inc,CallInfo* cur,CallInfo* push);
+    //查找函数
     FunHead* find_function(const std::string& name,CallInfo* info);
     //上一级返回
     CallInfo* last_return(CallInfo* info);

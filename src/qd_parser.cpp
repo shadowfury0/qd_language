@@ -43,7 +43,6 @@ unsigned int DParser::parseX_next(){
 
 void DParser::parse(const char* str){
     ls.alloc_buff(str);
-    //null是函数开始时初始化值
     
     //初始化环境变量
     D_ENV* env = new D_ENV();
@@ -56,28 +55,7 @@ void DParser::parse(const char* str){
     unsigned int err = parse_Func(*env->cur);
 
     logger->debug("global bytes code total is ",env->cur->codes.size());
-    //错误的检测
-    if (!err) {
-        // this->funstack.push_back(global);
-        // //只用解析一次就好了
-        // err = analyse_code( global->code_pos, *global );
-
-        // if (err) {
-        //     logger->error("anaylsing code error ");
-        // }
-    }
-    else {
-        logger->error("compiling code error ");
-    }
-
-    //调试用，测试子函数指令集
     
-    // print_codes(*env->cur);
-    // logger->error(env->cur->lfuns.size()," funs _______(((())))_________  codes is ",env->cur->codes.size());
-    // for ( auto i : env->cur->lfuns ) {
-    //     logger->error(i->lfuns.size()," funs _______(((())))_________  codes is ",i->codes.size());
-    //     print_codes(*i);
-    // }
 
     ls.free_buff();    
 }
@@ -86,10 +64,11 @@ unsigned int DParser::parse_Func(FunHead& fun){
     logger->debug(" <------------------ start --------------------> ");
     
     for(;;){
-        //因为if语句比较特殊不好解决
+        //因为有if fun while等情况
         if ( T_END == ls.t.token ) {
             this->findX_next();
         }
+
         if( T_EOF == ls.t.token ) {
             break;//结束
         }
@@ -187,8 +166,9 @@ unsigned int DParser::parse_Func(FunHead& fun){
             logger->info("do nothing  ");
             break;
         }
-        }  
+        }
     }
+
 
     logger->debug(" <------------------ end --------------------> ");
     return 0;
@@ -432,7 +412,7 @@ unsigned int DParser::jump_expr(FunHead& fun){
     }
     //超出范围
     if ( ls.dvar.var.iv < 0) {
-        logger->warn(" jump out of range ");
+        logger->warn(" jump less than zero ");
         findX_next();
         return ERR_END;
     }
@@ -444,6 +424,7 @@ unsigned int DParser::jump_expr(FunHead& fun){
     inc.lpos = ls.dvar.var.iv - 1; 
     inc.curpos = fun.codes.size();
     fun.codes.push_back(inc);
+    findX_next();
 
     return 0;
 }
@@ -483,7 +464,6 @@ unsigned int DParser::if_expr(FunHead& func){
 
     delete env_stack_top();
     this->env.pop_back();
-
     
     // if 直接结束
     if ( T_PASS != ls.t.token) {
@@ -497,123 +477,123 @@ unsigned int DParser::if_expr(FunHead& func){
         logger->error(ls._row,":",ls._col," missing  end in elif statement");
         return ERR_END;
     }
-    // findX_next();
-
-    // //出现elif
-    // if ( T_ELIF == ls.t.token ) {
-    //     //解析elif 查找到最后的跳转位置挨个遍历
-    //     if (elif_expr(func)) {
-    //         logger->error(ls._row,":",ls._col," elif expression parse error");
-    //         return ERR_END;
-    //     }        
-    // }
+    findX_next();
     
-    // //else语句
-    // if ( T_ELSE == ls.t.token ) {
-    //     if (else_expr(func)) {
-    //         logger->error(ls._row,":",ls._col," else expression parse error");
-    //         return ERR_END;
-    //     }
-    // }
+    //出现elif
+    if ( T_ELIF == ls.t.token ) {
+        //解析elif 查找到最后的跳转位置挨个遍历
+        if (elif_expr(func)) {
+            logger->error(ls._row,":",ls._col," elif expression parse error");
+            return ERR_END;
+        }        
+    }
+    
+    //else语句
+    if ( T_ELSE == ls.t.token ) {
+        if (else_expr(func)) {
+            logger->error(ls._row,":",ls._col," else expression parse error");
+            return ERR_END;
+        }
+    }
 
-    // unsigned int startpos = inc.curpos;
-    // unsigned int endpos = func.codes.size();//解析都是最后的一个指令肯定是elif或else
-
-    // //现在目前是给所有if elif指令赋值
-    // unsigned int i;
-    // for (i = startpos; i < endpos ; i++ ) { 
-    //     Instruction& cur = func.codes[i];
-    //     if ( OC_IF == cur.type ) {
-    //         cur.right = endpos;
-    //     } 
-    // }
+    //这里最后加一个是为了判断if 的终止位置而已 把 ifstate变成false
+    Instruction endif;
+    endif.type = OC_END;
+    endif.curpos = func.codes.size();
+    func.codes.push_back(endif);
 
     return 0;
 }
 
 unsigned int DParser::elif_expr(FunHead& func){
 
-    // while ( T_ELIF == ls.t.token ) {
-    //     Instruction inc;
-    //     findX_next();
-    //     inc.rpos = simple_expr(func);
+    while ( T_ELIF == ls.t.token ) {
+        Instruction inc;
+        findX_next();
+        inc.rpos = simple_expr(func);
 
-    //     inc.curpos = func.codes.size();
-    //     inc.lpos = func.lfuns.size(); 
-    //     inc.type = OC_IF;      //调用
-    //     func.codes.push_back(inc);
+        inc.curpos = func.codes.size();
+        inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
+        inc.type = OC_IF;      //调用
+        func.codes.push_back(inc);
 
-    //     //判断结束符号是否正确
-    //     if (T_COLON != ls.t.token) {
-    //         logger->error(ls._row,":",ls._col," elif condition judgment error");
-    //         return ERR_END;
-    //     }
-    //     findX_next();
+        //判断结束符号是否正确
+        if (T_COLON != ls.t.token) {
+            logger->error(ls._row,":",ls._col," elif condition judgment error");
+            return ERR_END;
+        }
+        findX_next();
         
-    //     FunHead* elifstate = new FunHead();
-    //     // elifstate->prev = &func;
-    //     elifstate->anonymous = true;
-    //     parse_Func(*elifstate);
-    //     func.lfuns.push_back(elifstate);
+        D_ENV* e = new D_ENV();
+        e->prev = env_stack_top();
+        env_stack_top()->cur->lfuns.push_back(e->cur);
+        this->env.push_back(e);
 
-    //     if ( T_PASS != ls.t.token ) {
-    //         logger->error(ls._row,":",ls._col," missing pass end in elif statement");
-    //         return ERR_END;
-    //     }
-    //     findX_next();
-    //     //end
-    //     if ( T_END != ls.t.token ) {
-    //         logger->error(ls._row,":",ls._col," missing end in elif statement");
-    //         return ERR_END;
-    //     }
-    //     findX_next();
-    // }
+        parse_Func(*e->cur);
+        delete env_stack_top();
+        this->env.pop_back();
+
+        if ( T_PASS != ls.t.token ) {
+            logger->error(ls._row,":",ls._col," missing pass end in elif statement");
+            return ERR_END;
+        }
+        findX_next();
+        //end
+        if ( T_END != ls.t.token ) {
+            logger->error(ls._row,":",ls._col," missing end in elif statement");
+            return ERR_END;
+        }
+        findX_next();
+    }
 
     return 0;
 }
 
 unsigned int DParser::else_expr(FunHead& func){
-    // Instruction istrue;
-    // istrue.curpos = func.codes.size();
-    // istrue.type = OC_NULL;
-    // istrue.left = true;
-    // func.codes.push_back(istrue);
+    Instruction istrue;
+    istrue.curpos = func.codes.size();
+    istrue.type = OC_NULL;
+    istrue.left = true;
+    func.codes.push_back(istrue);
 
-    // Instruction inc;
-    // findX_next();
-    // inc.rpos = istrue.curpos;
+    Instruction inc;
+    inc.rpos = istrue.curpos;
 
-    // inc.curpos = func.codes.size();
-    // inc.lpos = func.lfuns.size(); 
-    // inc.type = OC_IF;      //调用
-    // func.codes.push_back(inc);
+    inc.curpos = func.codes.size();
+    inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
+    inc.type = OC_IF;      //调用
+    func.codes.push_back(inc);
 
-    // //判断结束符号是否正确
-    // if (T_COLON != ls.t.token) {
-    //     logger->error(ls._row,":",ls._col," else condition judgment error");
-    //     return ERR_END;
-    // }
-    // findX_next();
+    findX_next();
+    //判断结束符号是否正确
+    if (T_COLON != ls.t.token) {
+        logger->error(ls._row,":",ls._col," else condition judgment error");
+        return ERR_END;
+    }
+    findX_next();
     
-    // FunHead* elsestate = new FunHead();
-    // // elsestate->prev = &func;
-    // elsestate->anonymous = true;
-    // parse_Func(*elsestate);
-    // func.lfuns.push_back(elsestate);
+    D_ENV* e = new D_ENV();
+    e->prev = env_stack_top();
+    env_stack_top()->cur->lfuns.push_back(e->cur);
+    this->env.push_back(e);
 
-    // if ( T_PASS != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," missing pass end in else statement");
-    //     return ERR_END;
-    // }
-    // findX_next();
-    // //end
-    // if ( T_END != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," missing end in else statement");
-    //     return ERR_END;
-    // }
-    // findX_next();
-    
-    
+    parse_Func(*e->cur);
+
+    delete env_stack_top();
+    this->env.pop_back();
+
+    if ( T_PASS != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing pass end in else statement");
+        return ERR_END;
+    }
+    findX_next();
+    //end
+    if ( T_END != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," missing end in else statement");
+        return ERR_END;
+    }
+    findX_next();
+
     return 0;
 }
 
@@ -742,61 +722,64 @@ unsigned int DParser::for_expr(FunHead& func){
     return 0;//正常退出
 }
 
-unsigned int DParser::while_expr(FunHead& func){
-    // findX_next();
+unsigned int DParser::while_expr(FunHead& func) {
+    if ( T_PASS == ls.t.token ) {
+        return 0;
+    }
+    findX_next();
 
-    // FunHead* whilestate = new FunHead();
-    // whilestate->prev = &func;
-
-    //添加一个jump指令，
-    // Instruction jump1;
-    // jump1.type = OC_JMP;
-    // //判断跳转函数是否执行
-    // jump1.rpos = simple_expr(*whilestate);
-
-    // //判断结束符号是否正确
-    // if (T_COLON != ls.t.token) {
-    //     logger->error(ls._row,":",ls._col," while condition judgment error");
-    //     return ERR_END;
-    // }    
-    // findX_next();//这里通常都是 line 换行符
-
-    // Instruction inc;
-    // inc.curpos = func.codes.size();
-    // //记录跳转的函数是第几个
-    // inc.lpos = func.lfuns.size();
-    // inc.type = OC_WHILE;
-    // func.codes.push_back(inc);
-
-    // jump1.curpos = whilestate->codes.size();
-    // whilestate->codes.push_back(jump1); // lpos在后面改
-    // whilestate->anonymous = true;
-    // parse_Func(*whilestate);
+    Instruction inc;
+    inc.curpos = func.codes.size();
+    //记录跳转的函数是第几个
+    inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
+    inc.type = OC_WHILE;
+    func.codes.push_back(inc);
 
 
-    // Instruction jump2;
-    // jump2.curpos = whilestate->codes.size();
-    // jump2.lpos = -1; //最开始位置
-    // jump2.type = OC_JMP;
-    // whilestate->codes.push_back(jump2);
-    // //jump1跳转到最后位置
-    // whilestate->codes[jump1.curpos].lpos = whilestate->codes.size() ;
+    D_ENV* e = new D_ENV();
+    e->prev = env_stack_top();
+    env_stack_top()->cur->lfuns.push_back(e->cur);
+    this->env.push_back(e);
     
-    // func.lfuns.push_back(whilestate);
 
-    // if ( T_PASS != ls.t.token) {
-    //     //pass
-    //     logger->error(ls._row,":",ls._col," missing pass end in while statement");
-    //     return ERR_END;
-    // }
-    // findX_next();
-    // //end
-    // if ( T_END != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," missing  end in while statement");
-    //     return ERR_END;
-    // }
-    // findX_next();
+    Instruction jmp;
+    jmp.type = OC_JMP;
+    jmp.curpos = e->cur->codes.size();
+    jmp.lpos = FIN_END; // 跳转到最后位置
+    jmp.rpos = simple_expr(*e->cur);
+    e->cur->codes.push_back(jmp);
 
+    if ( T_COLON != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," while condition judgment error");
+        return ERR_END;
+    }
+    findX_next();
+    parse_Func(*e->cur);
+
+    //第二次跳转到头部
+    jmp.curpos = e->cur->codes.size();
+    //-1是跳转到头部 0
+    jmp.lpos = -1; // 跳转到最后位置
+    jmp.rpos = FIN_END;
+    e->cur->codes.push_back(jmp);
+
+
+    delete env_stack_top();
+    this->env.pop_back();
+
+    // if 直接结束
+    if ( T_PASS != ls.t.token) {
+        //pass
+        logger->error(ls._row,":",ls._col," missing pass end in while statement");
+        return ERR_END;
+    }
+    findX_next();
+    //end
+    if ( T_END != ls.t.token ) {
+        logger->error(ls._row,":",ls._col,"end error in while statement");
+        return ERR_END;
+    }
+    findX_next();
 
     return 0;
 }
@@ -868,8 +851,10 @@ unsigned int DParser::function_expr(FunHead& func){
     ass.rpos = inc.curpos;
     ass.curpos = func.codes.size();
     func.codes.push_back(ass);
-    
-    this->env_stack_top()->lv[funcname] = (int)this->env_stack_top()->cur->lfuns.size();
+
+
+    unsigned int curfunpos = (int)this->env_stack_top()->cur->lfuns.size();
+    this->env_stack_top()->lv[funcname] = curfunpos;
     this->env_stack_top()->lv[funcname].type = VE_FUNC;
 
     this->findX_next();
@@ -879,12 +864,49 @@ unsigned int DParser::function_expr(FunHead& func){
         return ERR_END;
     }
     this->findX_next();
-    
+
+
+    //添加当前函数进入到function里面去
+    D_ENV* e = new D_ENV();
+    e->prev = env_stack_top();
+    env_stack_top()->cur->lfuns.push_back(e->cur);
+    this->env.push_back(e);
+
+
+    //进入函数前，添加函数参数
+    while ( T_UDATA == ls.t.token )
+    {
+        //存入变量
+        if ( VE_USER != ls.dvar.type ) {
+            //如果参数类型不是用户变量报错
+            logger->error("variable is not user type");
+            return ERR_END;
+        }
+        //添加参数变量
+        e->cur->args.push_back(ls.dvar.var.chv);
+
+        this->env_stack_top()->lv[ls.dvar.var.chv] = 0;
+        this->env_stack_top()->lv[ls.dvar.var.chv].type = VE_NULL;
+
+        this->findX_next();
+        //右括号退出
+        if ( T_RPARENTH == ls.t.token ) {
+            break;
+        }
+        //判断逗号
+        else if ( T_COMMA != ls.t.token ) {
+            logger->error("missing comma between variable in function ");
+            return ERR_END;
+        }
+        this->findX_next();
+    }
+
     
     if ( T_RPARENTH != ls.t.token ) {
         logger->error("missing rigth  parentheses ");
         return ERR_END;
     }
+
     
     this->findX_next();
 
@@ -895,12 +917,7 @@ unsigned int DParser::function_expr(FunHead& func){
     
     this->findX_next(); // end
     
-    //添加当前函数进入到function里面去
-    D_ENV* e = new D_ENV();
-    e->prev = env_stack_top();
-    env_stack_top()->cur->lfuns.push_back(e->cur);
-    this->env.push_back(e);
-    
+    //进入函数解析
     parse_Func(*e->cur);
 
     delete env_stack_top();
@@ -1126,7 +1143,7 @@ unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
 }
 
 unsigned int DParser::simple_expr(FunHead& fun){
-    if ( T_END == ls.t.token ) {
+    if ( T_END == ls.t.token || T_COLON == ls.t.token ) {
         logger->error("missing expression after equal");
         return ERR_END;
     }
@@ -1310,15 +1327,50 @@ unsigned int DParser::call_expr(std::string name,FunHead& fun){
     }
 
     inc.lpos = tmpobj->var.iv;
-    inc.curpos = fun.codes.size();
-    fun.codes.push_back(inc);
     this->findX_next();
+
+
+    //参数判断
+    unsigned int stacksize = 0;
+    unsigned int argpos = FIN_END;
+    while ( ls.is_variable(ls.t.token) )
+    {
+        Instruction arg;
+        arg.type = OC_ARG;
+        arg.right = ls.dvar;
+        arg.rpos = argpos;
+        argpos = arg.curpos = fun.codes.size();
+        fun.codes.push_back(arg);
+
+        this->findX_next();
+        stacksize++;
+        if ( T_RPARENTH == ls.t.token ) {
+            break;
+        }
+        else if ( T_COMMA != ls.t.token ) {
+            logger->error("missing comma between variable in call function ");
+            return ERR_END;
+        }
+        this->findX_next();
+    }
+
+    FunHead* cur = find_function(name,this->env_stack_top());
+    //查找当前参数不匹配
+    if ( stacksize != cur->lfuns[tmpobj->var.iv]->args_size() ) {
+        logger->error("function args number error ");
+        return ERR_END;
+    }
+    
 
     if ( T_RPARENTH != ls.t.token ) {
         logger->error(ls._row,":",ls._col," function call missing right parentheses");
         return ERR_END;
     }
     // this->findX_next();
+    //最后添加
+    inc.rpos = argpos;
+    inc.curpos = fun.codes.size();
+    fun.codes.push_back(inc);
 
     return 0;
 }
@@ -1332,6 +1384,20 @@ D_VAR* DParser::variable_check(const std::string& name,D_ENV* fun) {
         }
         tmpfun = tmpfun->prev;
     }
+    return nullptr;
+}
+
+FunHead* DParser::find_function(const std::string& name,D_ENV* fun) {
+    D_ENV* tmp = fun;
+
+    while ( tmp )
+    {
+        if ( tmp->lv.find(name) != tmp->lv.end() ) {
+            return tmp->cur;
+        }
+        tmp =  tmp->prev;
+    }
+
     return nullptr;
 }
 
@@ -1368,7 +1434,7 @@ D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
     return tmp; 
 }
 
-void DParser::read_file(const char* file){
+unsigned int DParser::read_file(const char* file){
     FILE *fp;
     char buffer[1024];
     memset(buffer,0,sizeof(buffer));
@@ -1377,8 +1443,7 @@ void DParser::read_file(const char* file){
     fp = fopen(file, "r");
     if ( fp == NULL ) {
         std::cout << " file open error " << std::endl;
-        fclose(fp);
-        return;
+        return ERR_END;
     }
 
     // while (fgets(buffer,sizeof(buffer),fp))
@@ -1392,6 +1457,7 @@ void DParser::read_file(const char* file){
 
     // 关闭文件
     fclose(fp);
+    return 0;
 }
 
 void DParser::read_line(const char* line){

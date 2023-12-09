@@ -15,7 +15,7 @@
 
 a = 3
 fun abc():
-	global a = a * a
+	a = a * a
 	if a > 10000:
 		ret 1
 	pass
@@ -25,13 +25,16 @@ pass
 abc()
 
 
-a = 10
-fun dd():
-	global a = a - 1
-	if a < 0:
-		ret 1
-	pass
-	ret dd() * 2
+
+#阶乘
+fun factorial(n):
+    if n == 0 | n == 1:
+        ret 1
+    pass
+    else:
+		a = n - 1
+        ret factorial(a) * n  
+    pass
 pass
 
-p = dd()
+d = factorial(8)

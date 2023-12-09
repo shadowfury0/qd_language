@@ -6,7 +6,7 @@ _QD_BEGIN
 D_ENV::D_ENV(){
     init();
     cur = new FunHead();
-    std::cout << "_____functoin value address_____" << &*cur << std::endl;
+    // std::cout << "_____functoin value address_____" << &*cur << std::endl;
     // std::cout << "+++++++++++++++++++++++++++++" << std::endl;
 }
 

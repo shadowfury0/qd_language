@@ -24,6 +24,8 @@ struct CallInfo
 
     //匿名 if for else while 
     bool anonymous;
+    //上一个条件判断是否为true，例如if elif ，如果为true则不执行
+    bool ifstate;
     unsigned int pos;
     FunHead* f;            //当前函数
     // CallInfo* prev;        //上一级变量

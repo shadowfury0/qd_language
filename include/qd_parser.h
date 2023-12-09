@@ -15,7 +15,7 @@ public:
     ~DParser();
 
     //读取文件
-    void read_file(const char* file);
+    unsigned int read_file(const char* file);
     //读取一行
     void read_line(const char* line);
 
@@ -72,6 +72,8 @@ public:
 
     //检查用户变量是否存在
     D_VAR* variable_check(const std::string& name,D_ENV* fun);
+
+    FunHead* find_function(const std::string& name,D_ENV* fun);
 
     D_ENV* env_stack_top();
 

@@ -12,7 +12,9 @@ struct FunHead {
     //if elif for while
     // bool  anonymous;                  //是否为匿名函数
     // std::string name;
+    // unsigned int maxstacksize;            // 变量参数个数
     
+    std::vector<std::string> args;
     //匿名内部函数，如if  for
     std::vector<FunHead*>  lfuns;
     std::vector<Instruction>  codes;      //指令集
@@ -22,6 +24,8 @@ struct FunHead {
     ~FunHead();
 
     void clear();
+    //可能潜在参数小，不要紧
+    unsigned int args_size();
 };
 
 //函数整体部分
