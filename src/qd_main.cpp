@@ -44,8 +44,11 @@ QDMAIN::~QDMAIN(){
     }
 }
 
-int QDMAIN::qd_main(int argc, char **argv){
+int QDMAIN::qd_main(int argc, char **argv) {
     
+#if defined(__GNUC__) && (__GNUC__ < 5)
+    logger->warn("g++ version is less than 5.0.0 ");
+#endif
     // 解析参数
     // for (int i = 1 ;i < argc ; i ++ ) {
     //     if ( !strcmp(argv[i],"-h")) {

@@ -71,6 +71,30 @@ unsigned int D_VM::execute() {
     return 0;
 }
 
+void D_VM::default_assign(const std::string& name,const D_VAR& var,CallInfo* const info) {
+    info->v(name) = var;
+}
+
+void D_VM::default_assign(const std::string& name,const D_OBJ& var,CallInfo* const info) {
+    info->v(name) = var;
+}
+
+void D_VM::local_assign(const std::string& name,const D_VAR& var,CallInfo* const info) {
+    last_function(info)->v(name) = var;
+}
+
+void D_VM::local_assign(const std::string& name,const D_OBJ& var,CallInfo* const info) {
+    last_function(info)->v(name) = var;
+}
+
+void D_VM::global_assign(const std::string& name,const D_VAR& var) {
+    this->head_fun()->v(name) = var;
+}
+
+void D_VM::global_assign(const std::string& name,const D_OBJ& var) {
+    this->head_fun()->v(name) = var;
+}
+
 unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
     unsigned int clen = info->f->codes.size();
 
@@ -153,7 +177,7 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
                 logger->debug("function name is ",inc.left.var.chv);
                 
                 CallInfo* call = new CallInfo();
-                call->f = new FunHead( *find_function(inc.left.var.chv,info)->lfuns[inc.lpos] );
+                call->f = new FunHead( *find_function(inc.left.var.chv)->lfuns[inc.lpos] );
                 // call->f = new FunHead(*info->f->lfuns[inc.lpos]);
                 if (!call->f){
                     logger->error("function error");
@@ -235,24 +259,37 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
                 logger->debug("right pos is :  ",inc.rpos);
                 logger->debug("left  value is :  ",inc.left.var.chv);
                 logger->debug("operator code is :  ",(int)inc.type);
-                if ( FIN_END != inc.rpos ) {
-                    //作用域判断
-                    if ( FIN_END == inc.lpos ) {
-                        logger->error("variable scope error");
-                        return ERR_END;
-                    }
-                    else if ( VA_DEFAULT == inc.lpos ) {
-                        info->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
-                        logger->error(inc.left.var.chv," -> ",info->v(inc.left.var.chv));
-                    }
-                    else if ( VA_LOCAL == inc.lpos ) {
-                        last_function(info)->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
-                        logger->error(inc.left.var.chv," -> ",last_function(info)->v(inc.left.var.chv));
-                    }
-                    else if ( VA_GLOBAL == inc.lpos ) {
-                        this->head_fun()->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
-                        logger->error(inc.left.var.chv," -> ",this->head_fun()->v(inc.left.var.chv));
-                    }
+                
+                if (analyse_assign(inc,info)){
+                    logger->error("analyse code error");
+                    return ERR_END;
+                }
+                break;
+            }
+            case OC_ARR_IAS:
+            {
+                if (analyse_array_index_assign(inc,*info->f)) {
+                    logger->error("error in array index assign function");
+                    return ERR_END;
+                }
+                break;
+            }
+            case OC_ARR_VAL:
+            {
+                logger->debug("<-----  analyse array assign  ----->");
+                logger->debug("cur line is :  ",inc.curpos);
+                logger->debug("left  value is ->  ",inc.left);
+                logger->debug("right  value is ->  ",inc.right);
+                logger->debug("operator code is :  ",(int)inc.type);
+                //判断数组是否定义
+                D_OBJ* tmp = find_variable(inc.left.var.chv);
+                if (!tmp) {
+                    D_UNION du;
+                    du.larr.push_back(inc.right);
+                    info->v(inc.left.var.chv) = du;
+                }
+                else {
+                    tmp->push(inc.right);
                 }
                 break;
             }
@@ -270,7 +307,7 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
     logger->debug("<------  function  analyse  end   ------>");
     logger->debug("after stack size is ",this->st->cs.size());
 
-    // print_variables(*info);
+    // print_variables(info);
 
     return 0;
 }
@@ -280,6 +317,7 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     D_VAR tleft;
     D_VAR tright;
     D_VAR& tres = inc.right;
+    D_OBJ* array = nullptr;
 
     logger->debug("cur line is :  ",inc.curpos);
     logger->debug("left pos is :  ",inc.lpos);
@@ -294,37 +332,51 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         tright = info->f->codes[inc.rpos].right;
     }
 
-    //暂时不支持用户变量查找
+    
     if ( VE_USER == tleft.type ) {
-        D_VAR* tmp = find_variable(tleft.var.chv,info);
+        D_OBJ* tmp = find_variable(tleft.var.chv);
         if(!tmp){
             logger->error("left var name not found");
             return ERR_END;
         }
-        tleft = *tmp;
+        //不为数组类型才赋值
+        tleft = *tmp;            
     }
 
     if ( VE_USER == tright.type ) {
-        D_VAR* tmp = find_variable(tright.var.chv,info);
+        D_OBJ* tmp = find_variable(tright.var.chv);
         if(!tmp){
             logger->error("right var name not found");
             return ERR_END;
         }
+        //不为数组类型才赋值
         tright = *tmp;
     }
 
+
     //如果只有一个值
-    if ( VE_VOID == tleft.type && VE_USER == inc.left.type ) {
-        D_VAR* tmp = find_variable(inc.left.var.chv,info);
-        if(!tmp){
-            logger->error("single var name not found");
-            return ERR_END;
+    if ( VE_VOID == tleft.type ) {
+        if ( VE_UNION == inc.left.type ) {
+            array = find_variable(inc.left.var.chv);
+            if(!array){
+                logger->error("union var name not found");
+                return ERR_END;
+            }
         }
-        tleft = *tmp;
+        else if ( VE_USER == inc.left.type ) {
+            array = find_variable(inc.left.var.chv);
+            if(!array){
+                logger->error("single var name not found");
+                return ERR_END;
+            }
+            tleft = *array;
+        }
     }
+    
 
     logger->debug("left type is  : ",(int)tleft.type);
     logger->debug("right type is  : ",(int)tright.type);
+    
     //解析指令
     switch (inc.type)
     {
@@ -419,8 +471,28 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         }
         break;
     }
+    //数组下标访问
+    case OC_ARR_ACE:
+    {
+        //超出数组范围进行判断
+        Instruction& acess = info->f->codes[inc.rpos];
+        size_t pos = acess.right.var.iv;
+        if (!array) {
+            return ERR_END;
+        }
+        size_t len = array->uni->larr.size() - 1;
+        
+        //超出范围
+        if ( pos < 0 || pos > len ) {
+            logger->error("array access out of range");
+            return ERR_END;
+        }
+        tres = array->uni->larr[pos];
+        
+        break;
+    }
     case OC_NULL: {
-        if ( VE_VOID == tleft.type  ) {
+        if ( VE_VOID == tleft.type ) {
             tres = inc.left;
         }
         else {
@@ -435,7 +507,6 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     }
     }
 
-
     //结果数据为负数
     if ( OC_MINUS == inc.restype ) {
         tres = -tres;
@@ -445,6 +516,86 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     logger->debug("result   type   ",(int)tres.type);
     logger->debug("result   value  ",tres);
 
+    return 0;
+}
+
+unsigned int D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
+    if ( FIN_END == inc.rpos ) {
+        logger->error("missing rpos to assign");
+        return ERR_END;
+    }
+
+    Instruction& ass = info->f->codes[inc.rpos]; 
+
+    //在这里辨别，数组，普通变量
+    //作用域判断
+    if ( FIN_END == inc.lpos ) {
+        logger->error("variable scope error");
+        return ERR_END;
+    }
+    
+    //数组
+    if ( VE_UNION == ass.right.type ) {
+        default_assign(inc.left.var.chv,*find_variable(ass.right.var.chv),info);
+        logger->error(inc.left.var.chv," -> ",info->v(inc.left.var.chv));
+    }
+    else {
+        if ( VA_DEFAULT == inc.lpos ) {
+            default_assign(inc.left.var.chv,ass.right,info);
+        }
+        else if ( VA_LOCAL == inc.lpos ) {
+            local_assign(inc.left.var.chv,ass.right,info);
+        }
+        else if ( VA_GLOBAL == inc.lpos ) {
+            global_assign(inc.left.var.chv,ass.right);
+        }
+        logger->error(inc.left.var.chv," -> ",ass.right);
+    }
+    
+    
+    return 0;
+}
+
+unsigned int D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
+    if ( FIN_END == inc.rpos ) {
+        logger->error("error in array index assign");
+        return ERR_END;
+    }
+    Instruction& value = fun.codes[inc.rpos];
+    
+    unsigned int index = 0;
+    
+    D_OBJ* array =  find_variable(inc.left.var.chv);
+
+    if (!array) {
+        logger->error("union is not exist");
+        return ERR_END;
+    }
+
+    unsigned int len = array->uni->larr.size() - 1;
+
+    if ( VE_USER == inc.right.type ) {
+        D_OBJ* tmp = find_variable(inc.right.var.chv);
+        if (!tmp) {
+            logger->error("index variable not exist");
+            return ERR_END;
+        }
+        index = tmp->var.iv;
+    }
+    else if ( VE_INT == inc.right.type ){
+        index = inc.right.var.iv;
+    }
+    else {
+        logger->error("error type in union index");
+        return ERR_END;
+    }
+
+    if ( index < 0 || index > len ) {
+        logger->error("index out of range");
+        return ERR_END;
+    }
+
+    array->uni->larr[index] = value.right;
     return 0;
 }
 
@@ -460,7 +611,7 @@ unsigned int D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* pus
     for (; i >= 0 ; i--) {
         //查找变量值
         if ( VE_USER == tmp.right.type ) {
-            D_VAR* t = find_variable(tmp.right.var.chv,cur);
+            D_OBJ* t = find_variable(tmp.right.var.chv);
             if(!t){
                 logger->error("function args name not found");
                 return ERR_END;
@@ -480,8 +631,8 @@ unsigned int D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* pus
     return 0;
 }
 
-FunHead* D_VM::find_function(const std::string& name,CallInfo* info ) {
-    unsigned int i = this->st->cs.size() - 1;
+FunHead* D_VM::find_function(const std::string& name ) {
+    int i = this->st->cs.size() - 1;
     if ( i < 0 ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
 
@@ -498,8 +649,9 @@ FunHead* D_VM::find_function(const std::string& name,CallInfo* info ) {
     return nullptr;
 }
 
-D_VAR* D_VM::find_variable(const std::string& name,CallInfo* info) {
-    unsigned int i = this->st->cs.size() - 1;
+D_OBJ* D_VM::find_variable(const std::string& name) {
+    //这个必须是int类型
+    int i = this->st->cs.size() - 1;
     if ( i < 0 ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
 
@@ -581,9 +733,11 @@ CallInfo* D_VM::last_function(CallInfo* info) {
     return nullptr;
 }
 
-void D_VM::print_variables(const CallInfo& call) {
-    for ( auto i : call.sv ) {
-        logger->error(i.first," -> ",i.second);
+void D_VM::print_variables(const CallInfo* call) {
+    
+    for (auto iter = call->sv.begin() ;
+        iter != call->sv.end() ; iter ++) {
+        logger->error(iter->first," -> ",iter->second);
     }
 }
 

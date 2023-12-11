@@ -1,11 +1,10 @@
-fun b(a):
-	a = a - 1
-	if a <5 :
-		ret a
-	pass
-	else:
-		ret b(a)
-	pass
+c = [1,2.2,"asdp"]
+i = 2
+
+fun kk():
+    d = [29,1]
+    p = d[0]
+
 pass
 
-b(6)
+kk()

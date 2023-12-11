@@ -9,6 +9,7 @@ _QD_BEGIN
 
 struct D_ENV
 {
+    bool anonymous;
     unsigned int code_pos;
     D_ENV* prev;                       //上一级环境  
     FunHead* cur;                      //当前函数头信息

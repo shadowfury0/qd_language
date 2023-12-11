@@ -1,21 +1,16 @@
 #warning out of range test
 a = [ 1212,"asdqw",12.3,"asd" ]
-a = a[3:2]
 
+a[0] = 2.2
+a[1] = 12.1
+a[2] = 3
+a[3] = 2 + -(-(2 + 2))
+b = a
 
-# union not allow null
-# a = []
+i = 0
+while i < 4:
+    a[i] =  a[i] * i
+    i = i + 1
+pass
 
-# assign  variables
-#a[1] = 12.3
-#out of range
-# b = a[4]
-# b = a[3]
-# b = a[0:3]
-#a[2] = 2--(-1 + 2 * 3)
-
-#i = 0 
-#j = 3
-#a[j] = 12
-
-#a = a
+b = a

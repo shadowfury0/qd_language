@@ -1,5 +1,5 @@
 #include "qd_parser.h"
-
+#include "qd_funclib.h"
 
 _QD_BEGIN
 
@@ -171,6 +171,7 @@ unsigned int DParser::parse_Func(FunHead& fun){
 
 
     logger->debug(" <------------------ end --------------------> ");
+    
     return 0;
 }
 
@@ -280,13 +281,6 @@ unsigned int DParser::statement(FunHead& fun){
     inc.left = ls.dvar;
     this->findX_next();
 
-    //暂时不允许空值
-    // if ( T_END == ls.t.token ) {
-    //     fun.proto->lv[inc.left.var.chv] = 0;
-    //     fun.proto->lv[inc.left.var.chv].type = VE_NULL;
-    //     return 0;
-    // }
-
     //下一个如果是函数调用的话
     if ( T_LPARENTH == ls.t.token ) {
         if(call_expr(inc.left.var.chv,fun)) {
@@ -302,10 +296,11 @@ unsigned int DParser::statement(FunHead& fun){
     }
     //数组下标赋值
     else if ( T_LBRACKET == ls.t.token ) {
-        if(array_element_expr(inc,fun)){
-            logger->error(ls._row,":",ls._col," array element assign error");
+        if(array_element_expr(inc.left.var.chv,fun)){
+            logger->error("array subscript is assing error");
             return ERR_END;
         }
+
         return 0;
     }
     //因为是赋值表达式所以判断=
@@ -318,17 +313,39 @@ unsigned int DParser::statement(FunHead& fun){
 
     //数组
     if ( T_LBRACKET == ls.t.token ) {
-        if(union_expr(inc.right.var.bv,inc.left.var.chv,fun)){
+        if(array_expr(inc.left.var.chv,fun)){
             logger->error(ls._row,":",ls._col," array parse error");
             return ERR_END;
         }
-        return 0;
+        //局部
+        this->env_stack_top()->lv[inc.left.var.chv] = "";
+        this->env_stack_top()->lv[inc.left.var.chv].type = VE_UNION;
     }
-    else if ( assign_expr(inc,fun) ) {
-        logger->error(ls._row,":",ls._col," assign expression error");
-        return ERR_END;
+    else {
+        if ( assign_expr(inc,fun) ) {
+            logger->error(ls._row,":",ls._col," assign expression error");
+            return ERR_END;
+        }
+        fun.codes.push_back(inc);
+
+        if ( VA_DEFAULT == inc.lpos ) {
+            this->env_stack_top()->lv[inc.left.var.chv] = 0;
+            this->env_stack_top()->lv[inc.left.var.chv].type = VE_NULL;
+        }
+        else if ( VA_LOCAL == inc.lpos ) {
+            last_env(this->env_stack_top())->lv[inc.left.var.chv] = 0;
+            last_env(this->env_stack_top())->lv[inc.left.var.chv].type = VE_NULL;
+        }
+        else if ( VA_GLOBAL == inc.lpos ) {
+            this->env_stack_head()->lv[inc.left.var.chv] = 0;
+            this->env_stack_head()->lv[inc.left.var.chv].type = VE_NULL;
+        }
+        else {
+            logger->error("assign scope is error");
+            return ERR_END;
+        }
     }
-    fun.codes.push_back(inc);
+
     
     return 0;//正常退出
 }
@@ -348,15 +365,6 @@ unsigned int DParser::assign_expr(Instruction& inc,FunHead& fun){
             return ERR_END;
         }
         assigntype = tmpobj->type;
-
-        //判断是否为数组，
-        if ( VE_UNION == assigntype ) {
-            if ( list_access_expr(inc.left.var.chv,fun) ) {
-                logger->error("list access expression error");
-                return ERR_END;
-            }
-            return 0;
-        }
     }
     else if ( ls.is_variable(ls.t.token) ) {
         assigntype = ls.dvar.type;
@@ -387,17 +395,10 @@ unsigned int DParser::assign_expr(Instruction& inc,FunHead& fun){
         break;
     }
     }
-
-    //先把user_data添加进行进行判断
-    if ( T_END != ls.t.token ){
-        logger->error(ls._row,":",ls._col," error end");
-        return ERR_END;
-    }
     
-    this->env_stack_top()->lv[inc.left.var.chv] = 0;
-    this->env_stack_top()->lv[inc.left.var.chv].type = VE_NULL;
     
     inc.curpos = fun.codes.size();
+    
     return 0;
 }
 
@@ -456,6 +457,7 @@ unsigned int DParser::if_expr(FunHead& func){
     findX_next();//这里通常都是 line 换行符
 
     D_ENV* e = new D_ENV();
+    e->anonymous = true;
     e->prev = env_stack_top();
     env_stack_top()->cur->lfuns.push_back(e->cur);
     this->env.push_back(e);
@@ -525,6 +527,7 @@ unsigned int DParser::elif_expr(FunHead& func){
         findX_next();
         
         D_ENV* e = new D_ENV();
+        e->anonymous = true;
         e->prev = env_stack_top();
         env_stack_top()->cur->lfuns.push_back(e->cur);
         this->env.push_back(e);
@@ -573,6 +576,7 @@ unsigned int DParser::else_expr(FunHead& func){
     findX_next();
     
     D_ENV* e = new D_ENV();
+    e->anonymous = true;
     e->prev = env_stack_top();
     env_stack_top()->cur->lfuns.push_back(e->cur);
     this->env.push_back(e);
@@ -737,6 +741,7 @@ unsigned int DParser::while_expr(FunHead& func) {
 
 
     D_ENV* e = new D_ENV();
+    e->anonymous = true;
     e->prev = env_stack_top();
     env_stack_top()->cur->lfuns.push_back(e->cur);
     this->env.push_back(e);
@@ -784,41 +789,41 @@ unsigned int DParser::while_expr(FunHead& func) {
     return 0;
 }
 
-unsigned int DParser::array_element_expr(Instruction& inc,FunHead& fun){
-    // D_VAR* tmpobj = variable_check(inc.left.var.chv,this->env_stack_top());
-    // if ( VE_VOID == tmpobj->type ){
-    //     delete tmpobj;
-    //     logger->error(ls._row,":",ls._col," array is not exist");
-    //     return ERR_END;
-    // }
-    // //[
-    // this->findX_next();
-    // //用户变量或数字
-    // inc.right = ls.dvar;
-    // this->findX_next();
-    // //]
-    // if ( T_RBRACKET != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," right bracket missing ");
-    //     return ERR_END;
-    // }
-    // this->findX_next();
-    // if ( T_EQ != ls.t.token ){
-    //     logger->error(ls._row,":",ls._col," unkonwn expression error ");
-    //     return ERR_END;
-    // }
-    // this->findX_next();
+unsigned int DParser::array_element_expr(const std::string& name,FunHead& fun){
+    Instruction inc;
+    inc.left = name.c_str();
+    D_VAR* tmpobj = variable_check(inc.left.var.chv,this->env_stack_top());
+    
+    if ( !tmpobj ){
+        logger->error(ls._row,":",ls._col," array or union is not exist");
+        return ERR_END;
+    }
+    //[
+    this->findX_next();
+    //用户变量或数字
+    inc.right = ls.dvar;
+    this->findX_next();
+    //]
+    if ( T_RBRACKET != ls.t.token ) {
+        logger->error(ls._row,":",ls._col," right bracket missing ");
+        return ERR_END;
+    }
+    this->findX_next();
+    if ( T_EQ != ls.t.token ){
+        logger->error(ls._row,":",ls._col," unkonwn expression error ");
+        return ERR_END;
+    }
+    this->findX_next();
 
+    if( assign_expr(inc,fun) ) {
+        logger->error(ls._row,":",ls._col," array assign expression error");
+        return ERR_END;
+    }
+    inc.type = OC_ARR_IAS;
 
-    // inc.rpos = simple_expr(fun);
-
-    // if( ERR_END == inc.rpos ){
-    //     logger->error(ls._row,":",ls._col," array assign expression error");
-    //     return ERR_END;
-    // }
-    // inc.type = OC_ARR_PASSIGN;
-
-    // inc.curpos = fun.codes.size();
-    // fun.codes.push_back(inc);
+    inc.curpos = fun.codes.size();
+    fun.codes.push_back(inc);
+    
     return 0;
 }
 
@@ -933,9 +938,7 @@ unsigned int DParser::function_expr(FunHead& func){
     return 0;
 }
 
-unsigned int DParser::union_expr(bool global,const std::string& name,FunHead& fun){
-    unsigned int lastpos = FIN_END;
-    Instruction assign;
+unsigned int DParser::array_expr(const std::string& name,FunHead& fun){
 
     for (;;) {
         Instruction inc;
@@ -950,11 +953,12 @@ unsigned int DParser::union_expr(bool global,const std::string& name,FunHead& fu
             logger->error(ls._row,":",ls._col," missing right bracket ");
             return ERR_END;        
         }
-        
-        inc.left = ls.dvar;
-        inc.rpos = lastpos;
+        //数组名
+        inc.left = name.c_str();
+        //值
+        inc.right = ls.dvar;
         inc.type = OC_ARR_VAL;
-        lastpos = inc.curpos = fun.codes.size();
+        inc.curpos = fun.codes.size();
         fun.codes.push_back(inc);
         
         this->findX_next();
@@ -967,174 +971,166 @@ unsigned int DParser::union_expr(bool global,const std::string& name,FunHead& fu
             return ERR_END;
         }
     }
-    
-    assign.left = name.c_str();
-    assign.type = OC_ARR_ASSIGN;
-    assign.rpos = lastpos;
-    assign.right = global;
-    assign.curpos = fun.codes.size();
-    fun.codes.push_back(assign);
-
-    // fun.proto->lv[name] = 0;
-    // fun.proto->lv[name].type = VE_UNION;
 
     if ( T_RBRACKET != ls.t.token ) {
         logger->error(ls._row,":",ls._col," missing right bracket ");
         return ERR_END;
     }
+
+
     this->findX_next();
     return 0;
 }
 
 unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
-    this->findX_next();
-    std::string varname = ls.dvar.var.chv;
-    if ( T_END == ls.t.token ) {
-        Instruction ll;
-        ll.type = OC_NULL;
-        ll.left = 0;
-        ll.curpos = func.codes.size();
-        func.codes.push_back(ll);
+    // this->findX_next();
+    // std::string varname = ls.dvar.var.chv;
+    // if ( T_END == ls.t.token ) {
+    //     Instruction ll;
+    //     ll.type = OC_NULL;
+    //     ll.left = 0;
+    //     ll.curpos = func.codes.size();
+    //     func.codes.push_back(ll);
         
-        Instruction rr;
-        rr.type = OC_NULL;
-        rr.left = QD_INT_32_MAX;
-        rr.curpos = func.codes.size();
-        func.codes.push_back(rr);
+    //     Instruction rr;
+    //     rr.type = OC_NULL;
+    //     rr.left = QD_INT_32_MAX;
+    //     rr.curpos = func.codes.size();
+    //     func.codes.push_back(rr);
         
-        Instruction inc;
-        inc.type = OC_ARR_LIST;
-        inc.lpos = ll.curpos;
-        inc.rpos = rr.curpos;
-        inc.left = varname.c_str();
+    //     Instruction inc;
+    //     inc.type = OC_ARR_LIST;
+    //     inc.lpos = ll.curpos;
+    //     inc.rpos = rr.curpos;
+    //     inc.left = varname.c_str();
 
-        inc.curpos = func.codes.size();
-        func.codes.push_back(inc);
-        Instruction ass;
-        ass.type = OC_ARR_LASSIGN;
-        ass.left = name.c_str();
-        ass.rpos = inc.curpos;
-        ass.curpos = func.codes.size();
-        func.codes.push_back(ass);
-        // func.proto->lv[name] = 0;
-        // func.proto->lv[name].type = VE_UNION;
-        return 0;
-    }
-    else  if ( T_LBRACKET != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," list access expression error");
-        return ERR_END;
-    }
+    //     inc.curpos = func.codes.size();
+    //     func.codes.push_back(inc);
+    //     Instruction ass;
+    //     ass.type = OC_ARR_LASSIGN;
+    //     ass.left = name.c_str();
+    //     ass.rpos = inc.curpos;
+    //     ass.curpos = func.codes.size();
+    //     func.codes.push_back(ass);
+    //     // func.proto->lv[name] = 0;
+    //     // func.proto->lv[name].type = VE_UNION;
+    //     return 0;
+    // }
+    // else  if ( T_LBRACKET != ls.t.token ) {
+    //     logger->error(ls._row,":",ls._col," list access expression error");
+    //     return ERR_END;
+    // }
 
-    this->findX_next();
+    // this->findX_next();
 
-    int ret = parse_PreCode(ls.t.token);
-    if ( OC_NIL != ret ){
-        findX_next();
-    }
+    // int ret = parse_PreCode(ls.t.token);
+    // if ( OC_NIL != ret ){
+    //     findX_next();
+    // }
     
-    D_VAR left = 0;
-    if ( T_INT == ls.t.token ) {
-        left = ls.dvar.var.iv ;
-        this->findX_next();
-    }
-    else if ( T_UDATA == ls.t.token ) {
-        left = ls.dvar;
-        this->findX_next();
-    }
+    // D_VAR left = 0;
+    // if ( T_INT == ls.t.token ) {
+    //     left = ls.dvar.var.iv ;
+    //     this->findX_next();
+    // }
+    // else if ( T_UDATA == ls.t.token ) {
+    //     left = ls.dvar;
+    //     this->findX_next();
+    // }
 
-    //如果只有一个负数符号
-    if ( T_COLON != ls.t.token && T_MINUS == ls.lookahead.token ) {
-        logger->error(ls._row,":",ls._col," missing int value with minus symbol");
-        return ERR_END;
-    }
+    // //如果只有一个负数符号
+    // if ( T_COLON != ls.t.token && T_MINUS == ls.lookahead.token ) {
+    //     logger->error(ls._row,":",ls._col," missing int value with minus symbol");
+    //     return ERR_END;
+    // }
     
-    //如果访问一个下标
-    if ( T_RBRACKET == ls.t.token ) {
-        Instruction inc;
-        inc.type = OC_ARR_ACESS;
-        inc.left = varname.c_str();
-        inc.right = left;
-        inc.curpos = func.codes.size();
-        func.codes.push_back(inc);
+    // //如果访问一个下标
+    // if ( T_RBRACKET == ls.t.token ) {
+    //     Instruction inc;
+    //     inc.type = OC_ARR_ACESS;
+    //     inc.left = varname.c_str();
+    //     inc.right = left;
+    //     inc.curpos = func.codes.size();
+    //     func.codes.push_back(inc);
         
-        Instruction assign;
-        assign.left = name.c_str();
-        assign.type = OC_ASSIGN;
-        assign.rpos = inc.curpos;
-        assign.curpos = func.codes.size();
-        func.codes.push_back(assign);
+    //     Instruction assign;
+    //     assign.left = name.c_str();
+    //     assign.type = OC_ASSIGN;
+    //     assign.rpos = inc.curpos;
+    //     assign.curpos = func.codes.size();
+    //     func.codes.push_back(assign);
 
-        this->findX_next();
+    //     this->findX_next();
 
-        if ( T_END != ls.t.token ) {
-            logger->error(ls._row,":",ls._col," error ending in array assign");
-            return ERR_END;
-        }
+    //     if ( T_END != ls.t.token ) {
+    //         logger->error(ls._row,":",ls._col," error ending in array assign");
+    //         return ERR_END;
+    //     }
 
-        return 0;
-    }
-    else if ( T_COLON != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," is not colon symbol");
-        return ERR_END;
-    }
+    //     return 0;
+    // }
+    // else if ( T_COLON != ls.t.token ) {
+    //     logger->error(ls._row,":",ls._col," is not colon symbol");
+    //     return ERR_END;
+    // }
     
-    this->findX_next();
+    // this->findX_next();
 
-    ret = parse_PreCode(ls.t.token);
-    if (OC_NIL != ret){
-        findX_next();
-    }
+    // ret = parse_PreCode(ls.t.token);
+    // if (OC_NIL != ret){
+    //     findX_next();
+    // }
     
-    D_VAR right = QD_INT_32_MAX;
+    // D_VAR right = QD_INT_32_MAX;
 
-    if ( T_INT == ls.t.token ) {
-        right = ret == OC_MINUS ?  -ls.dvar.var.iv :  ls.dvar.var.iv;
-        this->findX_next();
-    }
-    else if ( T_UDATA == ls.t.token ) {
-        right = ls.dvar;
-        this->findX_next();
-    }
+    // if ( T_INT == ls.t.token ) {
+    //     right = ret == OC_MINUS ?  -ls.dvar.var.iv :  ls.dvar.var.iv;
+    //     this->findX_next();
+    // }
+    // else if ( T_UDATA == ls.t.token ) {
+    //     right = ls.dvar;
+    //     this->findX_next();
+    // }
 
-    if ( ( OC_MINUS == ret && T_INT != ls.lookahead.token ) 
-    || ( T_UDATA != ls.lookahead.token && T_INT != ls.lookahead.token ) ) {
-        logger->error(ls._row,":",ls._col," missing int value with minus symbol");
-        return ERR_END;
-    }
+    // if ( ( OC_MINUS == ret && T_INT != ls.lookahead.token ) 
+    // || ( T_UDATA != ls.lookahead.token && T_INT != ls.lookahead.token ) ) {
+    //     logger->error(ls._row,":",ls._col," missing int value with minus symbol");
+    //     return ERR_END;
+    // }
 
-    if ( T_RBRACKET != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," missing right brace symbol");
-        return ERR_END;
-    }
+    // if ( T_RBRACKET != ls.t.token ) {
+    //     logger->error(ls._row,":",ls._col," missing right brace symbol");
+    //     return ERR_END;
+    // }
 
-    Instruction ll;
-    ll.type = OC_NULL;
-    ll.left = left;
-    ll.curpos = func.codes.size();
-    func.codes.push_back(ll);
+    // Instruction ll;
+    // ll.type = OC_NULL;
+    // ll.left = left;
+    // ll.curpos = func.codes.size();
+    // func.codes.push_back(ll);
     
-    Instruction rr;
-    rr.type = OC_NULL;
-    rr.left = right;
-    rr.curpos = func.codes.size();
-    func.codes.push_back(rr);
+    // Instruction rr;
+    // rr.type = OC_NULL;
+    // rr.left = right;
+    // rr.curpos = func.codes.size();
+    // func.codes.push_back(rr);
 
-    Instruction alist;
-    alist.type = OC_ARR_LIST;
-    alist.lpos = ll.curpos;
-    alist.rpos = rr.curpos;
-    alist.left = varname.c_str();
-    alist.curpos = func.codes.size();
-    func.codes.push_back(alist);
+    // Instruction alist;
+    // alist.type = OC_ARR_LIST;
+    // alist.lpos = ll.curpos;
+    // alist.rpos = rr.curpos;
+    // alist.left = varname.c_str();
+    // alist.curpos = func.codes.size();
+    // func.codes.push_back(alist);
 
-    Instruction assign;
-    assign.type = OC_ARR_LASSIGN;
-    assign.left = name.c_str();
-    assign.rpos = alist.curpos;
-    assign.curpos = func.codes.size();
-    func.codes.push_back(assign);
+    // Instruction assign;
+    // assign.type = OC_ARR_LASSIGN;
+    // assign.left = name.c_str();
+    // assign.rpos = alist.curpos;
+    // assign.curpos = func.codes.size();
+    // func.codes.push_back(assign);
 
-    this->findX_next();
+    // this->findX_next();
 
     // func.proto->lv[name] = 0;
     // func.proto->lv[name].type = VE_UNION;
@@ -1147,21 +1143,22 @@ unsigned int DParser::simple_expr(FunHead& fun){
         logger->error("missing expression after equal");
         return ERR_END;
     }
+    
     std::vector<unsigned int> values; // 存放计算值位置
     //存放运算符
     std::vector<int> ops; //存放符号运算token
 
     int negative = 0;
     // () 个数
-    unsigned int path = 0; 
+    unsigned int path = 0;
 
     while ( T_END != ls.t.token && T_COLON != ls.t.token ) {
         int tok = ls.t.token;
+        
         if ( T_EOF == tok ) {
             logger->error("simple expression end error");
             return ERR_END;
         }
-        
         if ( ls.is_variable(tok) ) {
             //用户变量判断是否存在
             D_VAR* tmpobj = nullptr;
@@ -1176,8 +1173,8 @@ unsigned int DParser::simple_expr(FunHead& fun){
             }
             inc.left = ls.dvar;
 
-            //这里判断是函数调用还是普通成员变量
-            if ( tmpobj ) {
+            if (tmpobj) {
+                //这里判断是函数调用还是普通成员变量,还是数组
                 if ( VE_FUNC == tmpobj->type ) {
                     this->findX_next();
                     //函数调用                
@@ -1188,11 +1185,49 @@ unsigned int DParser::simple_expr(FunHead& fun){
                     inc.left = QD_KYW_RET;
                     inc.left.type = VE_USER;
                 }
+                //数组
+                else if ( VE_UNION == tmpobj->type ) {
+                    inc.left.type = VE_UNION;
+
+                    this->findX_next();
+                    //判断是否为[
+                    if ( T_LBRACKET != ls.t.token ) {
+                        inc.type = OC_NULL;
+                        inc.curpos = fun.codes.size();
+                        //暂时不需要处理负数前缀
+                        // if (negative % 2 != 0) {
+                        //     symbol_reversal(inc); // 处理负数前缀
+                        //     --negative;
+                        // }
+                        fun.codes.push_back(inc);
+                        values.push_back(inc.curpos);
+                        continue;
+                    }
+                    this->findX_next();
+                    if ( T_UDATA != ls.t.token && T_INT != ls.t.token ) {
+                        logger->error("array index type error");
+                        return ERR_END;
+                    }
+                    
+                    Instruction arr;
+                    arr.type = OC_NULL;
+                    arr.left = ls.dvar;
+                    arr.curpos = fun.codes.size();
+                    fun.codes.push_back(arr);
+                    inc.rpos = arr.curpos;
+                    inc.type = OC_ARR_ACE;
+                    this->findX_next();
+                    if ( T_RBRACKET != ls.t.token ) {
+                        logger->error("right bracket error");
+                        return ERR_END;
+                    }
+                }
+                else {
+                    inc.type = OC_NULL;
+                }
             }
-
-            inc.type = OC_NULL;
+            
             inc.curpos = fun.codes.size();
-
 
             if (negative % 2 != 0) {
                 symbol_reversal(inc); // 处理负数前缀
@@ -1258,7 +1293,9 @@ unsigned int DParser::simple_expr(FunHead& fun){
                 ops.pop_back();
             }
         } else if ( ls.is_operator(tok) && 
-        ( ls.is_variable(ls.lookahead.token) || ls.lookahead.token == T_RPARENTH ) ) {
+        ( ls.is_variable(ls.lookahead.token) 
+        || ls.lookahead.token == T_RPARENTH 
+        || ls.lookahead.token == T_RBRACKET ) ) {
             Instruction tmp;
             while (!ops.empty() && 
             priority[parse_Opr(tmp,ops.back())] >= priority[parse_Opr(tmp,tok)] ) {
@@ -1401,9 +1438,29 @@ FunHead* DParser::find_function(const std::string& name,D_ENV* fun) {
     return nullptr;
 }
 
-D_ENV* DParser::env_stack_top(){
+D_ENV* DParser::env_stack_top() {
     return this->env.back();
 }
+
+D_ENV* DParser::last_env(D_ENV* info) {
+    unsigned int i = this->env.size() - 1;
+    if ( i < 0 ) return nullptr;
+    D_ENV* tmpin =  this->env[i];
+
+    //匿名函数查找
+    while (tmpin)
+    {
+        if (!tmpin->anonymous) return tmpin; 
+        --i;
+        if ( i < 0 ) return nullptr;
+        tmpin = this->env[i];
+    }
+    return nullptr;
+}
+
+D_ENV* DParser::env_stack_head() {
+    return this->env.front();
+} 
 
 D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
     D_UNION tmp;

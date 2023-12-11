@@ -25,7 +25,6 @@ pass
 abc()
 
 
-
 #阶乘
 fun factorial(n):
     if n == 0 | n == 1:
@@ -38,3 +37,7 @@ fun factorial(n):
 pass
 
 d = factorial(8)
+
+fun lll():
+    
+pass

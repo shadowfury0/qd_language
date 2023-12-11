@@ -48,9 +48,9 @@ public:
     //跳转表达式
     unsigned int jump_expr(FunHead& fun);
     //数组元素赋值
-    unsigned int array_element_expr(Instruction& inc,FunHead& fun);
+    unsigned int array_element_expr(const std::string& name,FunHead& fun);
     //数组表达式
-    unsigned int union_expr(bool global,const std::string& name,FunHead& fun);
+    unsigned int array_expr(const std::string& name,FunHead& fun);
     //if表达式,返回值0运行正确
     unsigned int if_expr(FunHead& func);
     //elif表达式,
@@ -76,6 +76,9 @@ public:
     FunHead* find_function(const std::string& name,D_ENV* fun);
 
     D_ENV* env_stack_top();
+    //上一级环境
+    D_ENV* last_env(D_ENV* info);
+    D_ENV* env_stack_head();
 
     Logger* logger;
 

@@ -14,6 +14,7 @@ D_ENV::D_ENV(const D_ENV& func){
     init();
     prev = func.prev;
     this->lv = func.lv;
+    this->anonymous = func.anonymous;
     this->code_pos = func.code_pos;
 
     
@@ -33,6 +34,7 @@ D_ENV::~D_ENV(){
 void D_ENV::init(){
     cur = nullptr;
     prev = nullptr;
+    anonymous = false;
     this->code_pos = 0;
 }
 

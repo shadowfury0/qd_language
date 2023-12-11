@@ -2,7 +2,7 @@
 #define __QD_STATE_H__
 
 #include "qd_header.h"
-#include "qd_assign.h"
+#include "qd_obj.h"
 #include "qd_func.h"
 
 _QD_BEGIN
@@ -11,7 +11,7 @@ _QD_BEGIN
 
 struct CallInfo 
 {
-    using Stack_V = D_VAR;
+    using Stack_V = D_OBJ;
 
     CallInfo();
     CallInfo(const CallInfo& ca);

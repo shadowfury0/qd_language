@@ -2,7 +2,7 @@
 #define __QD_INSTRUCTION_H_
 
 #include "qd_header.h"
-#include "qd_assign.h"
+#include "qd_obj.h"
 
 _QD_BEGIN
 
@@ -81,11 +81,12 @@ enum OprCode {
     OC_CONCAT,            //拼接
     /* arrays operators */
     OC_ARR_VAL,            //数组值
-    OC_ARR_ASSIGN,         //数组赋值      a = [1,2,3,4]
-    OC_ARR_LASSIGN,        //数组列表赋值  a = a[i:j]
-    OC_ARR_PASSIGN,        //数组部分赋值  a[i] = 0
-    OC_ARR_ACESS,          //数组访问      
-    OC_ARR_LIST,           //数组区间访问
+    OC_ARR_ACE,            //数组下标访问   a[0]
+    OC_ARR_IAS,            //数组赋值      a = [1,2,3,4]
+    // OC_ARR_LASSIGN,        //数组列表赋值  a = a[i:j]
+    // OC_ARR_PASSIGN,        //数组部分赋值  a[i] = 0
+    // OC_ARR_ACESS,          //数组访问      
+    // OC_ARR_LIST,           //数组区间访问
 //-------------------------------------------
     /* function  operator */
     OC_END,               // 函数终止状态，虚拟机清空状态，目前只有if用到

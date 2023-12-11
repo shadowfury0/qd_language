@@ -2,7 +2,7 @@
 #define __QD_VAR_LIB_H__
 
 #include "qd_header.h"
-#include "qd_assign.h"
+#include "qd_obj.h"
 
 _QD_BEGIN
 

@@ -3,7 +3,7 @@
 
 #include "qd_buffer.h"
 #include "qd_io.h"
-#include "qd_assign.h"
+#include "qd_obj.h"
 
 
 _QD_BEGIN
@@ -107,7 +107,7 @@ struct Token {
 
 struct LexState
 {
-    short cur;   //当前token类型
+    unsigned char cur;   //当前token类型
     unsigned int _row;  //当前行
     unsigned int _col;         //当前列
     unsigned int lastline; //上一个token行数
