@@ -1,59 +1,76 @@
 #include "qd_io.h"
 
 _QD_BEGIN
-Dio::Dio(){
-    init();
+
+
+Dio::Dio() {
+    this->index = 0;
+    // std::cout << "__________________\n";
 }
 
 Dio::~Dio(){
-    free_str();
+    this->index = 0;
+
+    this->clear();
+    // std::cout << "++++++++++++++\n";
 }
 
-void Dio::init(){
-    this->buffsize = 0;
-    this->off = 0;
-    this->str = nullptr;
-}
+void Dio::offset_buff(int n){
+    unsigned int len = this->cur()->size;
 
-void Dio::alloc_str(const char* ch){
-    this->alloc_str(ch,strlen(ch));
-}
-
-void Dio::alloc_str(const char* ch,unsigned int n){
-    free_str();
-    str = (char*)malloc(n+1);
-    this->buffsize = n;
-    this->off = 0;
-    strcpy(this->str,ch);
-}
-
-void Dio::free_str(){
-    if (this->str != nullptr){
-        free(this->str);
-        this->str = nullptr;
+    if ( n < len || n > 0 ) {
+        this->cur()->offset_buff(n);
     }
+    
 }
 
-void Dio::reset_off(){
-    this->off = 0;
-}
-
-void Dio::move_off(unsigned int n){
-    this->off = n;
-}
-
-void Dio::offset_off(int n){
-    this->off += n;
-    if (this->off < 0 ){
-        this->off = 0;
-    }else if(this->off > this->buffsize){
-        //'\0'字符
-        this->off = this->buffsize;
+char Dio::get_ch(){
+    //如果等于最后一个缓冲区长度，index加一
+    // std::cout << this->cur()->pos << " : " << this->cur()->size << std::endl;
+    if ( this->cur()->pos >= this->cur()->size ) {
+        this->index ++;
     }
+
+    //超出范围则为0
+    if (this->index < this->buffs.size() ) {
+        DBuffer* buf = this->cur();
+
+        if ( !buf ) {
+            return 0;
+        }
+        return buf->get_ch();
+    }
+    return 0;
 }
 
-const char Dio::get_ch(){
-    return this->str[this->off];
+// void Dio::alloc_buff(const char* ch){
+//     this->alloc_buff(ch,strlen(ch));
+// }
+
+void Dio::alloc_buff(const char* ch,unsigned int n){
+
+    DBuffer* b = nullptr;
+    b = new DBuffer();
+    b->alloc_buffer(ch,n);
+
+    this->buffs.push_back(b);
+}
+
+void Dio::clear(){
+
+    for (std::vector<DBuffer *>::iterator i = this->buffs.begin();
+        i != this->buffs.end() ; i ++) {
+        delete *i;
+        *i = nullptr;
+    }
+    this->buffs.clear();
+}
+
+DBuffer* Dio::cur() {
+    if ( index > this->buffs.size() - 1 && index < 0) {
+        return nullptr;
+    }
+    return this->buffs[index];
 }
 
 

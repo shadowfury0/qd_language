@@ -9,55 +9,67 @@ DParser::DParser(){
 
     // env = nullptr;
     // env = new D_ENV();
+    ls = nullptr;
+    ls = new LexState();
+
+
+    //初始化环境变量
+    D_ENV* env = new D_ENV();
+    this->env.push_back(env);
 }
 
 DParser::~DParser(){
-    // if ( env != nullptr ) {
-    //     delete env;
-    //     env = nullptr;
-    // }
+    if ( ls != nullptr ) {
+        delete ls;
+        ls = nullptr;
+    }
     //不进行释放内存，只是暂时检测用的
 
     // std::cout << " env stack size is " << this->env.size() << std::endl;
-    for ( auto i : this->env ) {
-        delete i;
-    }
+    this->env_clear();
+}
 
+void DParser::env_clear() {
+    for ( auto i : this->env ) {
+        if (i != nullptr) {
+            delete i;
+        }
+        i = nullptr;
+    }
+    //清空所有元素
+    this->env.clear();
 }
 
 unsigned int DParser::parseX_next(){
 
-    if ( T_BLANK != ls.t.token ) {
-        this->ls.prevhead.token = this->ls.lookahead.token;
-        this->ls.lookahead.token = this->ls.t.token;
+    if ( T_BLANK != ls->t.token ) {
+        this->ls->prevhead.token = this->ls->lookahead.token;
+        this->ls->lookahead.token = this->ls->t.token;
     }
 
-    if ( T_ERR == (this->ls.t.token = ls.llex()) ) {
+    if ( T_ERR == (this->ls->t.token = ls->llex()) ) {
         logger->error("lexical error");
         return ERR_END;
     }
-    // logger->debug("debug token info : ",ls.t.token,":",ls.lookahead.token,":",ls.prevhead.token);
+    // logger->debug("debug token info : ",ls->t.token,":",ls->lookahead.token,":",ls->prevhead.token);
     
     return 0;
 }
 
-void DParser::parse(const char* str){
-    ls.alloc_buff(str);
-    
-    //初始化环境变量
-    D_ENV* env = new D_ENV();
-    this->env.push_back(env);
+unsigned int DParser::parse() {
 
-    if ( T_NULL == ls.t.token ) {
-        this->findX_next();
+    //第一个token
+    if (this->findX_next()) {
+        return ERR_END;
     }
+
     //这里开始全局解析
-    unsigned int err = parse_Func(*env->cur);
+    if (parse_Func(*this->env_stack_head()->cur)) {
+        return ERR_END;
+    }
 
-    logger->debug("global bytes code total is ",env->cur->codes.size());
-    
-
-    ls.free_buff();    
+    logger->debug("global bytes code total is ",this->env_stack_head()->cur->codes.size());
+    return 0;
 }
 
 unsigned int DParser::parse_Func(FunHead& fun){
@@ -65,20 +77,22 @@ unsigned int DParser::parse_Func(FunHead& fun){
     
     for(;;){
         //因为有if fun while等情况
-        if ( T_END == ls.t.token ) {
-            this->findX_next();
+        if ( T_END == ls->t.token ) {
+            if(this->findX_next()) {
+                return ERR_END;
+            }
         }
-
-        if( T_EOF == ls.t.token ) {
+        
+        if( T_EOF == ls->t.token ) {
             break;//结束
         }
-        else if ( T_PASS == ls.t.token ) {
+        else if ( T_PASS == ls->t.token ) {
             //函数体到达结尾
             break;
         }
         
         //判断是哪个表达式
-        switch (ls.t.token)
+        switch (ls->t.token)
         {
         case T_COMMENT:{
             logger->info("comment line ");
@@ -105,21 +119,21 @@ unsigned int DParser::parse_Func(FunHead& fun){
         }
         case T_FOR:{
             if ( for_expr(fun) ) {
-                logger->error(ls._row,":",ls._col," for statement error");
+                logger->error(ls->_row,":",ls->_col," for statement error");
                 return ERR_END;
             }
             break;
         }
         case T_WHILE:{
             if ( while_expr(fun) ) {
-                logger->error(ls._row,":",ls._col," while statement error");
+                logger->error(ls->_row,":",ls->_col," while statement error");
                 return ERR_END;
             }
             break;
         }
         case T_FUNC:{
             if ( function_expr(fun) ) {
-                logger->error(ls._row,":",ls._col," function statement error");
+                logger->error(ls->_row,":",ls->_col," function statement error");
                 //错误处理
                 return ERR_END;
             }
@@ -131,9 +145,9 @@ unsigned int DParser::parse_Func(FunHead& fun){
             ret.left = QD_KYW_RET;
             this->findX_next();
 
-            if ( T_END != ls.t.token ) {
+            if ( T_END != ls->t.token ) {
                 if( assign_expr(ret,fun) ){
-                    logger->error(ls._row,":",ls._col," return assign expression error");
+                    logger->error(ls->_row,":",ls->_col," return assign expression error");
                     return ERR_END;
                 }
             }
@@ -148,51 +162,58 @@ unsigned int DParser::parse_Func(FunHead& fun){
         }
         case T_IF:{
             if( if_expr(fun) ){
-                logger->error(ls._row,":",ls._col," if statement error");
+                logger->error(ls->_row,":",ls->_col," if statement error");
                 return ERR_END;
             }
             break;
         }
         case T_ELIF:{
-            logger->error(ls._row,":",ls._col," only elif statement error");
+            logger->error(ls->_row,":",ls->_col," only elif statement error");
             return ERR_END;
         }
         case T_ELSE:{
-            logger->error(ls._row,":",ls._col," only else statement error");
+            logger->error(ls->_row,":",ls->_col," only else statement error");
             return ERR_END;
         }
         default:{
-            this->ls._row ++ ;
+            this->ls->_row ++ ;
             logger->info("do nothing  ");
             break;
         }
         }
+
     }
 
-
+    
     logger->debug(" <------------------ end --------------------> ");
     
     return 0;
 }
 
 unsigned int DParser::skip_blank(){
-    if ( T_BLANK == ls.t.token )
+    if ( T_BLANK == ls->t.token )
     {
-        this->parseX_next();
+        if(this->parseX_next()) {
+            return ERR_END;
+        }
     }
     return 0;
 }
 
 unsigned int DParser::skip_line() {
-    if ( T_END == ls.t.token )
+    if ( T_END == ls->t.token )
     {
-        this->parseX_next();
+        if (this->parseX_next()) {
+            return ERR_END;
+        }
     }
     return 0;
 }
 
 unsigned int DParser::findX_next(){
-    this->parseX_next();
+    if (this->parseX_next()) {
+        return ERR_END;
+    }
     this->skip_blank();
     return 0;
 }
@@ -260,11 +281,11 @@ unsigned int DParser::statement(FunHead& fun){
     Instruction inc;
 
     //全局变量
-    if ( T_GLOBAL == ls.t.token ) {
+    if ( T_GLOBAL == ls->t.token ) {
         inc.lpos = VA_GLOBAL;
         findX_next();
     }
-    else if ( T_LOCAL == ls.t.token ) {
+    else if ( T_LOCAL == ls->t.token ) {
         inc.lpos = VA_LOCAL;
         findX_next();
     }
@@ -272,30 +293,30 @@ unsigned int DParser::statement(FunHead& fun){
         inc.lpos = VA_DEFAULT;
     }
 
-    if ( T_UDATA != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," data error");
+    if ( T_UDATA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," data error");
         return ERR_END;
     }
 
     //记录左值
-    inc.left = ls.dvar;
+    inc.left = ls->dvar;
     this->findX_next();
 
     //下一个如果是函数调用的话
-    if ( T_LPARENTH == ls.t.token ) {
+    if ( T_LPARENTH == ls->t.token ) {
         if(call_expr(inc.left.var.chv,fun)) {
-            logger->error(ls._row,":",ls._col," call  error");
+            logger->error(ls->_row,":",ls->_col," call  error");
             return ERR_END;
         }
         this->findX_next();
-        if ( T_END != ls.t.token ) {
-            logger->error(ls._row,":",ls._col," function call end is not correct");
+        if ( T_END != ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," function call end is not correct");
             return ERR_END;
         }
         return 0;
     }
     //数组下标赋值
-    else if ( T_LBRACKET == ls.t.token ) {
+    else if ( T_LBRACKET == ls->t.token ) {
         if(array_element_expr(inc.left.var.chv,fun)){
             logger->error("array subscript is assing error");
             return ERR_END;
@@ -304,17 +325,17 @@ unsigned int DParser::statement(FunHead& fun){
         return 0;
     }
     //因为是赋值表达式所以判断=
-    else if ( T_EQ != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," unkonwn expression error ");
+    else if ( T_EQ != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," unkonwn expression error ");
         return ERR_END;
     }
 
     this->findX_next();
 
     //数组
-    if ( T_LBRACKET == ls.t.token ) {
+    if ( T_LBRACKET == ls->t.token ) {
         if(array_expr(inc.left.var.chv,fun)){
-            logger->error(ls._row,":",ls._col," array parse error");
+            logger->error(ls->_row,":",ls->_col," array parse error");
             return ERR_END;
         }
         //局部
@@ -323,7 +344,7 @@ unsigned int DParser::statement(FunHead& fun){
     }
     else {
         if ( assign_expr(inc,fun) ) {
-            logger->error(ls._row,":",ls._col," assign expression error");
+            logger->error(ls->_row,":",ls->_col," assign expression error");
             return ERR_END;
         }
         fun.codes.push_back(inc);
@@ -354,20 +375,20 @@ unsigned int DParser::assign_expr(Instruction& inc,FunHead& fun){
     inc.type = OC_ASSIGN;
 
     short assigntype;
-    if ( T_MINUS == ls.t.token  
-    || T_LPARENTH == ls.t.token) {
+    if ( T_MINUS == ls->t.token  
+    || T_LPARENTH == ls->t.token) {
         //do nothing
     }
-    else if ( T_UDATA == ls.t.token ) {
-        D_VAR* tmpobj = variable_check(ls.dvar.var.chv,this->env_stack_top());
+    else if ( T_UDATA == ls->t.token ) {
+        D_VAR* tmpobj = variable_check(ls->dvar.var.chv,this->env_stack_top());
         if (!tmpobj) {
-            logger->error(ls._row,":",ls._col," prefix user data undefine");
+            logger->error(ls->_row,":",ls->_col," prefix user data undefine");
             return ERR_END;
         }
         assigntype = tmpobj->type;
     }
-    else if ( ls.is_variable(ls.t.token) ) {
-        assigntype = ls.dvar.type;
+    else if ( ls->is_variable(ls->t.token) ) {
+        assigntype = ls->dvar.type;
     }
     else{
         logger->error("variable type is error ");
@@ -378,7 +399,7 @@ unsigned int DParser::assign_expr(Instruction& inc,FunHead& fun){
     {
     case VE_STR: {
         Instruction tmp;
-        tmp.left = ls.dvar;
+        tmp.left = ls->dvar;
         tmp.curpos = fun.codes.size();
         fun.codes.push_back(tmp);
         this->findX_next();
@@ -406,13 +427,13 @@ unsigned int DParser::jump_expr(FunHead& fun){
     logger->debug("jumping to ");
     findX_next();
     //不是int类型
-    if ( T_INT != ls.t.token ) {
+    if ( T_INT != ls->t.token ) {
         logger->error("jumping num  type is error");
         findX_next();
         return ERR_END;
     }
     //超出范围
-    if ( ls.dvar.var.iv < 0) {
+    if ( ls->dvar.var.iv < 0) {
         logger->warn(" jump less than zero ");
         findX_next();
         return ERR_END;
@@ -422,7 +443,7 @@ unsigned int DParser::jump_expr(FunHead& fun){
     //加入指令
     Instruction inc;
     inc.type = OC_JMP;
-    inc.lpos = ls.dvar.var.iv - 1; 
+    inc.lpos = ls->dvar.var.iv - 1; 
     inc.curpos = fun.codes.size();
     fun.codes.push_back(inc);
     findX_next();
@@ -432,7 +453,7 @@ unsigned int DParser::jump_expr(FunHead& fun){
 
 unsigned int DParser::if_expr(FunHead& func){
     
-    if ( T_PASS == ls.t.token ) {
+    if ( T_PASS == ls->t.token ) {
         return 0;
     }
     Instruction inc;
@@ -449,8 +470,8 @@ unsigned int DParser::if_expr(FunHead& func){
     func.codes.push_back(inc);
 
     //判断结束符号是否正确
-    if (T_COLON != ls.t.token) {
-        logger->error(ls._row,":",ls._col," if condition judgment error");
+    if (T_COLON != ls->t.token) {
+        logger->error(ls->_row,":",ls->_col," if condition judgment error");
         return ERR_END;
     }
     
@@ -468,32 +489,32 @@ unsigned int DParser::if_expr(FunHead& func){
     this->env.pop_back();
     
     // if 直接结束
-    if ( T_PASS != ls.t.token) {
+    if ( T_PASS != ls->t.token) {
         //pass
-        logger->error(ls._row,":",ls._col," missing pass end in if statement");
+        logger->error(ls->_row,":",ls->_col," missing pass end in if statement");
         return ERR_END;
     }
     findX_next();
     //end
-    if ( T_END != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," missing  end in elif statement");
+    if ( T_END != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing  end in elif statement");
         return ERR_END;
     }
     findX_next();
     
     //出现elif
-    if ( T_ELIF == ls.t.token ) {
+    if ( T_ELIF == ls->t.token ) {
         //解析elif 查找到最后的跳转位置挨个遍历
         if (elif_expr(func)) {
-            logger->error(ls._row,":",ls._col," elif expression parse error");
+            logger->error(ls->_row,":",ls->_col," elif expression parse error");
             return ERR_END;
         }        
     }
     
     //else语句
-    if ( T_ELSE == ls.t.token ) {
+    if ( T_ELSE == ls->t.token ) {
         if (else_expr(func)) {
-            logger->error(ls._row,":",ls._col," else expression parse error");
+            logger->error(ls->_row,":",ls->_col," else expression parse error");
             return ERR_END;
         }
     }
@@ -509,7 +530,7 @@ unsigned int DParser::if_expr(FunHead& func){
 
 unsigned int DParser::elif_expr(FunHead& func){
 
-    while ( T_ELIF == ls.t.token ) {
+    while ( T_ELIF == ls->t.token ) {
         Instruction inc;
         findX_next();
         inc.rpos = simple_expr(func);
@@ -520,8 +541,8 @@ unsigned int DParser::elif_expr(FunHead& func){
         func.codes.push_back(inc);
 
         //判断结束符号是否正确
-        if (T_COLON != ls.t.token) {
-            logger->error(ls._row,":",ls._col," elif condition judgment error");
+        if (T_COLON != ls->t.token) {
+            logger->error(ls->_row,":",ls->_col," elif condition judgment error");
             return ERR_END;
         }
         findX_next();
@@ -536,14 +557,14 @@ unsigned int DParser::elif_expr(FunHead& func){
         delete env_stack_top();
         this->env.pop_back();
 
-        if ( T_PASS != ls.t.token ) {
-            logger->error(ls._row,":",ls._col," missing pass end in elif statement");
+        if ( T_PASS != ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," missing pass end in elif statement");
             return ERR_END;
         }
         findX_next();
         //end
-        if ( T_END != ls.t.token ) {
-            logger->error(ls._row,":",ls._col," missing end in elif statement");
+        if ( T_END != ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," missing end in elif statement");
             return ERR_END;
         }
         findX_next();
@@ -569,8 +590,8 @@ unsigned int DParser::else_expr(FunHead& func){
 
     findX_next();
     //判断结束符号是否正确
-    if (T_COLON != ls.t.token) {
-        logger->error(ls._row,":",ls._col," else condition judgment error");
+    if (T_COLON != ls->t.token) {
+        logger->error(ls->_row,":",ls->_col," else condition judgment error");
         return ERR_END;
     }
     findX_next();
@@ -586,14 +607,14 @@ unsigned int DParser::else_expr(FunHead& func){
     delete env_stack_top();
     this->env.pop_back();
 
-    if ( T_PASS != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," missing pass end in else statement");
+    if ( T_PASS != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing pass end in else statement");
         return ERR_END;
     }
     findX_next();
     //end
-    if ( T_END != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," missing end in else statement");
+    if ( T_END != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing end in else statement");
         return ERR_END;
     }
     findX_next();
@@ -624,32 +645,32 @@ unsigned int DParser::for_expr(FunHead& func){
 //     Instruction assign;
 //     assign.curpos = forstate->codes.size();
 
-//     if ( T_UDATA != ls.t.token ) {
-//         logger->error(ls._row,":",ls._col," for initialization type is not correct");
+//     if ( T_UDATA != ls->t.token ) {
+//         logger->error(ls->_row,":",ls->_col," for initialization type is not correct");
 //         return ERR_END;
 //     }
-//     std::string varname = ls.dvar.var.chv;
-//     assign.left = ls.dvar;//迭代计数器
+//     std::string varname = ls->dvar.var.chv;
+//     assign.left = ls->dvar;//迭代计数器
 //     assign.rpos = first.curpos;
 //     assign.type = OC_ASSIGN;
 //     forstate->codes.push_back(assign);
-//     env->lv[ls.dvar.var.chv] = 0;
-//     env->lv[ls.dvar.var.chv].type = VE_NULL;
+//     env->lv[ls->dvar.var.chv] = 0;
+//     env->lv[ls->dvar.var.chv].type = VE_NULL;
 //     findX_next();
 
     
-//     if (T_IN != ls.t.token) {
-//         logger->error(ls._row,":",ls._col," for condition missing in symbol");
+//     if (T_IN != ls->t.token) {
+//         logger->error(ls->_row,":",ls->_col," for condition missing in symbol");
 //         return ERR_END;
 //     }
 //     findX_next();
 
 //     Instruction second;
-//     if ( T_UDATA != ls.t.token && T_INT != ls.t.token ) {
-//         logger->error(ls._row,":",ls._col," for iterator type is not correct");
+//     if ( T_UDATA != ls->t.token && T_INT != ls->t.token ) {
+//         logger->error(ls->_row,":",ls->_col," for iterator type is not correct");
 //         return ERR_END;
 //     }
-//     second.left = ls.dvar;//这个值到时候可以改改
+//     second.left = ls->dvar;//这个值到时候可以改改
 //     second.type = OC_NULL;
 //     second.curpos = forstate->codes.size();
 //     forstate->codes.push_back(second);
@@ -666,8 +687,8 @@ unsigned int DParser::for_expr(FunHead& func){
 //     unsigned int forstart = forstate->codes.size();
 
 //     //判断结束符号是否正确
-//     if (T_COLON != ls.t.token) {
-//         logger->error(ls._row,":",ls._col," for condition judgment error");
+//     if (T_COLON != ls->t.token) {
+//         logger->error(ls->_row,":",ls->_col," for condition judgment error");
 //         return ERR_END;
 //     }
 //     //line
@@ -675,7 +696,7 @@ unsigned int DParser::for_expr(FunHead& func){
 
 //     //解析内部for函数
 //     parse_Func(*forstate);
-//     if ( T_PASS != ls.t.token) {
+//     if ( T_PASS != ls->t.token) {
 //         logger->error("missing pass end in for statement");
 //         return ERR_END;
 //     }
@@ -727,7 +748,7 @@ unsigned int DParser::for_expr(FunHead& func){
 }
 
 unsigned int DParser::while_expr(FunHead& func) {
-    if ( T_PASS == ls.t.token ) {
+    if ( T_PASS == ls->t.token ) {
         return 0;
     }
     findX_next();
@@ -754,8 +775,8 @@ unsigned int DParser::while_expr(FunHead& func) {
     jmp.rpos = simple_expr(*e->cur);
     e->cur->codes.push_back(jmp);
 
-    if ( T_COLON != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," while condition judgment error");
+    if ( T_COLON != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," while condition judgment error");
         return ERR_END;
     }
     findX_next();
@@ -773,15 +794,15 @@ unsigned int DParser::while_expr(FunHead& func) {
     this->env.pop_back();
 
     // if 直接结束
-    if ( T_PASS != ls.t.token) {
+    if ( T_PASS != ls->t.token) {
         //pass
-        logger->error(ls._row,":",ls._col," missing pass end in while statement");
+        logger->error(ls->_row,":",ls->_col," missing pass end in while statement");
         return ERR_END;
     }
     findX_next();
     //end
-    if ( T_END != ls.t.token ) {
-        logger->error(ls._row,":",ls._col,"end error in while statement");
+    if ( T_END != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col,"end error in while statement");
         return ERR_END;
     }
     findX_next();
@@ -795,28 +816,28 @@ unsigned int DParser::array_element_expr(const std::string& name,FunHead& fun){
     D_VAR* tmpobj = variable_check(inc.left.var.chv,this->env_stack_top());
     
     if ( !tmpobj ){
-        logger->error(ls._row,":",ls._col," array or union is not exist");
+        logger->error(ls->_row,":",ls->_col," array or union is not exist");
         return ERR_END;
     }
     //[
     this->findX_next();
     //用户变量或数字
-    inc.right = ls.dvar;
+    inc.right = ls->dvar;
     this->findX_next();
     //]
-    if ( T_RBRACKET != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," right bracket missing ");
+    if ( T_RBRACKET != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," right bracket missing ");
         return ERR_END;
     }
     this->findX_next();
-    if ( T_EQ != ls.t.token ){
-        logger->error(ls._row,":",ls._col," unkonwn expression error ");
+    if ( T_EQ != ls->t.token ){
+        logger->error(ls->_row,":",ls->_col," unkonwn expression error ");
         return ERR_END;
     }
     this->findX_next();
 
     if( assign_expr(inc,fun) ) {
-        logger->error(ls._row,":",ls._col," array assign expression error");
+        logger->error(ls->_row,":",ls->_col," array assign expression error");
         return ERR_END;
     }
     inc.type = OC_ARR_IAS;
@@ -829,18 +850,18 @@ unsigned int DParser::array_element_expr(const std::string& name,FunHead& fun){
 
 unsigned int DParser::function_expr(FunHead& func){
 
-    if ( T_PASS == ls.t.token ) {
+    if ( T_PASS == ls->t.token ) {
         return 0;
     }
     
     this->findX_next();
 
-    if ( T_UDATA != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," illegal function name ");
+    if ( T_UDATA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," illegal function name ");
         return ERR_END;
     }
 
-    std::string funcname = ls.dvar.var.chv;
+    std::string funcname = ls->dvar.var.chv;
 
     Instruction inc;
     inc.type = OC_NULL;
@@ -864,7 +885,7 @@ unsigned int DParser::function_expr(FunHead& func){
 
     this->findX_next();
 
-    if ( T_LPARENTH != ls.t.token ) {
+    if ( T_LPARENTH != ls->t.token ) {
         logger->error("missing left  parentheses ");
         return ERR_END;
     }
@@ -879,27 +900,27 @@ unsigned int DParser::function_expr(FunHead& func){
 
 
     //进入函数前，添加函数参数
-    while ( T_UDATA == ls.t.token )
+    while ( T_UDATA == ls->t.token )
     {
         //存入变量
-        if ( VE_USER != ls.dvar.type ) {
+        if ( VE_USER != ls->dvar.type ) {
             //如果参数类型不是用户变量报错
             logger->error("variable is not user type");
             return ERR_END;
         }
         //添加参数变量
-        e->cur->args.push_back(ls.dvar.var.chv);
+        e->cur->args.push_back(ls->dvar.var.chv);
 
-        this->env_stack_top()->lv[ls.dvar.var.chv] = 0;
-        this->env_stack_top()->lv[ls.dvar.var.chv].type = VE_NULL;
+        this->env_stack_top()->lv[ls->dvar.var.chv] = 0;
+        this->env_stack_top()->lv[ls->dvar.var.chv].type = VE_NULL;
 
         this->findX_next();
         //右括号退出
-        if ( T_RPARENTH == ls.t.token ) {
+        if ( T_RPARENTH == ls->t.token ) {
             break;
         }
         //判断逗号
-        else if ( T_COMMA != ls.t.token ) {
+        else if ( T_COMMA != ls->t.token ) {
             logger->error("missing comma between variable in function ");
             return ERR_END;
         }
@@ -907,7 +928,7 @@ unsigned int DParser::function_expr(FunHead& func){
     }
 
     
-    if ( T_RPARENTH != ls.t.token ) {
+    if ( T_RPARENTH != ls->t.token ) {
         logger->error("missing rigth  parentheses ");
         return ERR_END;
     }
@@ -915,8 +936,8 @@ unsigned int DParser::function_expr(FunHead& func){
     
     this->findX_next();
 
-    if ( T_COLON != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," error ending function statement ");
+    if ( T_COLON != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," error ending function statement ");
         return ERR_END;
     }
     
@@ -929,7 +950,7 @@ unsigned int DParser::function_expr(FunHead& func){
     this->env.pop_back();
 
 
-    if ( T_PASS != ls.t.token ) {
+    if ( T_PASS != ls->t.token ) {
         logger->error("missing pass end in function statement");
         return ERR_END;
     }
@@ -945,35 +966,35 @@ unsigned int DParser::array_expr(const std::string& name,FunHead& fun){
 
         this->findX_next();
 
-        if ( T_EOF == ls.t.token ) {
-            logger->error(ls._row,":",ls._col," parser end error");
+        if ( T_EOF == ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," parser end error");
             return ERR_END;
         }
-        else if ( T_END == ls.t.token ) {
-            logger->error(ls._row,":",ls._col," missing right bracket ");
+        else if ( T_END == ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," missing right bracket ");
             return ERR_END;        
         }
         //数组名
         inc.left = name.c_str();
         //值
-        inc.right = ls.dvar;
+        inc.right = ls->dvar;
         inc.type = OC_ARR_VAL;
         inc.curpos = fun.codes.size();
         fun.codes.push_back(inc);
         
         this->findX_next();
-        if ( T_RBRACKET == ls.t.token ) {
+        if ( T_RBRACKET == ls->t.token ) {
             //正常退出
             break;
         }
-        else if ( T_COMMA != ls.t.token ) {
-            logger->error(ls._row,":",ls._col," missing comma in array or array is null");
+        else if ( T_COMMA != ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," missing comma in array or array is null");
             return ERR_END;
         }
     }
 
-    if ( T_RBRACKET != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," missing right bracket ");
+    if ( T_RBRACKET != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing right bracket ");
         return ERR_END;
     }
 
@@ -984,8 +1005,8 @@ unsigned int DParser::array_expr(const std::string& name,FunHead& fun){
 
 unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
     // this->findX_next();
-    // std::string varname = ls.dvar.var.chv;
-    // if ( T_END == ls.t.token ) {
+    // std::string varname = ls->dvar.var.chv;
+    // if ( T_END == ls->t.token ) {
     //     Instruction ll;
     //     ll.type = OC_NULL;
     //     ll.left = 0;
@@ -1016,36 +1037,36 @@ unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
     //     // func.proto->lv[name].type = VE_UNION;
     //     return 0;
     // }
-    // else  if ( T_LBRACKET != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," list access expression error");
+    // else  if ( T_LBRACKET != ls->t.token ) {
+    //     logger->error(ls->_row,":",ls->_col," list access expression error");
     //     return ERR_END;
     // }
 
     // this->findX_next();
 
-    // int ret = parse_PreCode(ls.t.token);
+    // int ret = parse_PreCode(ls->t.token);
     // if ( OC_NIL != ret ){
     //     findX_next();
     // }
     
     // D_VAR left = 0;
-    // if ( T_INT == ls.t.token ) {
-    //     left = ls.dvar.var.iv ;
+    // if ( T_INT == ls->t.token ) {
+    //     left = ls->dvar.var.iv ;
     //     this->findX_next();
     // }
-    // else if ( T_UDATA == ls.t.token ) {
-    //     left = ls.dvar;
+    // else if ( T_UDATA == ls->t.token ) {
+    //     left = ls->dvar;
     //     this->findX_next();
     // }
 
     // //如果只有一个负数符号
-    // if ( T_COLON != ls.t.token && T_MINUS == ls.lookahead.token ) {
-    //     logger->error(ls._row,":",ls._col," missing int value with minus symbol");
+    // if ( T_COLON != ls->t.token && T_MINUS == ls->lookahead.token ) {
+    //     logger->error(ls->_row,":",ls->_col," missing int value with minus symbol");
     //     return ERR_END;
     // }
     
     // //如果访问一个下标
-    // if ( T_RBRACKET == ls.t.token ) {
+    // if ( T_RBRACKET == ls->t.token ) {
     //     Instruction inc;
     //     inc.type = OC_ARR_ACESS;
     //     inc.left = varname.c_str();
@@ -1062,44 +1083,44 @@ unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
 
     //     this->findX_next();
 
-    //     if ( T_END != ls.t.token ) {
-    //         logger->error(ls._row,":",ls._col," error ending in array assign");
+    //     if ( T_END != ls->t.token ) {
+    //         logger->error(ls->_row,":",ls->_col," error ending in array assign");
     //         return ERR_END;
     //     }
 
     //     return 0;
     // }
-    // else if ( T_COLON != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," is not colon symbol");
+    // else if ( T_COLON != ls->t.token ) {
+    //     logger->error(ls->_row,":",ls->_col," is not colon symbol");
     //     return ERR_END;
     // }
     
     // this->findX_next();
 
-    // ret = parse_PreCode(ls.t.token);
+    // ret = parse_PreCode(ls->t.token);
     // if (OC_NIL != ret){
     //     findX_next();
     // }
     
     // D_VAR right = QD_INT_32_MAX;
 
-    // if ( T_INT == ls.t.token ) {
-    //     right = ret == OC_MINUS ?  -ls.dvar.var.iv :  ls.dvar.var.iv;
+    // if ( T_INT == ls->t.token ) {
+    //     right = ret == OC_MINUS ?  -ls->dvar.var.iv :  ls->dvar.var.iv;
     //     this->findX_next();
     // }
-    // else if ( T_UDATA == ls.t.token ) {
-    //     right = ls.dvar;
+    // else if ( T_UDATA == ls->t.token ) {
+    //     right = ls->dvar;
     //     this->findX_next();
     // }
 
-    // if ( ( OC_MINUS == ret && T_INT != ls.lookahead.token ) 
-    // || ( T_UDATA != ls.lookahead.token && T_INT != ls.lookahead.token ) ) {
-    //     logger->error(ls._row,":",ls._col," missing int value with minus symbol");
+    // if ( ( OC_MINUS == ret && T_INT != ls->lookahead.token ) 
+    // || ( T_UDATA != ls->lookahead.token && T_INT != ls->lookahead.token ) ) {
+    //     logger->error(ls->_row,":",ls->_col," missing int value with minus symbol");
     //     return ERR_END;
     // }
 
-    // if ( T_RBRACKET != ls.t.token ) {
-    //     logger->error(ls._row,":",ls._col," missing right brace symbol");
+    // if ( T_RBRACKET != ls->t.token ) {
+    //     logger->error(ls->_row,":",ls->_col," missing right brace symbol");
     //     return ERR_END;
     // }
 
@@ -1139,7 +1160,7 @@ unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
 }
 
 unsigned int DParser::simple_expr(FunHead& fun){
-    if ( T_END == ls.t.token || T_COLON == ls.t.token ) {
+    if ( T_END == ls->t.token || T_COLON == ls->t.token ) {
         logger->error("missing expression after equal");
         return ERR_END;
     }
@@ -1152,26 +1173,26 @@ unsigned int DParser::simple_expr(FunHead& fun){
     // () 个数
     unsigned int path = 0;
 
-    while ( T_END != ls.t.token && T_COLON != ls.t.token ) {
-        int tok = ls.t.token;
+    while ( T_END != ls->t.token && T_COLON != ls->t.token ) {
+        int tok = ls->t.token;
         
         if ( T_EOF == tok ) {
             logger->error("simple expression end error");
             return ERR_END;
         }
-        if ( ls.is_variable(tok) ) {
+        if ( ls->is_variable(tok) ) {
             //用户变量判断是否存在
             D_VAR* tmpobj = nullptr;
 
             Instruction inc;
             if ( T_UDATA == tok ) {
-                tmpobj = variable_check(ls.dvar.var.chv,this->env_stack_top());
+                tmpobj = variable_check(ls->dvar.var.chv,this->env_stack_top());
                 if ( !tmpobj ) {
                     logger->error("variable is undefine ");
                     return ERR_END;
                 }
             }
-            inc.left = ls.dvar;
+            inc.left = ls->dvar;
 
             if (tmpobj) {
                 //这里判断是函数调用还是普通成员变量,还是数组
@@ -1179,7 +1200,7 @@ unsigned int DParser::simple_expr(FunHead& fun){
                     this->findX_next();
                     //函数调用                
                     if(call_expr(inc.left.var.chv,fun)) {
-                        logger->error(ls._row,":",ls._col," call  error");
+                        logger->error(ls->_row,":",ls->_col," call  error");
                         return ERR_END;
                     }
                     inc.left = QD_KYW_RET;
@@ -1191,7 +1212,7 @@ unsigned int DParser::simple_expr(FunHead& fun){
 
                     this->findX_next();
                     //判断是否为[
-                    if ( T_LBRACKET != ls.t.token ) {
+                    if ( T_LBRACKET != ls->t.token ) {
                         inc.type = OC_NULL;
                         inc.curpos = fun.codes.size();
                         //暂时不需要处理负数前缀
@@ -1204,20 +1225,20 @@ unsigned int DParser::simple_expr(FunHead& fun){
                         continue;
                     }
                     this->findX_next();
-                    if ( T_UDATA != ls.t.token && T_INT != ls.t.token ) {
+                    if ( T_UDATA != ls->t.token && T_INT != ls->t.token ) {
                         logger->error("array index type error");
                         return ERR_END;
                     }
                     
                     Instruction arr;
                     arr.type = OC_NULL;
-                    arr.left = ls.dvar;
+                    arr.left = ls->dvar;
                     arr.curpos = fun.codes.size();
                     fun.codes.push_back(arr);
                     inc.rpos = arr.curpos;
                     inc.type = OC_ARR_ACE;
                     this->findX_next();
-                    if ( T_RBRACKET != ls.t.token ) {
+                    if ( T_RBRACKET != ls->t.token ) {
                         logger->error("right bracket error");
                         return ERR_END;
                     }
@@ -1235,9 +1256,9 @@ unsigned int DParser::simple_expr(FunHead& fun){
             }
             fun.codes.push_back(inc);
             values.push_back(inc.curpos);
-        } else if ( T_MINUS == ls.t.token ) {
-            if ( ls.lookahead.token != T_RPARENTH 
-            && !ls.is_variable(ls.lookahead.token) ){
+        } else if ( T_MINUS == ls->t.token ) {
+            if ( ls->lookahead.token != T_RPARENTH 
+            && !ls->is_variable(ls->lookahead.token) ){
                 // 负数前缀检测
                 ++negative;
             }
@@ -1261,17 +1282,17 @@ unsigned int DParser::simple_expr(FunHead& fun){
                 }
                 ops.push_back(tok);
             }
-        } else if ( T_LPARENTH == tok && !ls.is_variable(ls.lookahead.token) ) {
-            if ( T_MINUS == ls.lookahead.token 
-            && ( ls.is_operator(ls.prevhead.token) 
-            ||   T_LPARENTH == ls.prevhead.token ) ) {
+        } else if ( T_LPARENTH == tok && !ls->is_variable(ls->lookahead.token) ) {
+            if ( T_MINUS == ls->lookahead.token 
+            && ( ls->is_operator(ls->prevhead.token) 
+            ||   T_LPARENTH == ls->prevhead.token ) ) {
                 --negative;
                 ops.push_back(T_XMINUS);
             }
             ops.push_back(tok);
             path ++;
         } else if ( T_RPARENTH == tok  ) {
-            while ( ops.back() != T_LPARENTH && !ls.is_operator(ls.lookahead.token) ) {
+            while ( ops.back() != T_LPARENTH && !ls->is_operator(ls->lookahead.token) ) {
                 unsigned int val2 = values.back();
                 values.pop_back();
                 unsigned int val1 = values.back();
@@ -1292,10 +1313,10 @@ unsigned int DParser::simple_expr(FunHead& fun){
                 symbol_reversal(fun.codes[values.back()]);
                 ops.pop_back();
             }
-        } else if ( ls.is_operator(tok) && 
-        ( ls.is_variable(ls.lookahead.token) 
-        || ls.lookahead.token == T_RPARENTH 
-        || ls.lookahead.token == T_RBRACKET ) ) {
+        } else if ( ls->is_operator(tok) && 
+        ( ls->is_variable(ls->lookahead.token) 
+        || ls->lookahead.token == T_RPARENTH 
+        || ls->lookahead.token == T_RBRACKET ) ) {
             Instruction tmp;
             while (!ops.empty() && 
             priority[parse_Opr(tmp,ops.back())] >= priority[parse_Opr(tmp,tok)] ) {
@@ -1316,7 +1337,7 @@ unsigned int DParser::simple_expr(FunHead& fun){
             ops.push_back(tok);
         }
         else {
-            logger->error(ls._row,":",ls._col," simple expression error");
+            logger->error(ls->_row,":",ls->_col," simple expression error");
             return ERR_END;
         }
         this->findX_next();
@@ -1327,7 +1348,7 @@ unsigned int DParser::simple_expr(FunHead& fun){
         logger->error("mismatched left and right parentheses");
         return ERR_END;
     }
-    else if ( ls.is_operator(ls.lookahead.token ) ) {
+    else if ( ls->is_operator(ls->lookahead.token ) ) {
         logger->error("expression endup with operator ");
         return ERR_END;
     }
@@ -1359,7 +1380,7 @@ unsigned int DParser::call_expr(std::string name,FunHead& fun){
     //这个返回值要进行更改一下
     D_VAR* tmpobj = variable_check(name,this->env_stack_top());
     if ( !tmpobj ) {
-        logger->error(ls._row,":",ls._col," function name undefine ");
+        logger->error(ls->_row,":",ls->_col," function name undefine ");
         return ERR_END;
     }
 
@@ -1370,21 +1391,21 @@ unsigned int DParser::call_expr(std::string name,FunHead& fun){
     //参数判断
     unsigned int stacksize = 0;
     unsigned int argpos = FIN_END;
-    while ( ls.is_variable(ls.t.token) )
+    while ( ls->is_variable(ls->t.token) )
     {
         Instruction arg;
         arg.type = OC_ARG;
-        arg.right = ls.dvar;
+        arg.right = ls->dvar;
         arg.rpos = argpos;
         argpos = arg.curpos = fun.codes.size();
         fun.codes.push_back(arg);
 
         this->findX_next();
         stacksize++;
-        if ( T_RPARENTH == ls.t.token ) {
+        if ( T_RPARENTH == ls->t.token ) {
             break;
         }
-        else if ( T_COMMA != ls.t.token ) {
+        else if ( T_COMMA != ls->t.token ) {
             logger->error("missing comma between variable in call function ");
             return ERR_END;
         }
@@ -1399,8 +1420,8 @@ unsigned int DParser::call_expr(std::string name,FunHead& fun){
     }
     
 
-    if ( T_RPARENTH != ls.t.token ) {
-        logger->error(ls._row,":",ls._col," function call missing right parentheses");
+    if ( T_RPARENTH != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," function call missing right parentheses");
         return ERR_END;
     }
     // this->findX_next();
@@ -1462,6 +1483,10 @@ D_ENV* DParser::env_stack_head() {
     return this->env.front();
 } 
 
+void DParser::init_io(Dio* const io) {
+    this->ls->alloc_io(io);
+}
+
 D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
     D_UNION tmp;
     int i ;
@@ -1492,35 +1517,64 @@ D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
 }
 
 unsigned int DParser::read_file(const char* file){
-    FILE *fp;
-    char buffer[1024];
-    memset(buffer,0,sizeof(buffer));
+    std::ifstream is (file, std::ifstream::binary);
+    if (is) {
+        struct stat statbuf;
+	    stat(file, &statbuf);
+        //获取文件大小
+        unsigned int length = statbuf.st_size;
+        // get length of file:
+        // is.seekg (0, is.end);
+        // int length = is.tellg();
+        // is.seekg (0, is.beg);
+        
+        unsigned int chunk = QD_BUF_BLK_SIZ;
 
-    // 打开文件
-    fp = fopen(file, "r");
-    if ( fp == NULL ) {
-        std::cout << " file open error " << std::endl;
+        // 计算需要切片的次数
+        unsigned  int numberOfChunks = length / chunk;
+        logger->debug("input file size is ",length);
+
+        // 读取每个数据块并进行处理
+        for (unsigned int i = 0; i < numberOfChunks; ++i) {
+            char * buffer = new char[chunk + 1];
+            is.read(buffer, chunk);
+            buffer[chunk] = '\0'; //末尾一定要加
+            // std::cout.write(buffer,chunk + 1);
+            //分配流空间
+            ls->alloc_buff(buffer,chunk);
+
+            delete[] buffer;
+        }
+
+        //处理剩余字符串
+        int rest = length % chunk;
+        char * buffer = new char[ rest + 1 ];
+        buffer[rest] = '\0'; //末尾一定要加
+        is.read( buffer, rest );
+        // std::cout.write(buffer,rest + 1);
+        ls->alloc_buff(buffer,rest);
+
+        delete[] buffer;
+
+        is.close();
+
+        logger->debug("file block size is ",this->ls->io->buffs.size());
+    }
+    else {
+        logger->error("file open error ");
         return ERR_END;
     }
-
-    // while (fgets(buffer,sizeof(buffer),fp))
-    // {
-    //     // 输出文件内容
-    //     this->parse(buffer);
-    // }
-    //目前一次性读
-    int st = fread(buffer,sizeof(char),sizeof(buffer),fp);
-    this->parse(buffer);
-
-    // 关闭文件
-    fclose(fp);
+    
     return 0;
 }
 
-void DParser::read_line(const char* line){
-    this->parse(line);
+unsigned int DParser::read_line(const char* line,unsigned int len){
+    // this->parse(line);
+    ls->alloc_buff(line,len);
+    return 0;
 }
 
 
 
 _QD_END
+

@@ -50,9 +50,11 @@ void D_VAR::clear(){
          VE_USER == this->type ||
          VE_UNION == this->type
           ){
-        free(this->var.chv);
+        delete this->var.chv;
+        this->var.chv = nullptr;
     }
     this->type = VE_VOID;
+    memset(&this->var,'\0',sizeof(this->var));
 }
 
 void D_VAR::operator=(const D_VAR& dv){
@@ -118,6 +120,14 @@ void D_VAR::operator=(const char* v){
     this->var.chv = (char*)malloc( strlen(v) + 1 );
     strcpy(this->var.chv,v);
 }
+
+void D_VAR::alloc_str(const char* v,unsigned int len) {
+    clear();
+    this->type = VE_STR;
+    this->var.chv = (char*)malloc( len + 1 );
+    strcpy(this->var.chv,v);
+}
+
 
 D_VAR D_VAR::operator-(){
     D_VAR tmp;
@@ -305,7 +315,7 @@ void D_OBJ::clear(){
     if ( VE_STR == this->type ||
          VE_USER == this->type
           ){
-        free(this->var.chv);
+        delete this->var.chv;
         this->var.chv = nullptr;
     }
     else if ( VE_UNION == this->type ) {
@@ -315,6 +325,7 @@ void D_OBJ::clear(){
         }
     }
     this->type = VE_VOID;
+    memset(&this->var,'\0',sizeof(this->var));
 }
 
 void D_OBJ::push(const D_VAR& var) {
@@ -444,6 +455,13 @@ void D_OBJ::operator=(const char* v){
     strcpy(this->var.chv,v);
 }
 
+void D_OBJ::alloc_str(const char* v,unsigned int len) {
+    clear();
+    this->type = VE_STR;
+    this->var.chv = (char*)malloc( len + 1 );
+
+    strcpy(this->var.chv,v);
+}
 
 std::ostream& operator<<(std::ostream& os, const D_OBJ& p) {
     switch (p.type)

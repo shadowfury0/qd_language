@@ -18,6 +18,7 @@ public:
     void interactive_mode();
     
 private:
+    Dio* io;
     D_VM* vm;
     DParser* parser;
     Logger* logger;

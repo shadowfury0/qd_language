@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include <memory>
 #include <fstream>
@@ -12,6 +13,7 @@
 #include <vector>
 #include <list>
 #include <deque>
+#include <queue>
 #include <algorithm>
 
 
@@ -54,6 +56,7 @@ using  _qd_doub    =  double;
 
 #define  QD_STACK_MAX  100
 #define  QD_CRLF  '13'
+#define  QD_BUF_BLK_SIZ  1024
 
 
 _QD_END

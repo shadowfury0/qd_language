@@ -28,10 +28,12 @@ QDMAIN::QDMAIN(){
 
     vm = nullptr;
     vm = new D_VM();
+
+    io = nullptr;
+    io = new Dio();
 }
 
 QDMAIN::~QDMAIN(){
-    logger->release();
 
     if ( parser != nullptr ) {
         delete parser;
@@ -42,6 +44,13 @@ QDMAIN::~QDMAIN(){
         delete vm;
         vm = nullptr;
     }
+
+    if ( io != nullptr ) {
+        delete io;
+        io = nullptr;
+    }
+
+    logger->release();
 }
 
 int QDMAIN::qd_main(int argc, char **argv) {
@@ -49,6 +58,7 @@ int QDMAIN::qd_main(int argc, char **argv) {
 #if defined(__GNUC__) && (__GNUC__ < 5)
     logger->warn("g++ version is less than 5.0.0 ");
 #endif
+
     // 解析参数
     // for (int i = 1 ;i < argc ; i ++ ) {
     //     if ( !strcmp(argv[i],"-h")) {
@@ -61,19 +71,35 @@ int QDMAIN::qd_main(int argc, char **argv) {
     //     }
     //     else {
             //文件
-            // logger->setLogTime(false);
+            logger->setLogTime(false);
             // logger->setLogPattern("%Y-%M------------");
 
-            logger->setLogPattern("");
             logger->setLogLevel(3);
+            parser->init_io(this->io);
 
             if (parser->read_file(argv[1])){
                 return -1;
             }
 
+            // this->parser->parse();
+
+            // this->io->clear();
+            // parser->env_clear();
+            //保存代码指令位置
+
+            if (parser->read_file(argv[2])){
+                return -1;
+            }
+            const char* tmp = "b = a + 1;";
+            parser->read_line(tmp,strlen(tmp));
+
+            this->parser->parse();
+
             //这里把funhead传入给虚拟机
-            vm->fun = parser->env_stack_top()->cur;
+            vm->init_fun(parser->env_stack_top()->cur);
             vm->execute();
+            
+            logger->error(parser->env.size()," : ",vm->size_call() );
 
             logger->setLogLevel(0);
         // }

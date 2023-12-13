@@ -1,5 +1,5 @@
-#ifndef __QD_VARIABLE_H__
-#define __QD_VARIABLE_H__
+#ifndef __QD_OBJ_H__
+#define __QD_OBJ_H__
 
 #include "qd_header.h"
 #include "qd_log.h"
@@ -73,6 +73,7 @@ struct D_VAR{
     void operator=(const unsigned int& u);
     void operator=(const double& v);
     void operator=(const char* v);
+    void alloc_str(const char* v,unsigned int len);
     
     bool operator==(const D_VAR& dv);
     bool operator==(const bool& b);
@@ -158,6 +159,7 @@ struct D_OBJ
     void operator=(const unsigned int& u);
     void operator=(const double& v);
     void operator=(const char* v);
+    void alloc_str(const char* v,unsigned int len);
 
     friend std::ostream& operator<<(std::ostream& os, const D_OBJ& p);
 };

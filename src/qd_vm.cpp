@@ -60,11 +60,27 @@ CallInfo* D_VM::head_fun() {
     return this->st->cs.front();
 }
 
+unsigned int D_VM::init_fun(FunHead* fun) {
+    if ( !fun ) {
+        logger->error("function is null");
+        return 1;
+    }
+    this->fun = fun;
+
+    return 0;
+}
+
 unsigned int D_VM::execute() {
+    return this->execute(0);
+}
+
+unsigned int D_VM::execute(unsigned int i) {
     CallInfo* call = new CallInfo();
+    
     push_call(call);
     //全局函数,全局函数还是拷贝一份免得污染
     call->f = new FunHead(*fun);  //这里到时候改，接受的是之前parser的函数信息
+    call->pos = i;
 
     analyse_code(cur_fun()->pos,cur_fun());
 

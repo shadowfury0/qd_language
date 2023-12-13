@@ -1,9 +1,8 @@
 #ifndef __QD_LEX_H__
 #define __QD_LEX_H__
 
-#include "qd_buffer.h"
-#include "qd_io.h"
 #include "qd_obj.h"
+#include "qd_io.h"
 
 
 _QD_BEGIN
@@ -117,7 +116,7 @@ struct LexState
     Token prevhead;  // 上上一个token类型
     D_VAR dvar;//当前值记录
 
-    Dbuffer* buff;//当前token字符
+    Dio* io;    //输入流，不进行清除操作
 
     Logger* logger;
 
@@ -167,9 +166,8 @@ struct LexState
     //判断是否为用户数据类型
     bool is_variable(unsigned int tok);
 
-    void alloc_buff(const char* buff);
-    void free_buff();
-    // void alloc_io(const char* io);
+    void alloc_buff(const char* buff,unsigned int len);
+    void alloc_io(Dio* const io);
 };
 
 

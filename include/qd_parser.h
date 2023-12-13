@@ -9,17 +9,17 @@
 _QD_BEGIN
 
 
-class DParser{
-public:
+struct DParser{
+    
     DParser();
     ~DParser();
 
     //读取文件
     unsigned int read_file(const char* file);
     //读取一行
-    void read_line(const char* line);
+    unsigned int read_line(const char* line,unsigned int len);
 
-    void parse(const char* str);
+    unsigned int parse();
     //解析函数
     unsigned int parse_Func(FunHead& fun);
 
@@ -79,10 +79,14 @@ public:
     //上一级环境
     D_ENV* last_env(D_ENV* info);
     D_ENV* env_stack_head();
+    //初始化输入流
+    void init_io(Dio* const io);
 
+    //清空 Env
+    void env_clear();
+    
     Logger* logger;
-
-    LexState ls;
+    LexState* ls;
 
     std::vector<D_ENV*> env;
 };

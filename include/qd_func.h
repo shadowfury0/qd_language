@@ -7,12 +7,8 @@
 _QD_BEGIN
 
 
-//函数头  80 b 字节已经对齐
+//函数头
 struct FunHead {
-    //if elif for while
-    // bool  anonymous;                  //是否为匿名函数
-    // std::string name;
-    // unsigned int maxstacksize;            // 变量参数个数
     
     std::vector<std::string> args;
     //匿名内部函数，如if  for

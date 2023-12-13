@@ -18,11 +18,14 @@ struct D_VM
     void push_call(CallInfo* in);
     void pop_call();
     _qd_uint size_call();
-    
+
+    unsigned int init_fun(FunHead* fun);
     CallInfo* cur_fun();
     CallInfo* head_fun();
     
     unsigned int execute();
+    //从某个位置开始执行
+    unsigned int execute(unsigned int i);
 
     //目前没有错误
     void default_assign(const std::string& name,const D_VAR& var,CallInfo* const info);

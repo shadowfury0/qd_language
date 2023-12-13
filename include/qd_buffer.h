@@ -1,34 +1,36 @@
-#ifndef __QD_BUFFER_H__
-#define __QD_BUFFER_H__
+#ifndef __QD_D_BUFFER_H__
+#define __QD_D_BUFFER_H__
 
 #include "qd_header.h"
 
 _QD_BEGIN
 
-//16
-struct Dbuffer {
-    char *buffer;
-    unsigned int n;//位置
-    unsigned int buffsize;//大小
+/*
+    一次读取的块大小
+*/
 
-    Dbuffer();
-    ~Dbuffer();
+struct DBuffer
+{
+    // unsigned int pos;   /* bytes still unread */
+    unsigned int pos;
+    unsigned int size;
+    char* buffer;
 
-    void init();
-    unsigned int size_buff();
+    DBuffer();
+    ~DBuffer();
 
-    void alloc_buff(const char* ch);
-    void alloc_buff(const char* ch,unsigned int n);
-    void free_buff();
-
-    void reset_buff();
-    //移动到某个位置
-    void move_buff(unsigned int n);
-    //偏移
-    void offset_buff(int n);
+    void alloc_buffer(const char* buf,unsigned int size);
     char get_ch();
+    void offset_buff(int n);
 };
+
+
+
+
 
 _QD_END
 
+
 #endif
+
+

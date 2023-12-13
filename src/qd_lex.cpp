@@ -15,12 +15,8 @@ LexState::LexState(){
 }
 
 LexState::~LexState(){
-    // if (io != NULL) {
-    //     delete io;
-    // }
-    if ( buff != nullptr){
-        delete buff;
-    }
+    
+    
 }
 
 void LexState::init(){
@@ -29,27 +25,24 @@ void LexState::init(){
     this->cur = 0;
     this->_row = 1;
     this->lastline = 0;
+    
 
-    // t.init();
-    // lookahead.init();
-
-    buff = nullptr;
-    buff = new Dbuffer();
-    buff->init();
-
+    io = nullptr;
+    // io = new Dio();
 }
 
 void LexState::next(){
     //查找下一个字符 
-    this->buff->offset_buff(1);
-    this->cur = this->buff->get_ch();
+    this->io->offset_buff(1);
+    this->cur = this->io->get_ch();
+    
     _col ++ ;
 }
 
 void LexState::prev(){
-    this->buff->offset_buff(-1);
-    this->cur = this->buff->get_ch();
-    _col -- ;
+    this->io->offset_buff(-1);
+    this->cur = this->io->get_ch();
+    _col --;
 }
 
 
@@ -493,14 +486,13 @@ bool LexState::is_variable(unsigned int tok){
 /** =======================================================*/
 
 
-void LexState::alloc_buff(const char* buff){
-    this->buff->alloc_buff(buff);
-    this->cur = this->buff->get_ch();
+void LexState::alloc_buff(const char* buff,unsigned int len){
+    this->io->alloc_buff(buff,len);
+    this->cur = this->io->get_ch();
 }
 
-void LexState::free_buff(){
-    this->buff->free_buff();
-    this->cur = 0;
+void LexState::alloc_io(Dio* const io) {
+    this->io = io;
 }
 
 
