@@ -106,20 +106,6 @@ struct Token {
 
 struct LexState
 {
-    unsigned char cur;   //当前token类型
-    unsigned int _row;  //当前行
-    unsigned int _col;         //当前列
-    unsigned int lastline; //上一个token行数
-
-    Token t;  //当前token类型
-    Token lookahead; //前一个token类型
-    Token prevhead;  // 上上一个token类型
-    D_VAR dvar;//当前值记录
-
-    Dio* io;    //输入流，不进行清除操作
-
-    Logger* logger;
-
     LexState();
     ~LexState();
 
@@ -136,16 +122,16 @@ struct LexState
     //比较下两个字符是否是two
     bool check2_next (const char* two);
 
-    bool isdigit(unsigned int c);
-    bool islalpha(unsigned int c);
-    bool isblank(unsigned int c);
-    bool isline(unsigned int c);
+    bool isdigit(size_t c);
+    bool islalpha(size_t c);
+    bool isblank(size_t c);
+    bool isline(size_t c);
 
     bool isnewline();
     //解析TOKEN
     int  read_numeral();
     void read_decimal();
-    int  read_string(unsigned int c);
+    int  read_string(size_t c);
     void read_comment();
     
     void inclinenumber();
@@ -160,14 +146,29 @@ struct LexState
     void remove_line();
 
     //判断是否为关键字
-    bool is_keyw(unsigned int tok);
+    bool is_keyw(size_t tok);
     //判断是否为运算符
-    bool is_operator(unsigned int tok);
+    bool is_operator(size_t tok);
     //判断是否为用户数据类型
-    bool is_variable(unsigned int tok);
+    bool is_variable(size_t tok);
 
-    void alloc_buff(const char* buff,unsigned int len);
+    void alloc_buff(const char* buff,size_t len);
     void alloc_io(Dio* const io);
+
+
+    unsigned char cur;   //当前token类型
+    size_t _row;  //当前行
+    size_t _col;         //当前列
+    size_t lastline; //上一个token行数
+
+    Token t;  //当前token类型
+    Token lookahead; //前一个token类型
+    Token prevhead;  // 上上一个token类型
+    D_VAR dvar;//当前值记录
+
+    Dio* io;    //输入流，不进行清除操作
+
+    Logger* logger;
 };
 
 

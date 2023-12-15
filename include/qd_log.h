@@ -10,6 +10,7 @@
 
 _QD_BEGIN
 
+
 class Logger{
 public:
     //设置日志级别
@@ -18,6 +19,9 @@ public:
     void setLogTime(bool b);
     //设置日志日期类型
     void setLogPattern(const char* pattern);
+    //日志标记打印
+    void setLogId(bool b);
+    
     //各种日志级别开始打印
     template<class... T>
     void debug(const T&... t);
@@ -48,6 +52,7 @@ private:
 
     //打印当前时间
     void fprint_curtime();
+    void fprint_id();
 
     template<class T>
     void print(const T& t);
@@ -65,10 +70,10 @@ private:
         FATAL,
         OFF,//关闭所有
     };
-
+    bool idup;          //打印索引？
     bool timeup;         //打印时间？
     unsigned char llevel;//默认打印全部
-    unsigned int lid;    //第几个日志
+    size_t lid;    //第几个日志
     std::string pattern; //格式化类型
     std::chrono::system_clock::time_point curtime;
 public:
@@ -78,7 +83,7 @@ public:
 
 template<class T>
 void Logger::print(const T& t){
-    std::cout << t ;
+    std::cout << t;
 }
 
 template<class T,class... Args>
@@ -90,8 +95,8 @@ void Logger::print(const T& t,const Args&... args){
 //-----------------LOG TYPE PRINT ---------------------------
 template<class... Args>
 void Logger::log(unsigned char level ,const Args&... t){
-    lid++;
     if (level >= llevel) {
+        lid++;
         switch (level)
         {
         case DEBUG:
@@ -111,6 +116,7 @@ void Logger::log(unsigned char level ,const Args&... t){
             break;
         }
 
+        fprint_id();
         fprint_curtime();
         print(t...);
         std::cout << std::endl;

@@ -40,7 +40,7 @@ void DParser::env_clear() {
     this->env.clear();
 }
 
-unsigned int DParser::parseX_next(){
+size_t DParser::parseX_next(){
 
     if ( T_BLANK != ls->t.token ) {
         this->ls->prevhead.token = this->ls->lookahead.token;
@@ -56,7 +56,7 @@ unsigned int DParser::parseX_next(){
     return 0;
 }
 
-unsigned int DParser::parse() {
+size_t DParser::parse() {
 
     //第一个token
     if (this->findX_next()) {
@@ -72,7 +72,7 @@ unsigned int DParser::parse() {
     return 0;
 }
 
-unsigned int DParser::parse_Func(FunHead& fun){
+size_t DParser::parse_Func(FunHead& fun){
     logger->debug(" <------------------ start --------------------> ");
     
     for(;;){
@@ -190,7 +190,7 @@ unsigned int DParser::parse_Func(FunHead& fun){
     return 0;
 }
 
-unsigned int DParser::skip_blank(){
+size_t DParser::skip_blank(){
     if ( T_BLANK == ls->t.token )
     {
         if(this->parseX_next()) {
@@ -200,7 +200,7 @@ unsigned int DParser::skip_blank(){
     return 0;
 }
 
-unsigned int DParser::skip_line() {
+size_t DParser::skip_line() {
     if ( T_END == ls->t.token )
     {
         if (this->parseX_next()) {
@@ -210,7 +210,7 @@ unsigned int DParser::skip_line() {
     return 0;
 }
 
-unsigned int DParser::findX_next(){
+size_t DParser::findX_next(){
     if (this->parseX_next()) {
         return ERR_END;
     }
@@ -218,17 +218,7 @@ unsigned int DParser::findX_next(){
     return 0;
 }
 
-int DParser::parse_PreCode(short type){
-    switch (type)
-    {
-    case T_MINUS:
-        return OC_MINUS;
-    default:
-        return OC_NIL;
-    }
-}
-
-unsigned int DParser::parse_Opr(Instruction& inc,short type){
+size_t DParser::parse_Opr(Instruction& inc,short type){
     //判断操作符
     switch (type)
     {
@@ -267,7 +257,7 @@ unsigned int DParser::parse_Opr(Instruction& inc,short type){
     }
 }
 
-unsigned int DParser::symbol_reversal(Instruction& inc){
+size_t DParser::symbol_reversal(Instruction& inc){
     if ( OC_MINUS == inc.restype ) {
         inc.restype = OC_NIL;
     }
@@ -277,7 +267,7 @@ unsigned int DParser::symbol_reversal(Instruction& inc){
     return 0;
 }
 
-unsigned int DParser::statement(FunHead& fun){
+size_t DParser::statement(FunHead& fun){
     Instruction inc;
 
     //全局变量
@@ -371,7 +361,7 @@ unsigned int DParser::statement(FunHead& fun){
     return 0;//正常退出
 }
 
-unsigned int DParser::assign_expr(Instruction& inc,FunHead& fun){
+size_t DParser::assign_expr(Instruction& inc,FunHead& fun){
     inc.type = OC_ASSIGN;
 
     short assigntype;
@@ -423,7 +413,7 @@ unsigned int DParser::assign_expr(Instruction& inc,FunHead& fun){
     return 0;
 }
 
-unsigned int DParser::jump_expr(FunHead& fun){
+size_t DParser::jump_expr(FunHead& fun){
     logger->debug("jumping to ");
     findX_next();
     //不是int类型
@@ -451,7 +441,7 @@ unsigned int DParser::jump_expr(FunHead& fun){
     return 0;
 }
 
-unsigned int DParser::if_expr(FunHead& func){
+size_t DParser::if_expr(FunHead& func){
     
     if ( T_PASS == ls->t.token ) {
         return 0;
@@ -528,7 +518,7 @@ unsigned int DParser::if_expr(FunHead& func){
     return 0;
 }
 
-unsigned int DParser::elif_expr(FunHead& func){
+size_t DParser::elif_expr(FunHead& func){
 
     while ( T_ELIF == ls->t.token ) {
         Instruction inc;
@@ -573,7 +563,7 @@ unsigned int DParser::elif_expr(FunHead& func){
     return 0;
 }
 
-unsigned int DParser::else_expr(FunHead& func){
+size_t DParser::else_expr(FunHead& func){
     Instruction istrue;
     istrue.curpos = func.codes.size();
     istrue.type = OC_NULL;
@@ -622,7 +612,7 @@ unsigned int DParser::else_expr(FunHead& func){
     return 0;
 }
 
-unsigned int DParser::for_expr(FunHead& func){
+size_t DParser::for_expr(FunHead& func){
 //     findX_next();
 
 //     Instruction forinc;
@@ -684,7 +674,7 @@ unsigned int DParser::for_expr(FunHead& func){
 //     forstate->codes.push_back(assign);
 
 //     findX_next();
-//     unsigned int forstart = forstate->codes.size();
+//     size_t forstart = forstate->codes.size();
 
 //     //判断结束符号是否正确
 //     if (T_COLON != ls->t.token) {
@@ -747,7 +737,7 @@ unsigned int DParser::for_expr(FunHead& func){
     return 0;//正常退出
 }
 
-unsigned int DParser::while_expr(FunHead& func) {
+size_t DParser::while_expr(FunHead& func) {
     if ( T_PASS == ls->t.token ) {
         return 0;
     }
@@ -810,7 +800,7 @@ unsigned int DParser::while_expr(FunHead& func) {
     return 0;
 }
 
-unsigned int DParser::array_element_expr(const std::string& name,FunHead& fun){
+size_t DParser::array_element_expr(const std::string& name,FunHead& fun){
     Instruction inc;
     inc.left = name.c_str();
     D_VAR* tmpobj = variable_check(inc.left.var.chv,this->env_stack_top());
@@ -848,7 +838,7 @@ unsigned int DParser::array_element_expr(const std::string& name,FunHead& fun){
     return 0;
 }
 
-unsigned int DParser::function_expr(FunHead& func){
+size_t DParser::function_expr(FunHead& func){
 
     if ( T_PASS == ls->t.token ) {
         return 0;
@@ -879,8 +869,13 @@ unsigned int DParser::function_expr(FunHead& func){
     func.codes.push_back(ass);
 
 
-    unsigned int curfunpos = (int)this->env_stack_top()->cur->lfuns.size();
-    this->env_stack_top()->lv[funcname] = curfunpos;
+    size_t curfunpos = this->env_stack_top()->cur->lfuns.size();
+
+    if ( curfunpos >= QD_INT_32_MAX ) {
+        logger->error("function offset is larger than int32 max");
+        return ERR_END;
+    }
+    this->env_stack_top()->lv[funcname] = (int)curfunpos;
     this->env_stack_top()->lv[funcname].type = VE_FUNC;
 
     this->findX_next();
@@ -959,7 +954,7 @@ unsigned int DParser::function_expr(FunHead& func){
     return 0;
 }
 
-unsigned int DParser::array_expr(const std::string& name,FunHead& fun){
+size_t DParser::array_expr(const std::string& name,FunHead& fun){
 
     for (;;) {
         Instruction inc;
@@ -1003,7 +998,7 @@ unsigned int DParser::array_expr(const std::string& name,FunHead& fun){
     return 0;
 }
 
-unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
+size_t DParser::list_access_expr(const std::string& name,FunHead& func){
     // this->findX_next();
     // std::string varname = ls->dvar.var.chv;
     // if ( T_END == ls->t.token ) {
@@ -1159,19 +1154,19 @@ unsigned int DParser::list_access_expr(const std::string& name,FunHead& func){
     return 0;
 }
 
-unsigned int DParser::simple_expr(FunHead& fun){
+size_t DParser::simple_expr(FunHead& fun){
     if ( T_END == ls->t.token || T_COLON == ls->t.token ) {
         logger->error("missing expression after equal");
         return ERR_END;
     }
     
-    std::vector<unsigned int> values; // 存放计算值位置
+    std::vector<size_t> values; // 存放计算值位置
     //存放运算符
     std::vector<int> ops; //存放符号运算token
 
     int negative = 0;
     // () 个数
-    unsigned int path = 0;
+    size_t path = 0;
 
     while ( T_END != ls->t.token && T_COLON != ls->t.token ) {
         int tok = ls->t.token;
@@ -1266,9 +1261,9 @@ unsigned int DParser::simple_expr(FunHead& fun){
             Instruction tmp;
                 while (!ops.empty() && 
             priority[parse_Opr(tmp,ops.back())] >= priority[parse_Opr(tmp,tok)] ) {
-                    unsigned int val2 = values.back();
+                    size_t val2 = values.back();
                     values.pop_back();
-                    unsigned int val1 = values.back();
+                    size_t val1 = values.back();
                     values.pop_back();
                     int op = ops.back();
                     ops.pop_back();
@@ -1293,9 +1288,9 @@ unsigned int DParser::simple_expr(FunHead& fun){
             path ++;
         } else if ( T_RPARENTH == tok  ) {
             while ( ops.back() != T_LPARENTH && !ls->is_operator(ls->lookahead.token) ) {
-                unsigned int val2 = values.back();
+                size_t val2 = values.back();
                 values.pop_back();
-                unsigned int val1 = values.back();
+                size_t val1 = values.back();
                 values.pop_back();
                 int op = ops.back();
                 ops.pop_back();
@@ -1320,9 +1315,9 @@ unsigned int DParser::simple_expr(FunHead& fun){
             Instruction tmp;
             while (!ops.empty() && 
             priority[parse_Opr(tmp,ops.back())] >= priority[parse_Opr(tmp,tok)] ) {
-                unsigned int val2 = values.back();
+                size_t val2 = values.back();
                 values.pop_back();
-                unsigned int val1 = values.back();
+                size_t val1 = values.back();
                 values.pop_back();
                 int op = ops.back();
                 ops.pop_back();
@@ -1355,9 +1350,9 @@ unsigned int DParser::simple_expr(FunHead& fun){
 
 
     while (!ops.empty()) {
-        unsigned int val2 = values.back();
+        size_t val2 = values.back();
         values.pop_back();
-        unsigned int val1 = values.back();
+        size_t val1 = values.back();
         values.pop_back();
         int op = ops.back();
         ops.pop_back();
@@ -1373,7 +1368,7 @@ unsigned int DParser::simple_expr(FunHead& fun){
     return values.back();
 }
 
-unsigned int DParser::call_expr(std::string name,FunHead& fun){
+size_t DParser::call_expr(std::string name,FunHead& fun){
     Instruction inc;
     inc.left = name.c_str();
     inc.type = OC_CALL;
@@ -1389,8 +1384,8 @@ unsigned int DParser::call_expr(std::string name,FunHead& fun){
 
 
     //参数判断
-    unsigned int stacksize = 0;
-    unsigned int argpos = FIN_END;
+    size_t stacksize = 0;
+    size_t argpos = FIN_END;
     while ( ls->is_variable(ls->t.token) )
     {
         Instruction arg;
@@ -1464,7 +1459,7 @@ D_ENV* DParser::env_stack_top() {
 }
 
 D_ENV* DParser::last_env(D_ENV* info) {
-    unsigned int i = this->env.size() - 1;
+    size_t i = this->env.size() - 1;
     if ( i < 0 ) return nullptr;
     D_ENV* tmpin =  this->env[i];
 
@@ -1516,26 +1511,26 @@ D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
     return tmp; 
 }
 
-unsigned int DParser::read_file(const char* file){
+size_t DParser::read_file(const char* file){
     std::ifstream is (file, std::ifstream::binary);
     if (is) {
         struct stat statbuf;
 	    stat(file, &statbuf);
         //获取文件大小
-        unsigned int length = statbuf.st_size;
+        size_t length = statbuf.st_size;
         // get length of file:
         // is.seekg (0, is.end);
         // int length = is.tellg();
         // is.seekg (0, is.beg);
         
-        unsigned int chunk = QD_BUF_BLK_SIZ;
+        size_t chunk = QD_BUF_BLK_SIZ;
 
         // 计算需要切片的次数
         unsigned  int numberOfChunks = length / chunk;
         logger->debug("input file size is ",length);
 
         // 读取每个数据块并进行处理
-        for (unsigned int i = 0; i < numberOfChunks; ++i) {
+        for (size_t i = 0; i < numberOfChunks; ++i) {
             char * buffer = new char[chunk + 1];
             is.read(buffer, chunk);
             buffer[chunk] = '\0'; //末尾一定要加
@@ -1551,7 +1546,6 @@ unsigned int DParser::read_file(const char* file){
         char * buffer = new char[ rest + 1 ];
         buffer[rest] = '\0'; //末尾一定要加
         is.read( buffer, rest );
-        // std::cout.write(buffer,rest + 1);
         ls->alloc_buff(buffer,rest);
 
         delete[] buffer;
@@ -1568,7 +1562,7 @@ unsigned int DParser::read_file(const char* file){
     return 0;
 }
 
-unsigned int DParser::read_line(const char* line,unsigned int len){
+size_t DParser::read_line(const char* line,size_t len){
     // this->parse(line);
     ls->alloc_buff(line,len);
     return 0;

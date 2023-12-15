@@ -26,8 +26,8 @@ struct CallInfo
     bool anonymous;
     //上一个条件判断是否为true，例如if elif ，如果为true则不执行
     bool ifstate;
-    unsigned int pos;
-    FunHead* f;            //当前函数
+    size_t pos;
+    FunHead* f;               //当前函数
     // CallInfo* prev;        //上一级变量
     //闭包上级函数
     // std::map<std::string,Stack_V>*  closure;
@@ -42,6 +42,7 @@ struct CallStack
     ~CallStack();
 
     void init();
+    void clear();
     CallInfo* top();
     
     std::vector<CallInfo*>  cs;   //运行栈

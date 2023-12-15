@@ -7,37 +7,40 @@ _QD_BEGIN
 D_VM::D_VM() {
     this->init();
 
-    st = nullptr;
-    st = new CallStack();
+ 
 }
 
 D_VM::D_VM(const D_VM& vm) {
     this->init();
 
-    fun = new FunHead(*vm.fun);
+    // fun = new FunHead(*vm.fun);
+    global = new CallInfo(*vm.global);
     st = new CallStack(*vm.st);
 }
 
 void D_VM::init() {
-    fun = nullptr;
+    // fun = nullptr;
     st = nullptr;
+    global = nullptr;
 
     logger = Logger::getInstance();
+
+    st = nullptr;
+    st = new CallStack();
 }
 
 D_VM::~D_VM() {
     //清除parser 传递函数
-    if ( fun != nullptr ) {
-        fun->clear();
-        delete fun;
-        fun = nullptr;
-    }
+    // if ( fun != nullptr ) {
+    //     fun->clear();
+    //     delete fun;
+    //     fun = nullptr;
+    // }
 
     if ( st != nullptr ) {
         delete st;
         st = nullptr;
     }
-
 }
 
 void D_VM::push_call(CallInfo* in) {
@@ -46,6 +49,14 @@ void D_VM::push_call(CallInfo* in) {
 
 void D_VM::pop_call() {
     this->st->cs.pop_back();
+}
+
+void D_VM::reserve_global() {
+    while ( !this->st->cs.empty() ) {
+        if (this->st->top() == this->global) break;
+        delete this->st->top();
+        this->st->cs.pop_back();
+    }
 }
 
 _qd_uint D_VM::size_call() {
@@ -60,29 +71,33 @@ CallInfo* D_VM::head_fun() {
     return this->st->cs.front();
 }
 
-unsigned int D_VM::init_fun(FunHead* fun) {
+size_t D_VM::init_fun(FunHead* fun) {
     if ( !fun ) {
         logger->error("function is null");
         return 1;
     }
-    this->fun = fun;
+    global = new CallInfo();
+    global->f = fun;
+
+    push_call(global);
 
     return 0;
 }
 
-unsigned int D_VM::execute() {
+size_t D_VM::execute() {
     return this->execute(0);
 }
 
-unsigned int D_VM::execute(unsigned int i) {
-    CallInfo* call = new CallInfo();
+size_t D_VM::execute(size_t i) {
+    // CallInfo* call = new CallInfo();
     
-    push_call(call);
     //全局函数,全局函数还是拷贝一份免得污染
-    call->f = new FunHead(*fun);  //这里到时候改，接受的是之前parser的函数信息
-    call->pos = i;
+    // call->f = new FunHead(*fun);  //这里到时候改，接受的是之前parser的函数信息
+    global->pos = i;
 
-    analyse_code(cur_fun()->pos,cur_fun());
+    if(analyse_code(cur_fun()->pos,cur_fun())){
+        return ERR_END;
+    }
 
     return 0;
 }
@@ -111,8 +126,8 @@ void D_VM::global_assign(const std::string& name,const D_OBJ& var) {
     this->head_fun()->v(name) = var;
 }
 
-unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
-    unsigned int clen = info->f->codes.size();
+size_t D_VM::analyse_code(size_t& i,CallInfo* info){
+    size_t clen = info->f->codes.size();
 
     //目前是为了防止栈溢出简单的处理
     if ( st->cs.size() > QD_STACK_MAX ) {
@@ -328,7 +343,7 @@ unsigned int D_VM::analyse_code(unsigned int& i,CallInfo* info){
     return 0;
 }
 
-unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
+size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     logger->debug("<-----  analyse expression  ----->");
     D_VAR tleft;
     D_VAR tright;
@@ -425,6 +440,10 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         break;
     }
     case OC_DIV:{
+        if ( 0 == tright.var.iv || 0.0 == tright.var.dv ) {
+            logger->error("dividend is not allow 0 or 0.0");
+            return ERR_END;
+        }
         if(D_VAR_DIV(tres,tleft,tright)){
             logger->error("error  in  divide  expression");
             return ERR_END;
@@ -535,7 +554,7 @@ unsigned int D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     return 0;
 }
 
-unsigned int D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
+size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
     if ( FIN_END == inc.rpos ) {
         logger->error("missing rpos to assign");
         return ERR_END;
@@ -572,14 +591,14 @@ unsigned int D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
     return 0;
 }
 
-unsigned int D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
+size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
     if ( FIN_END == inc.rpos ) {
         logger->error("error in array index assign");
         return ERR_END;
     }
     Instruction& value = fun.codes[inc.rpos];
     
-    unsigned int index = 0;
+    size_t index = 0;
     
     D_OBJ* array =  find_variable(inc.left.var.chv);
 
@@ -588,7 +607,7 @@ unsigned int D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
         return ERR_END;
     }
 
-    unsigned int len = array->uni->larr.size() - 1;
+    size_t len = array->uni->larr.size() - 1;
 
     if ( VE_USER == inc.right.type ) {
         D_OBJ* tmp = find_variable(inc.right.var.chv);
@@ -615,15 +634,15 @@ unsigned int D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
     return 0;
 }
 
-unsigned int D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
+size_t D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
     //空参
     if (inc.rpos == FIN_END){
         return 0;
     }
     //push func
     Instruction tmp = cur->f->codes[inc.rpos];
-    unsigned int len = push->f->args_size();
-    unsigned int i = len - 1;
+    size_t len = push->f->args_size();
+    size_t i = len - 1;
     for (; i >= 0 ; i--) {
         //查找变量值
         if ( VE_USER == tmp.right.type ) {
@@ -649,6 +668,7 @@ unsigned int D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* pus
 
 FunHead* D_VM::find_function(const std::string& name ) {
     int i = this->st->cs.size() - 1;
+    
     if ( i < 0 ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
 
@@ -733,7 +753,7 @@ CallInfo* D_VM::last_return(CallInfo* info) {
 }
 
 CallInfo* D_VM::last_function(CallInfo* info) {
-    unsigned int i = this->st->cs.size() - 1;
+    size_t i = this->st->cs.size() - 1;
     if ( i < 0 ) return nullptr;
     CallInfo* tmpin =  this->st->cs[i];
 
@@ -752,9 +772,10 @@ CallInfo* D_VM::last_function(CallInfo* info) {
 void D_VM::print_variables(const CallInfo* call) {
     
     for (auto iter = call->sv.begin() ;
-        iter != call->sv.end() ; iter ++) {
+        iter != call->sv.end() ; iter ++ ) {
         logger->error(iter->first," -> ",iter->second);
     }
+
 }
 
 

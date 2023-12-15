@@ -104,9 +104,9 @@ struct Instruction{
     unsigned char restype;       //负数类型
     unsigned char type ;         //类型
     //指令行数
-    unsigned int curpos;
-    unsigned int lpos; //左子树 指令偏移位置
-    unsigned int rpos; //右子树 指令偏移位置
+    size_t curpos;
+    size_t lpos; //左子树 指令偏移位置
+    size_t rpos; //右子树 指令偏移位置
 
     D_VAR left;         //指令操作完成 可以当作返回值赋值
     D_VAR right;        //结果返回值

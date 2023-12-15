@@ -3,6 +3,7 @@
 
 #include "qd_parser.h"
 #include "qd_vm.h"
+#include "qd_bitset.h"
 
 //程序运行模式目前只有交互式
 _QD_BEGIN
@@ -13,15 +14,20 @@ public:
     QDMAIN();
     ~QDMAIN();
     //函数主窗口
-    int qd_main(int argc, char **argv);
+    size_t qd_main(int argc, char **argv);
 
-    void interactive_mode();
+    void parse_args(char* str);
+
+    size_t interactive_mode();
+    size_t script_mode();
     
 private:
     Dio* io;
     D_VM* vm;
     DParser* parser;
     Logger* logger;
+
+    BITSET b;
 };
 
 

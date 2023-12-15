@@ -43,19 +43,22 @@ CallStack::CallStack() {
 
 CallStack::CallStack(const CallStack& cal) {
     init();
-
 }
 
 CallStack::~CallStack() {
     //清空栈
+    clear();
+}
+
+void CallStack::init(){
+
+}
+
+void CallStack::clear() {
     while ( !this->cs.empty() ) {
         delete top();
         this->cs.pop_back();
     }
-}
-
-void CallStack::init(){
- 
 }
 
 CallInfo* CallStack::top() {

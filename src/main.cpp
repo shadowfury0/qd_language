@@ -5,11 +5,12 @@ using namespace std;
 
 int main(int argc, char **argv){
     QDMAIN pmain;
-    int ret; 
+    unsigned int ret; 
     ret = pmain.qd_main(argc,argv);
     
-    //错误判断 
-    // if (ret)
+    // //错误判断 
+    if (ret) std::cout << "qd languague error " << std::endl;
+
     return ret;
 }
 

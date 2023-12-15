@@ -15,7 +15,7 @@ FunHead::FunHead(const FunHead& head){
     this->args = head.args;
     this->codes = head.codes;
 
-    for (unsigned int iter = 0 ; iter < head.lfuns.size() ; iter++) {
+    for (size_t iter = 0 ; iter < head.lfuns.size() ; iter++) {
         FunHead* funstate = nullptr;
         funstate = new FunHead(*head.lfuns[iter]);
         this->lfuns.push_back(funstate);
@@ -52,7 +52,7 @@ void FunHead::clear() {
     }
 }
 
-unsigned int FunHead::args_size(){
+size_t FunHead::args_size(){
     return args.size();
 }
 

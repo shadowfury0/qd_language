@@ -17,7 +17,7 @@ DBuffer::~DBuffer() {
     this->pos = 0;
 }
 
-void DBuffer::alloc_buffer(const char* buf,unsigned int size) {
+void DBuffer::alloc_buffer(const char* buf,size_t size) {
     this->buffer = (char*)malloc( size + 1 );
     this->size = size;
     strcpy(this->buffer,buf);

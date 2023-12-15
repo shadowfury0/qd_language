@@ -11,17 +11,18 @@ _QD_BEGIN
 
 struct DBuffer
 {
-    // unsigned int pos;   /* bytes still unread */
-    unsigned int pos;
-    unsigned int size;
-    char* buffer;
-
     DBuffer();
     ~DBuffer();
 
-    void alloc_buffer(const char* buf,unsigned int size);
+    void alloc_buffer(const char* buf,size_t size);
     char get_ch();
     void offset_buff(int n);
+
+
+    // size_t pos;   /* bytes still unread */
+    size_t pos;
+    size_t size;
+    char* buffer;
 };
 
 

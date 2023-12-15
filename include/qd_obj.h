@@ -43,7 +43,6 @@ union D_PRO
 {
     _qd_b bv;
     _qd_int iv;
-    _qd_uint uiv;
     _qd_doub dv;
     _qd_char* chv;
 };
@@ -58,7 +57,6 @@ struct D_VAR{
     D_VAR(const D_VAR& dv);
     D_VAR(const bool& v);
     D_VAR(const int& v);
-    D_VAR(const unsigned int& v);
     D_VAR(const double& v);
     D_VAR(const char* v);
     ~D_VAR();
@@ -70,15 +68,13 @@ struct D_VAR{
     void operator=(const D_OBJ& dv);
     void operator=(const bool& b);
     void operator=(const int& v);
-    void operator=(const unsigned int& u);
     void operator=(const double& v);
     void operator=(const char* v);
-    void alloc_str(const char* v,unsigned int len);
+    void alloc_str(const char* v,size_t len);
     
     bool operator==(const D_VAR& dv);
     bool operator==(const bool& b);
     bool operator==(const int& dv);
-    bool operator==(const unsigned int& dv);
     bool operator==(const double& dv);
     //返回两个字符串完全相等的值
     bool operator==(const char* dv);
@@ -86,7 +82,6 @@ struct D_VAR{
     bool operator!=(const D_VAR& dv);
     bool operator!=(const bool& b);
     bool operator!=(const int& dv);
-    bool operator!=(const unsigned int& dv);
     bool operator!=(const double& dv);
     //返回两个字符串完全相等的值
     bool operator!=(const char* dv);
@@ -147,7 +142,6 @@ struct D_OBJ
     D_OBJ(const D_OBJ& obj);
     D_OBJ(const bool& b);
     D_OBJ(const int& v);
-    D_OBJ(const unsigned int& u);
     D_OBJ(const double& v);
     D_OBJ(const char* v);
     
@@ -156,10 +150,9 @@ struct D_OBJ
     void operator=(const D_UNION& arr);
     void operator=(const bool& b);
     void operator=(const int& v);
-    void operator=(const unsigned int& u);
     void operator=(const double& v);
     void operator=(const char* v);
-    void alloc_str(const char* v,unsigned int len);
+    void alloc_str(const char* v,size_t len);
 
     friend std::ostream& operator<<(std::ostream& os, const D_OBJ& p);
 };

@@ -27,10 +27,10 @@ D_VAR::D_VAR(const int& v){
     *this = v;
 }
 
-D_VAR::D_VAR(const unsigned int& u){
-    init();
-    *this = u;
-}
+// D_VAR::D_VAR(const size_t& u){
+//     init();
+//     *this = u;
+// }
 
 D_VAR::D_VAR(const double& v){
     init();
@@ -50,7 +50,7 @@ void D_VAR::clear(){
          VE_USER == this->type ||
          VE_UNION == this->type
           ){
-        delete this->var.chv;
+        delete[] this->var.chv;
         this->var.chv = nullptr;
     }
     this->type = VE_VOID;
@@ -95,18 +95,17 @@ void D_VAR::operator=(const bool& b){
     this->var.bv = b;
 }
 
-
 void D_VAR::operator=(const int& v){
     clear();
     this->type = VE_INT;
-    this->var.iv = v;
+    this->var.iv = (size_t)v;
 }
 
-void D_VAR::operator=(const unsigned int& u){
-    clear();
-    this->type = VE_INT;
-    this->var.uiv = u;
-}
+// void D_VAR::operator=(const size_t& u){
+//     clear();
+//     this->type = VE_INT;
+//     this->var.iv = u;
+// }
 
 void D_VAR::operator=(const double& v){
     clear();
@@ -117,14 +116,14 @@ void D_VAR::operator=(const double& v){
 void D_VAR::operator=(const char* v){
     clear();
     this->type = VE_STR;
-    this->var.chv = (char*)malloc( strlen(v) + 1 );
+    this->var.chv = new char[strlen(v) + 1 ];
     strcpy(this->var.chv,v);
 }
 
-void D_VAR::alloc_str(const char* v,unsigned int len) {
+void D_VAR::alloc_str(const char* v,size_t len) {
     clear();
     this->type = VE_STR;
-    this->var.chv = (char*)malloc( len + 1 );
+    this->var.chv = new char[strlen(v) + 1 ];
     strcpy(this->var.chv,v);
 }
 
@@ -177,9 +176,9 @@ bool D_VAR::operator==(const int& iv){
     return this->var.iv == iv;
 }
 
-bool D_VAR::operator==(const unsigned int& uiv){
-    return this->var.uiv == uiv;
-}
+// bool D_VAR::operator==(const size_t& uiv){
+//     return this->var.iv == uiv;
+// }
 
 bool D_VAR::operator==(const double& bv){
     return this->var.bv == bv;
@@ -217,9 +216,9 @@ bool D_VAR::operator!=(const int& iv){
     return this->var.iv != iv;
 }
 
-bool D_VAR::operator!=(const unsigned int& uiv){
-    return this->var.uiv == uiv;
-}
+// bool D_VAR::operator!=(const size_t& uiv){
+//     return this->var.iv == uiv;
+// }
 
 bool D_VAR::operator!=(const double& bv){
     return this->var.bv != bv;
@@ -315,7 +314,7 @@ void D_OBJ::clear(){
     if ( VE_STR == this->type ||
          VE_USER == this->type
           ){
-        delete this->var.chv;
+        delete[] this->var.chv;
         this->var.chv = nullptr;
     }
     else if ( VE_UNION == this->type ) {
@@ -367,10 +366,10 @@ D_OBJ::D_OBJ(const int& v){
     *this = v;
 }
 
-D_OBJ::D_OBJ(const unsigned int& u){
-    init();
-    *this = u;
-}
+// D_OBJ::D_OBJ(const size_t& u){
+//     init();
+//     *this = u;
+// }
 
 D_OBJ::D_OBJ(const double& v){
     init();
@@ -432,14 +431,14 @@ void D_OBJ::operator=(const bool& b){
 void D_OBJ::operator=(const int& v){
     clear();
     this->type = VE_INT;
-    this->var.iv = v;
+    this->var.iv = (size_t)v;
 }
 
-void D_OBJ::operator=(const unsigned int& u){
-    clear();
-    this->type = VE_INT;
-    this->var.uiv = u;
-}
+// void D_OBJ::operator=(const size_t& u){
+//     clear();
+//     this->type = VE_INT;
+//     this->var.iv = u;
+// }
 
 void D_OBJ::operator=(const double& v){
     clear();
@@ -450,15 +449,15 @@ void D_OBJ::operator=(const double& v){
 void D_OBJ::operator=(const char* v){
     clear();
     this->type = VE_STR;
-    this->var.chv = (char*)malloc( strlen(v) + 1 );
+    this->var.chv = new char[strlen(v) + 1 ];
 
     strcpy(this->var.chv,v);
 }
 
-void D_OBJ::alloc_str(const char* v,unsigned int len) {
+void D_OBJ::alloc_str(const char* v,size_t len) {
     clear();
     this->type = VE_STR;
-    this->var.chv = (char*)malloc( len + 1 );
+    this->var.chv = new char[strlen(v) + 1 ];
 
     strcpy(this->var.chv,v);
 }

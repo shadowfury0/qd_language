@@ -15,58 +15,56 @@ struct DParser{
     ~DParser();
 
     //读取文件
-    unsigned int read_file(const char* file);
+    size_t read_file(const char* file);
     //读取一行
-    unsigned int read_line(const char* line,unsigned int len);
+    size_t read_line(const char* line,size_t len);
 
-    unsigned int parse();
+    size_t parse();
     //解析函数
-    unsigned int parse_Func(FunHead& fun);
+    size_t parse_Func(FunHead& fun);
 
     //一个个解析token
-    unsigned int parseX_next();
-    //判断操作符前缀
-    int parse_PreCode(short type);
+    size_t parseX_next();
     //判断操作符,这个inc先保留万一有用呢
-    unsigned int parse_Opr(Instruction& inc,short type);
+    size_t parse_Opr(Instruction& inc,short type);
     //跳过空白token
-    unsigned int skip_blank();
+    size_t skip_blank();
     //跳过；或换行
-    unsigned int skip_line();
+    size_t skip_line();
     //下一个非空token
-    unsigned int findX_next();
+    size_t findX_next();
     //符号反转,目前是负数
-    unsigned int symbol_reversal(Instruction& inc);
+    size_t symbol_reversal(Instruction& inc);
 
     //基本表达式
-    unsigned int statement(FunHead& fun);
+    size_t statement(FunHead& fun);
     //赋值表达式
-    unsigned int assign_expr(Instruction& inc,FunHead& fun);
+    size_t assign_expr(Instruction& inc,FunHead& fun);
     //运算表达式
-    unsigned int simple_expr(FunHead& fun);
+    size_t simple_expr(FunHead& fun);
 
     //跳转表达式
-    unsigned int jump_expr(FunHead& fun);
+    size_t jump_expr(FunHead& fun);
     //数组元素赋值
-    unsigned int array_element_expr(const std::string& name,FunHead& fun);
+    size_t array_element_expr(const std::string& name,FunHead& fun);
     //数组表达式
-    unsigned int array_expr(const std::string& name,FunHead& fun);
+    size_t array_expr(const std::string& name,FunHead& fun);
     //if表达式,返回值0运行正确
-    unsigned int if_expr(FunHead& func);
+    size_t if_expr(FunHead& func);
     //elif表达式,
-    unsigned int elif_expr(FunHead& func);
+    size_t elif_expr(FunHead& func);
     //else表达式,
-    unsigned int else_expr(FunHead& func);
+    size_t else_expr(FunHead& func);
     //for表达式
-    unsigned int for_expr(FunHead& func);
+    size_t for_expr(FunHead& func);
     //while表达式
-    unsigned int while_expr(FunHead& func);
+    size_t while_expr(FunHead& func);
     //函数表达式
-    unsigned int function_expr(FunHead& func);
+    size_t function_expr(FunHead& func);
     //调用表达式
-    unsigned int call_expr(std::string name,FunHead& fun);
+    size_t call_expr(std::string name,FunHead& fun);
     //列表访问表达式
-    unsigned int list_access_expr(const std::string& name,FunHead& func);
+    size_t list_access_expr(const std::string& name,FunHead& func);
 
     D_UNION union_access(int start, int  end,const D_UNION& arr);
 

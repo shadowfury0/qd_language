@@ -16,7 +16,7 @@ Dio::~Dio(){
 }
 
 void Dio::offset_buff(int n){
-    unsigned int len = this->cur()->size;
+    size_t len = this->cur()->size;
 
     if ( n < len || n > 0 ) {
         this->cur()->offset_buff(n);
@@ -24,7 +24,7 @@ void Dio::offset_buff(int n){
     
 }
 
-char Dio::get_ch(){
+char Dio::get_ch() {
     //如果等于最后一个缓冲区长度，index加一
     // std::cout << this->cur()->pos << " : " << this->cur()->size << std::endl;
     if ( this->cur()->pos >= this->cur()->size ) {
@@ -47,7 +47,7 @@ char Dio::get_ch(){
 //     this->alloc_buff(ch,strlen(ch));
 // }
 
-void Dio::alloc_buff(const char* ch,unsigned int n){
+void Dio::alloc_buff(const char* ch,size_t n) {
 
     DBuffer* b = nullptr;
     b = new DBuffer();
@@ -56,14 +56,21 @@ void Dio::alloc_buff(const char* ch,unsigned int n){
     this->buffs.push_back(b);
 }
 
-void Dio::clear(){
+void Dio::clear() {
 
-    for (std::vector<DBuffer *>::iterator i = this->buffs.begin();
+    for (
+        std::vector<DBuffer *>::iterator i = this->buffs.begin();
         i != this->buffs.end() ; i ++) {
         delete *i;
         *i = nullptr;
     }
     this->buffs.clear();
+}
+
+void Dio::clean_back() {
+    delete this->buffs.back();
+    this->buffs.pop_back();
+    this->index --;
 }
 
 DBuffer* Dio::cur() {

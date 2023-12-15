@@ -8,18 +8,13 @@ _QD_BEGIN
 
 struct Dio {
 
-    // unsigned int n; //位置
-    unsigned int index; //当前流位置
-    // unsigned int buffsize;  //当前缓冲大小
-
-    std::vector<DBuffer*> buffs;
-
     Dio();
     ~Dio();
 
     // void alloc_buff(const char* ch);
-    void alloc_buff(const char* ch,unsigned int n);
+    void alloc_buff(const char* ch,size_t n);
     void clear();
+    void clean_back();
 
     //偏移
     void offset_buff(int n);
@@ -27,6 +22,10 @@ struct Dio {
 
     //头缓冲
     DBuffer* cur();
+    
+    size_t index; //当前流位置
+
+    std::vector<DBuffer*> buffs;
 };
 
 

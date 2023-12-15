@@ -18,6 +18,7 @@ Logger* Logger::getInstance(){
         logger->lid = 0;
         logger->pattern = "[ %Y-%m-%d %X ] ";
         logger->timeup = true;
+        logger->idup = true;
         logger->info( " Logger init ");
     }
     return logger;
@@ -42,6 +43,10 @@ void Logger::setLogPattern(const char* pattern){
     this->pattern = pattern;
 }
 
+void Logger::setLogId(bool b) {
+    this->idup = b;
+}
+
 void Logger::fprint_curtime(){
     if (!this->timeup){
         return;
@@ -52,6 +57,14 @@ void Logger::fprint_curtime(){
     std::cout << std::put_time(std::localtime(&in_time_t), this->pattern.c_str());
 #endif
 }
+
+void Logger::fprint_id() {
+    if (!this->timeup){
+        return;
+    }
+    std::cout << " <id " << this->lid << "> ";
+}
+
 
 
 _QD_END

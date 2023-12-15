@@ -26,9 +26,9 @@ _QD_BEGIN
 #define QD_API		extern
 
 // NUM 
-#define FIN_END  UINT32_MAX - 1
-#define ERR_END  UINT32_MAX
-#define QD_INT_32_MAX INT32_MAX
+#define FIN_END  SIZE_MAX - 1
+#define ERR_END  SIZE_MAX
+#define QD_INT_32_MAX  INT32_MAX
 
 
 // KEY WORD
@@ -50,6 +50,7 @@ _QD_BEGIN
 //这个以后再全部重新改一下
 using  _qd_b       =  bool;
 using  _qd_int     =  int;
+using  _qd_st      =  size_t;
 using  _qd_uint    =  unsigned int;
 using  _qd_char    =  char;
 using  _qd_doub    =  double;

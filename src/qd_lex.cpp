@@ -291,7 +291,7 @@ bool LexState::check2_next (const char* two){
     return false;
 }
 
-bool LexState::isdigit(unsigned int c){
+bool LexState::isdigit(size_t c){
     //'0' - '9'
     if (c >= '0' && c <= '9'){
         return true;
@@ -299,7 +299,7 @@ bool LexState::isdigit(unsigned int c){
     return false;    
 }
 
-bool LexState::islalpha(unsigned int a){
+bool LexState::islalpha(size_t a){
     // 'a' -'z'
     if ( (a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') ) {
         return true;
@@ -307,14 +307,14 @@ bool LexState::islalpha(unsigned int a){
     return false;
 }
 
-bool LexState::isblank(unsigned int b){
+bool LexState::isblank(size_t b){
     if ( b == ' ' || b == '\f' || b == '\t' || b == '\v' ) {
         return true;
     }
     return false;
 }
 
-bool LexState::isline(unsigned int l){
+bool LexState::isline(size_t l){
     if ( '\n' == l || '\r' == l) {
         return true;
     }
@@ -352,7 +352,7 @@ void LexState::read_decimal(){
     dvar.type = VE_FLT;
 }
 
-int LexState::read_string(unsigned int c){
+int LexState::read_string(size_t c){
     std::string tmp;//暂时
     //"
     this->next();
@@ -462,21 +462,21 @@ void LexState::remove_line(){
     }
 }
 
-bool LexState::is_keyw(unsigned int tok) {
+bool LexState::is_keyw(size_t tok) {
     if ( tok >= T_IF && tok <= T_IN ) {
         return true;
     }
     return false;
 }
 
-bool LexState::is_operator(unsigned int tok){
+bool LexState::is_operator(size_t tok){
     if ( tok >= T_EQ && tok <= T_VERTICAL_BAR ){
         return true;
     }
     return false;
 }
 
-bool LexState::is_variable(unsigned int tok){
+bool LexState::is_variable(size_t tok){
     if ( (tok >= T_INT && tok <= T_UDATA ) || T_TRUE == tok || T_FALSE == tok ){
         return true;
     }
@@ -486,7 +486,7 @@ bool LexState::is_variable(unsigned int tok){
 /** =======================================================*/
 
 
-void LexState::alloc_buff(const char* buff,unsigned int len){
+void LexState::alloc_buff(const char* buff,size_t len){
     this->io->alloc_buff(buff,len);
     this->cur = this->io->get_ch();
 }
