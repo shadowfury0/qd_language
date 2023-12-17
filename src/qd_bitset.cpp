@@ -60,7 +60,7 @@ int BITSET::new_bitset(int nbits)
 void BITSET::del_bitset()
 {
     if ( this->bs != nullptr ) {
-		delete this->bs;
+		free(this->bs);
 		this->bs = nullptr;
 	}
 	this->len = 0;
