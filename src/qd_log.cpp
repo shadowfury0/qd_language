@@ -59,7 +59,7 @@ void Logger::fprint_curtime(){
 }
 
 void Logger::fprint_id() {
-    if (!this->timeup){
+    if (!this->idup){
         return;
     }
     std::cout << " <id " << this->lid << "> ";

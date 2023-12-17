@@ -102,6 +102,8 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
 #endif
 
     logger->setLogLevel(3);
+    logger->setLogId(false);
+    logger->setLogTime(false);
 
     // 解析参数
     size_t i = 0;
@@ -134,9 +136,9 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
         this->script_mode();
     }
 
-    
 
     logger->setLogLevel(0);
+
     return 0;
 }
 
@@ -173,7 +175,7 @@ size_t QDMAIN::interactive_mode() {
             this->vm->print_variables(this->vm->global);
         }
         else {
-            
+
             line.push_back('\n');
             this->parser->read_line(line.c_str(),line.size());
 
