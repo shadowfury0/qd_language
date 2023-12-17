@@ -1,12 +1,14 @@
 #include "qd_main.h"
+#include "qd_version.h"
 
 _QD_BEGIN
 
 const char* const helpings  = 
     "usage: %s [options] [script [args]]\n"
     "Available options are:\n"
-    "  -h help         viewing help  documents\n"
-    "  -i interactive  enter interactive mode after executing 'script'\n"
+    "  -v  version       show version information\n"
+    "  -h  help          viewing  help  documents\n"
+    "  -i  interactive   enter  interactive mode after executing 'script'\n"
 ;
 
 const char* const helpsargs = 
@@ -20,7 +22,7 @@ const char* const helpsargs =
 ;
 
 #define has_error	0	/* bad option */
-#define has_h		1	/* -h */
+#define has_v	    1	/* bad option */
 #define has_i		2	/* -i */
 #define has_        3   /* max */
 
@@ -71,18 +73,22 @@ void QDMAIN::parse_args(char* str) {
     }
     switch (str[1])
     {
+    case 'v':
+    {
+        if (str[2] != '\0')
+            this->b.add_bit(has_error);
+        else
+            this->b.add_bit(has_v);
+        break;
+    }
     case 'i':
+    {
         if (str[2] != '\0')
             this->b.add_bit(has_error);
         else
             this->b.add_bit(has_i);
         break;
-    case 'h':
-        if (str[2] != '\0')
-            this->b.add_bit(has_error);
-        else
-            this->b.add_bit(has_h);
-        break;
+    }
     default:
         this->b.add_bit(has_error);
         break;
@@ -113,9 +119,14 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
 
 
     if(b.test(has_error)) {
-        logger->error(helpings);
+        std::cout << helpings << std::endl;
         return 1;
     }
+
+    if (b.test(has_v)) {
+        std::cout << QD_VERSION << std::endl;
+    }
+
     if (b.test(has_i)) {
         this->interactive_mode();
     }
@@ -124,20 +135,26 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
     }
 
     
-    // logger->setLogTime(false);
-    // logger->setLogPattern("%Y-%M------------");
-
 
     logger->setLogLevel(0);
     return 0;
 }
 
 size_t QDMAIN::interactive_mode() {
+    //提前解析一些文件输入
+
     std::cout << " Welcome to QD 1.0 !!!" << std::endl;
 //交互模式
     std::string line;
     size_t pos = 0;
-    this->vm->init_fun(this->parser->env_stack_top()->cur);
+    // this->vm->init_fun(this->parser->env_stack_top()->cur);
+    
+    if(this->script_mode()){
+        logger->error("interactive mode parser error");
+        return ERR_END;
+    }
+
+    pos = this->vm->global->f->codes.size();
 
     for(;;){
         std::cout << ">>> ";
@@ -156,12 +173,15 @@ size_t QDMAIN::interactive_mode() {
             this->vm->print_variables(this->vm->global);
         }
         else {
+            
             line.push_back('\n');
             this->parser->read_line(line.c_str(),line.size());
+
             if(this->parser->parse()) {
                 this->io->clean_back();
                 continue;
             }
+
             this->vm->execute(pos);
             pos = this->vm->global->f->codes.size();
 
@@ -169,18 +189,23 @@ size_t QDMAIN::interactive_mode() {
             this->vm->reserve_global();
             // this->vm->st->clear();
         }
+    
     }
 }
 
 size_t QDMAIN::script_mode() {
 
-    this->parser->parse();
+    if(this->parser->parse()) {
+        this->io->clean_back();
+        logger->error("script mode parser error");
+        return ERR_END;
+    }
 
     //这里把funhead传入给虚拟机
     vm->init_fun(parser->env_stack_top()->cur);
     vm->execute();
     
-    logger->error(parser->env.size()," : ",vm->size_call() );
+    // logger->error(parser->env.size()," : ",vm->size_call() );
 
     return 0;
 }

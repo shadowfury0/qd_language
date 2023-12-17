@@ -9,7 +9,6 @@ Dio::Dio() {
 }
 
 Dio::~Dio(){
-    this->index = 0;
 
     this->clear();
     // std::cout << "++++++++++++++\n";
@@ -31,21 +30,24 @@ char Dio::get_ch() {
         this->index ++;
     }
 
+    if ( this->index >= this->buffs.size() ) {
+        //Do nothing
+        return '\0';
+    }
+
     //超出范围则为0
-    if (this->index < this->buffs.size() ) {
+    if ( this->index < this->buffs.size() ) {
         DBuffer* buf = this->cur();
 
         if ( !buf ) {
             return 0;
         }
+
         return buf->get_ch();
     }
+    
     return 0;
 }
-
-// void Dio::alloc_buff(const char* ch){
-//     this->alloc_buff(ch,strlen(ch));
-// }
 
 void Dio::alloc_buff(const char* ch,size_t n) {
 
@@ -57,6 +59,7 @@ void Dio::alloc_buff(const char* ch,size_t n) {
 }
 
 void Dio::clear() {
+    this->index = 0;
 
     for (
         std::vector<DBuffer *>::iterator i = this->buffs.begin();

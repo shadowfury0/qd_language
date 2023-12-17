@@ -90,7 +90,6 @@ size_t D_VM::execute() {
 
 size_t D_VM::execute(size_t i) {
     // CallInfo* call = new CallInfo();
-    
     //全局函数,全局函数还是拷贝一份免得污染
     // call->f = new FunHead(*fun);  //这里到时候改，接受的是之前parser的函数信息
     global->pos = i;
