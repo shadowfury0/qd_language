@@ -21,9 +21,21 @@ if using g++ version is less than 5.0.0
 is not support printing datetime formatted
 ```
 
+### Interactive
+    [user@localhost] qd -i
+    >>> a = 1
+    >>> a
+     int : 1
+    >>> fun add(a,b): \
+    : ret a + b \
+    pass
+    >>> a = add(1,2)
+    >>> a
+     int : 3
+
 ### Tutorial
 - [Statements](tutorials/statement.md)
-- [Variables]()
+- [Variables](tutorials/variables.md)
 - [If Statements]()
 - [While Loops]()
 - [Functions]()
