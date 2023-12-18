@@ -1,5 +1,4 @@
 #include "qd_parser.h"
-#include "qd_funclib.h"
 
 _QD_BEGIN
 
@@ -135,6 +134,11 @@ size_t DParser::parse_Func(FunHead& fun){
             if ( function_expr(fun) ) {
                 logger->error(ls->_row,":",ls->_col," function statement error");
                 //错误处理
+                
+                //清空lfuns的元素，以及传入虚拟机函数定义的字节码
+                fun.lfuns.pop_back();
+                fun.codes.pop_back();
+                fun.codes.pop_back();
                 return ERR_END;
             }
             break;
@@ -176,7 +180,8 @@ size_t DParser::parse_Func(FunHead& fun){
             return ERR_END;
         }
         default:{
-            this->ls->_row ++ ;
+            this->ls->_row ++;
+            
             logger->info("do nothing  ");
             break;
         }
@@ -875,6 +880,7 @@ size_t DParser::function_expr(FunHead& func){
         logger->error("function offset is larger than int32 max");
         return ERR_END;
     }
+
     this->env_stack_top()->lv[funcname] = (int)curfunpos;
     this->env_stack_top()->lv[funcname].type = VE_FUNC;
 
@@ -882,6 +888,7 @@ size_t DParser::function_expr(FunHead& func){
 
     if ( T_LPARENTH != ls->t.token ) {
         logger->error("missing left  parentheses ");
+        this->env_stack_top()->lv.erase(funcname);
         return ERR_END;
     }
     this->findX_next();
@@ -901,6 +908,7 @@ size_t DParser::function_expr(FunHead& func){
         if ( VE_USER != ls->dvar.type ) {
             //如果参数类型不是用户变量报错
             logger->error("variable is not user type");
+            this->env_stack_top()->lv.erase(funcname);
             return ERR_END;
         }
         //添加参数变量
@@ -917,14 +925,17 @@ size_t DParser::function_expr(FunHead& func){
         //判断逗号
         else if ( T_COMMA != ls->t.token ) {
             logger->error("missing comma between variable in function ");
+            this->env_stack_top()->lv.erase(funcname);
             return ERR_END;
         }
+
         this->findX_next();
     }
 
     
     if ( T_RPARENTH != ls->t.token ) {
         logger->error("missing rigth  parentheses ");
+        this->env_stack_top()->lv.erase(funcname);
         return ERR_END;
     }
 
@@ -933,6 +944,7 @@ size_t DParser::function_expr(FunHead& func){
 
     if ( T_COLON != ls->t.token ) {
         logger->error(ls->_row,":",ls->_col," error ending function statement ");
+        this->env_stack_top()->lv.erase(funcname);
         return ERR_END;
     }
     
@@ -947,6 +959,7 @@ size_t DParser::function_expr(FunHead& func){
 
     if ( T_PASS != ls->t.token ) {
         logger->error("missing pass end in function statement");
+        this->env_stack_top()->lv.erase(funcname);
         return ERR_END;
     }
     this->findX_next();
@@ -1480,6 +1493,10 @@ D_ENV* DParser::env_stack_head() {
 
 void DParser::init_io(Dio* const io) {
     this->ls->alloc_io(io);
+}
+
+size_t DParser::io_size() {
+    return this->ls->io->buffs.size();
 }
 
 D_UNION DParser::union_access(int start, int end,const D_UNION& arr){

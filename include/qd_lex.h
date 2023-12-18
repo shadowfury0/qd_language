@@ -1,6 +1,7 @@
 #ifndef __QD_LEX_H__
 #define __QD_LEX_H__
 
+#include "qd_log.h"
 #include "qd_obj.h"
 #include "qd_io.h"
 

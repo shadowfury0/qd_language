@@ -79,6 +79,7 @@ struct DParser{
     D_ENV* env_stack_head();
     //初始化输入流
     void init_io(Dio* const io);
+    size_t io_size();
 
     //清空 Env
     void env_clear();

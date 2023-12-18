@@ -175,23 +175,40 @@ size_t QDMAIN::interactive_mode() {
             this->vm->print_variables(this->vm->global);
         }
         else {
+            //这里判断是否为全局变量
+            D_OBJ* obj = this->vm->find_variable(line);
 
-            line.push_back('\n');
-            this->parser->read_line(line.c_str(),line.size());
-
-            if(this->parser->parse()) {
-                this->io->clean_back();
-                continue;
+            if (obj) {
+                //打印变量信息
+                std::cout << *obj << std::endl;
             }
+            else {
+                size_t start = this->parser->io_size();
 
-            this->vm->execute(pos);
-            pos = this->vm->global->f->codes.size();
+                if (is_backslash(line)) {
+                    this->read_more(line);
+                }
 
-            // logger->error(this->parser->env.size(),":",this->vm->st->cs.size());
-            this->vm->reserve_global();
-            // this->vm->st->clear();
+                line.push_back('\n');
+
+                this->parser->read_line(line.c_str(),line.size());
+
+                //错误处理
+                size_t end = this->parser->io_size();
+
+                if (this->parser->parse()) {
+                    for (size_t i = start ; i < end ; i++ ) {
+                        this->io->clean_back();
+                    }
+                    continue;
+                }
+
+                this->vm->execute(pos);
+                pos = this->vm->global->f->codes.size();
+                this->vm->reserve_global();
+            }
+        
         }
-    
     }
 }
 
@@ -212,6 +229,34 @@ size_t QDMAIN::script_mode() {
     return 0;
 }
 
+bool QDMAIN::is_backslash(const std::string& s) {
+    if (s.back() == '\\') {
+        return true;
+    }
+    return false;
+}
+
+size_t QDMAIN::read_more(std::string& str) {
+    
+    // str.pop_back();
+    str.back() = '\n';
+
+    std::string line;
+    std::cout << ": ";
+    std::getline(std::cin,line);
+
+    while (is_backslash(line))
+    {
+        line.back() = '\n';
+        str.append(line);
+
+        std::cout << ": ";
+        std::getline(std::cin,line);
+    }
+    str.append(line);
+
+    return 0;
+}
 
 _QD_END
 

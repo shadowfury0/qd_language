@@ -18,6 +18,9 @@ public:
 
     void parse_args(char* str);
 
+    bool is_backslash(const std::string& s);
+    size_t read_more(std::string& str);
+
     size_t interactive_mode();
     size_t script_mode();
     

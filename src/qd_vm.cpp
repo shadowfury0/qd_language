@@ -770,7 +770,9 @@ CallInfo* D_VM::last_function(CallInfo* info) {
 
 void D_VM::print_variables(const CallInfo* call) {
     
-    for (auto iter = call->sv.begin() ;
+    for (
+        std::map<std::string, CallInfo::Stack_V>::const_iterator 
+        iter = call->sv.begin();
         iter != call->sv.end() ; iter ++ ) {
         logger->error(iter->first," -> ",iter->second);
     }

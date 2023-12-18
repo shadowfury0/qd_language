@@ -2,7 +2,6 @@
 #define __QD_OBJ_H__
 
 #include "qd_header.h"
-#include "qd_log.h"
 
 
 _QD_BEGIN
