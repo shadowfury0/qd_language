@@ -63,6 +63,11 @@ struct DParser{
     size_t function_expr(FunHead& func);
     //调用表达式
     size_t call_expr(std::string name,FunHead& fun);
+    //模块定义
+    size_t def_expr();
+    //模块使用
+    size_t using_expr(); 
+
     //列表访问表达式
     size_t list_access_expr(const std::string& name,FunHead& func);
 

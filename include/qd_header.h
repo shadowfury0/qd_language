@@ -46,6 +46,8 @@ _QD_BEGIN
 #define QD_KYW_FUNC     "fun"
 #define QD_KYW_RET      "ret"
 #define QD_KYW_IN       "in"
+#define QD_KYW_DEFINE   "def"
+#define QD_KYW_USING    "using"
 
 //这个以后再全部重新改一下
 using  _qd_b       =  bool;

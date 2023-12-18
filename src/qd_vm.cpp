@@ -110,11 +110,11 @@ void D_VM::default_assign(const std::string& name,const D_OBJ& var,CallInfo* con
 }
 
 void D_VM::local_assign(const std::string& name,const D_VAR& var,CallInfo* const info) {
-    last_function(info)->v(name) = var;
+    last_var(info)->v(name) = var;
 }
 
 void D_VM::local_assign(const std::string& name,const D_OBJ& var,CallInfo* const info) {
-    last_function(info)->v(name) = var;
+    last_var(info)->v(name) = var;
 }
 
 void D_VM::global_assign(const std::string& name,const D_VAR& var) {
@@ -236,7 +236,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 logger->debug("cur line is :  ",inc.curpos);
                 //出栈
                 
-                CallInfo* call = last_return(info);
+                CallInfo* call = last_function(info);
 
                 if (!call) {
                     i = clen;
@@ -703,7 +703,7 @@ D_OBJ* D_VM::find_variable(const std::string& name) {
     return nullptr;
 }
 
-CallInfo* D_VM::last_return(CallInfo* info) { 
+CallInfo* D_VM::last_function(CallInfo* info) { 
     int i = this->st->cs.size() - 1;
     if ( i <= 0 ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
@@ -747,25 +747,23 @@ CallInfo* D_VM::last_return(CallInfo* info) {
         tmpin = this->st->cs[i];
     }
 
-    //返回全局函数
     return nullptr;
 }
 
-CallInfo* D_VM::last_function(CallInfo* info) {
-    size_t i = this->st->cs.size() - 1;
-    if ( i < 0 ) return nullptr;
-    CallInfo* tmpin =  this->st->cs[i];
+CallInfo* D_VM::last_var(CallInfo* info) {
+    int i = this->st->cs.size() - 1;
+    if ( i <= 0 ) return this->head_fun();
+    CallInfo* tmpin = this->st->cs[i];
 
-    //匿名函数查找
-    while (tmpin)
+    for (;;)
     {
-        if (!tmpin->anonymous) return tmpin; 
-        --i;
-        if ( i < 0 ) return nullptr;
-        tmpin =  this->st->cs[i];
+        i --;
+        if ( i < 0 ) return this->head_fun();
+        tmpin = this->st->cs[i];
+        if (!tmpin->anonymous)   break;
     }
-
-    return nullptr;
+    //返回全局函数
+    return tmpin;
 }
 
 void D_VM::print_variables(const CallInfo* call) {

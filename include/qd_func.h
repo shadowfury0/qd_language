@@ -18,7 +18,7 @@ struct FunHead {
     //可能潜在参数小，不要紧
     size_t args_size();
 
-        
+    
     std::vector<std::string> args;
     //匿名内部函数，如if  for
     std::vector<FunHead*>  lfuns;

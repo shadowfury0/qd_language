@@ -14,6 +14,7 @@ struct CallInfo
     using Stack_V = D_OBJ;
 
     CallInfo();
+    //浅拷贝
     CallInfo(const CallInfo& ca);
     ~CallInfo();
 

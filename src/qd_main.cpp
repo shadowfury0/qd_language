@@ -117,7 +117,6 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
     for ( i = 1 ; i < argc ; i++) {
         parse_args(argv[i]);
     }
-    logger->error(this->b);
 
 
     if(b.test(has_error)) {
@@ -129,13 +128,17 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
         std::cout << QD_VERSION << std::endl;
     }
 
+    // if ( this->parser->read_file("../lib/math.qd") ) {
+    //     return 1;
+    // }
+
     if (b.test(has_i)) {
         this->interactive_mode();
     }
     else {
         this->script_mode();
     }
-
+    // logger->error(this->vm->find_variable("res"));
 
     logger->setLogLevel(0);
 

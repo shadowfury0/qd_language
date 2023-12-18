@@ -62,6 +62,19 @@ size_t DParser::parse() {
         return ERR_END;
     }
 
+    //如果为换行
+    while ( T_END == ls->t.token) {
+        this->findX_next();
+    }
+
+    //是否定义模块
+    if (T_DEF == ls->t.token) {
+        if (def_expr()) {
+            return ERR_END;
+        }
+    }
+    
+
     //这里开始全局解析
     if (parse_Func(*this->env_stack_head()->cur)) {
         return ERR_END;
@@ -179,6 +192,17 @@ size_t DParser::parse_Func(FunHead& fun){
             logger->error(ls->_row,":",ls->_col," only else statement error");
             return ERR_END;
         }
+        case T_DEF:{
+            //必须定义在头部
+            logger->error("define module must in first line");
+            return ERR_END;
+        }
+        case T_USING:{
+            if (using_expr()) {
+                return ERR_END;
+            }
+            break;
+        }
         default:{
             this->ls->_row ++;
             
@@ -186,7 +210,6 @@ size_t DParser::parse_Func(FunHead& fun){
             break;
         }
         }
-
     }
 
     
@@ -1437,6 +1460,44 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     inc.rpos = argpos;
     inc.curpos = fun.codes.size();
     fun.codes.push_back(inc);
+
+    return 0;
+}
+
+size_t DParser::def_expr() {
+    this->findX_next();
+
+    if ( T_UDATA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," module define is not userdata ");
+        return ERR_END;
+    }
+    //包名称
+    D_VAR name = ls->dvar;
+    this->findX_next();
+
+    if ( T_END != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," module define error");
+        return ERR_END;
+    }
+
+    return 0;
+}
+
+size_t DParser::using_expr() {
+    this->findX_next();
+
+    if ( T_UDATA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," module use is not userdata ");
+        return ERR_END;
+    }
+    //包名称
+    D_VAR name = ls->dvar;
+    this->findX_next();
+
+    if ( T_END != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," module use error");
+        return ERR_END;
+    }
 
     return 0;
 }
