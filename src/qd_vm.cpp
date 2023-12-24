@@ -583,7 +583,7 @@ size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
         else if ( VA_GLOBAL == inc.lpos ) {
             global_assign(inc.left.var.chv,ass.right);
         }
-        logger->error(inc.left.var.chv," -> ",ass.right);
+        logger->debug(inc.left.var.chv," -> ",ass.right);
     }
     
     

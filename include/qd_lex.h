@@ -15,7 +15,6 @@ static const char* const identity[] = {
     QD_KYW_IF,QD_KYW_ELIF,QD_KYW_ELSE,QD_KYW_TRUE,QD_KYW_FALSE,
     QD_KYW_JUMP,QD_KYW_PASS,QD_KYW_FOR,QD_KYW_WHILE,
     QD_KYW_GLOBAL,QD_KYW_LOCAL,QD_KYW_FUNC,QD_KYW_RET,QD_KYW_IN,
-    QD_KYW_DEFINE,QD_KYW_USING,
 };
 
 //全局函数判断第几个关键词
@@ -57,8 +56,6 @@ enum TOK_TYPE {
     T_FUNC,                 //func
     T_RETURN,               //return
     T_IN,                   //in
-    T_DEF,                  //define
-    T_USING,                //use
 /*   terminal    */
     T_NULL,                 //空值
     T_BLANK,                //空白

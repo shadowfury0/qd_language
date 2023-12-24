@@ -67,13 +67,6 @@ size_t DParser::parse() {
         this->findX_next();
     }
 
-    //是否定义模块
-    if (T_DEF == ls->t.token) {
-        if (def_expr()) {
-            return ERR_END;
-        }
-    }
-    
 
     //这里开始全局解析
     if (parse_Func(*this->env_stack_head()->cur)) {
@@ -191,17 +184,6 @@ size_t DParser::parse_Func(FunHead& fun){
         case T_ELSE:{
             logger->error(ls->_row,":",ls->_col," only else statement error");
             return ERR_END;
-        }
-        case T_DEF:{
-            //必须定义在头部
-            logger->error("define module must in first line");
-            return ERR_END;
-        }
-        case T_USING:{
-            if (using_expr()) {
-                return ERR_END;
-            }
-            break;
         }
         default:{
             this->ls->_row ++;
