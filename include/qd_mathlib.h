@@ -7,8 +7,6 @@ _QD_BEGIN
 
 struct MATH_LIB : BASE_LIB
 {
-
-    
     D_OBJ  power(const D_OBJ& n,const D_OBJ& m); //幂
 };
 

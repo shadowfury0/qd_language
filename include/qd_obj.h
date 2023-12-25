@@ -42,7 +42,7 @@ union D_PRO
 {
     _qd_b bv;
     _qd_int iv;
-    _qd_doub dv;
+    _qd_double dv;
     _qd_char* chv;
 };
 

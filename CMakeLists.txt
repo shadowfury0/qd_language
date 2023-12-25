@@ -13,7 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 # aux_source_directory(${PROJECT_SOURCE_DIR}/src SRC_LIST)
-file(GLOB_RECURSE SRC_FILE "src/*.cpp" "src/*.c")
+file(GLOB_RECURSE SRC_FILE "include/*.h" "src/*.cpp" "src/*.c")
 
 # set(LIB_DIR  ${PROJECT_SOURCE_DIR}/lib)
 # set(LIB_NAME clc)

@@ -7,7 +7,6 @@ _QD_BEGIN
 D_VM::D_VM() {
     this->init();
 
- 
 }
 
 D_VM::D_VM(const D_VM& vm) {
@@ -583,7 +582,7 @@ size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
         else if ( VA_GLOBAL == inc.lpos ) {
             global_assign(inc.left.var.chv,ass.right);
         }
-        logger->debug(inc.left.var.chv," -> ",ass.right);
+        logger->error(inc.left.var.chv," -> ",ass.right);
     }
     
     
@@ -760,7 +759,7 @@ CallInfo* D_VM::last_var(CallInfo* info) {
         i --;
         if ( i < 0 ) return this->head_fun();
         tmpin = this->st->cs[i];
-        if (!tmpin->anonymous)   break;
+        if (!tmpin->anonymous) break;
     }
     //返回全局函数
     return tmpin;

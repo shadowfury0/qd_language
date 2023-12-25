@@ -1522,10 +1522,10 @@ D_ENV* DParser::last_env(D_ENV* info) {
     //匿名函数查找
     while (tmpin)
     {
-        if (!tmpin->anonymous) return tmpin; 
         --i;
         if ( i < 0 ) return nullptr;
         tmpin = this->env[i];
+        if (!tmpin->anonymous) return tmpin; 
     }
     return nullptr;
 }

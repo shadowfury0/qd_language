@@ -9,6 +9,7 @@
 #include <memory>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <map>
 #include <vector>
 #include <list>
@@ -55,7 +56,7 @@ using  _qd_int     =  int;
 using  _qd_st      =  size_t;
 using  _qd_uint    =  unsigned int;
 using  _qd_char    =  char;
-using  _qd_doub    =  double;
+using  _qd_double    =  double;
 
 #define  QD_STACK_MAX  100
 #define  QD_CRLF  '13'
