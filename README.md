@@ -9,11 +9,19 @@ mkdir build
 cd build
 cmake ..
 make
+``` 
+### How-To-Execute
 ```
+    Generate executable file directory is bin
+    ../bin/qd file
+    ../bin/qd -i
+```
+
 ### Compiler type
 ```
 linux g++ 4.8.5
 mingw-w64-v8.0.0
+msvc-1933  (testing)
 ```
 #### Warning
 ```
