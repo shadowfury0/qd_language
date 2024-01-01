@@ -1185,16 +1185,17 @@ size_t DParser::simple_expr(FunHead& fun){
     int negative = 0;
     // () 个数
     size_t path = 0;
-    // 函数括号判断如果大于1的话，退出
+    //函数标识
+    bool funflag = false;
 
     while ( T_END != ls->t.token && T_COLON != ls->t.token ) {
         int tok = ls->t.token;
-
+        
         if ( T_EOF == tok ) {
             logger->error("simple expression end error");
             return ERR_END;
         }
-        if ( ls->is_variable(tok) ) {
+        else if ( ls->is_variable(tok) ) {
             //用户变量判断是否存在
             D_VAR* tmpobj = nullptr;
 
@@ -1220,6 +1221,7 @@ size_t DParser::simple_expr(FunHead& fun){
                     inc.left = QD_KYW_RET;
                     inc.left.type = VE_USER;
 
+                    funflag = true;
                 }
                 //数组
                 else if ( VE_UNION == tmpobj->type ) {
@@ -1306,10 +1308,7 @@ size_t DParser::simple_expr(FunHead& fun){
             }
             ops.push_back(tok);
             path ++;
-        } 
-        //处理多种，包括函数在内的表达式情况
-        else if ( 
-            T_RPARENTH == tok && 
+        } else if ( T_RPARENTH == tok && 
             (
                 (
                 T_LPARENTH == ls->lookahead.token &&
@@ -1318,16 +1317,16 @@ size_t DParser::simple_expr(FunHead& fun){
                 ||
                 T_RPARENTH == ls->lookahead.token
                 ||
-                T_UDATA == ls->lookahead.token
+                ls->is_variable(ls->lookahead.token)
             )
         ) {
-            path -- ;
-            //如果上一个变量是函数 , 如下情况 abc())
-            if (path) {
-                if ( !ls->is_operator(tok) ) {
+            path --;
+            if ( path && ls->lookahead.token == T_RPARENTH ) {
+                if (funflag) {
                     logger->error("extra function right parenthesis");
                     return ERR_END;
                 }
+                funflag = false;
             }
 
             while ( ops.back() != T_LPARENTH && !ls->is_operator(ls->lookahead.token) ) {
@@ -1346,13 +1345,13 @@ size_t DParser::simple_expr(FunHead& fun){
                 fun.codes.push_back(inc);
             }
             ops.pop_back();
+
             if (!ops.empty() && ops.back() == T_XMINUS ) {
                 symbol_reversal(fun.codes[values.back()]);
                 ops.pop_back();
             }
-
         } else if ( ls->is_operator(tok) && 
-        ( ls->is_variable(ls->lookahead.token ) 
+        ( ls->is_variable(ls->lookahead.token) 
         || ls->lookahead.token == T_RPARENTH 
         || ls->lookahead.token == T_RBRACKET ) ) {
             Instruction tmp;
@@ -1453,7 +1452,7 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     FunHead* cur = find_function(name,this->env_stack_top());
     //查找当前参数不匹配
     if ( stacksize != cur->lfuns[tmpobj->var.iv]->args_size() ) {
-        logger->error("function args number error or function parenthesis error");
+        logger->error("function args number error ");
         return ERR_END;
     }
     
