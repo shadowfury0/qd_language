@@ -771,7 +771,7 @@ void D_VM::print_variables(const CallInfo* call) {
         std::map<std::string, CallInfo::Stack_V>::const_iterator 
         iter = call->sv.begin();
         iter != call->sv.end() ; iter ++ ) {
-        logger->error(iter->first," -> ",iter->second);
+        std::cout << iter->first << " -> " << iter->second << std::endl;
     }
 
 }
