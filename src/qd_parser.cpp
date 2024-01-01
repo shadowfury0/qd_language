@@ -1195,6 +1195,10 @@ size_t DParser::simple_expr(FunHead& fun){
             logger->error("simple expression end error");
             return ERR_END;
         }
+        else if ( T_EQ == tok ) {
+            logger->error("equal operator is not allow in simple expression");
+            return ERR_END;
+        }
         else if ( ls->is_variable(tok) ) {
             //用户变量判断是否存在
             D_VAR* tmpobj = nullptr;
@@ -1316,6 +1320,8 @@ size_t DParser::simple_expr(FunHead& fun){
                 )
                 ||
                 T_RPARENTH == ls->lookahead.token
+                ||
+                T_RBRACKET == ls->lookahead.token
                 ||
                 ls->is_variable(ls->lookahead.token)
             )
