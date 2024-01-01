@@ -1186,20 +1186,9 @@ size_t DParser::simple_expr(FunHead& fun){
     // () 个数
     size_t path = 0;
     // 函数括号判断如果大于1的话，退出
-    bool funflag = false;
 
     while ( T_END != ls->t.token && T_COLON != ls->t.token ) {
         int tok = ls->t.token;
-
-        //如果上一个变量是函数 , 如下情况 abc())
-        if (funflag) {
-            if ( !ls->is_operator(tok) ) {
-                logger->error("extra function right parenthesis");
-                return ERR_END;
-            }
-            funflag = false;
-        }
-
 
         if ( T_EOF == tok ) {
             logger->error("simple expression end error");
@@ -1231,8 +1220,6 @@ size_t DParser::simple_expr(FunHead& fun){
                     inc.left = QD_KYW_RET;
                     inc.left.type = VE_USER;
 
-                    // 上一个用户变量是函数
-                    funflag = true;
                 }
                 //数组
                 else if ( VE_UNION == tmpobj->type ) {
@@ -1334,9 +1321,13 @@ size_t DParser::simple_expr(FunHead& fun){
                 T_UDATA == ls->lookahead.token
             )
         ) {
-            if ( funflag && ls->is_variable(ls->lookahead.token) ) {
-                logger->error("function error");
-                return ERR_END;
+            path -- ;
+            //如果上一个变量是函数 , 如下情况 abc())
+            if (path) {
+                if ( !ls->is_operator(tok) ) {
+                    logger->error("extra function right parenthesis");
+                    return ERR_END;
+                }
             }
 
             while ( ops.back() != T_LPARENTH && !ls->is_operator(ls->lookahead.token) ) {
@@ -1355,7 +1346,6 @@ size_t DParser::simple_expr(FunHead& fun){
                 fun.codes.push_back(inc);
             }
             ops.pop_back();
-            path -- ;
             if (!ops.empty() && ops.back() == T_XMINUS ) {
                 symbol_reversal(fun.codes[values.back()]);
                 ops.pop_back();
