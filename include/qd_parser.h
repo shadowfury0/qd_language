@@ -33,6 +33,8 @@ struct DParser{
     size_t skip_line();
     //下一个非空token
     size_t findX_next();
+    //跳转到下一个语句
+    size_t skip_to_end();
     //符号反转,目前是负数
     size_t symbol_reversal(Instruction& inc);
 

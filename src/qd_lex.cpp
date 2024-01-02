@@ -16,14 +16,17 @@ LexState::LexState(){
 
 LexState::~LexState(){
     
-    
 }
 
 void LexState::init(){
     logger = Logger::getInstance();
 
     this->cur = 0;
+    
     this->_row = 1;
+    this->_col = 0;
+    this->_end = 0;
+
     this->lastline = 0;
     
 
@@ -59,10 +62,10 @@ int LexState::llex(){
         return T_EOF;//文件结束会打印两次？？
     case ';':{
         printf("end \n");
-        this->remove_line();
+        this->next();
+
         return T_END;
     }
-    //function 
     case ':':{
         printf(": ");
         this->next();
@@ -71,8 +74,12 @@ int LexState::llex(){
     /* line breaks */
     case '\n': case '\r':{
         printf("line \n");
-        //暂时先搁置打印行数有问题
-        this->remove_line();
+
+        if(this->remove_line()) {
+            return T_ERR;
+        }
+
+        this->_end = this->_col - 1;
         _col = 0;
         ++_row;
         // inclinenumber();
@@ -86,7 +93,9 @@ int LexState::llex(){
     }  
     //注释
     case '#':{
-        read_comment();
+        if(read_comment()){
+            return T_ERR;
+        }
         ++_row;
         _col = 0;
         // printf("comment \n");
@@ -365,7 +374,7 @@ int LexState::read_string(size_t c){
                 logger->error("string error");
                 return T_ERR;
             case '\\'://转义字符
-                ++_row;
+                // ++_row;
                 this->next();
                 int ch;
                 switch (this->cur)
@@ -406,13 +415,13 @@ int LexState::read_string(size_t c){
     return  T_STRING;
 }
 
-void LexState::read_comment(){
+bool LexState::read_comment(){
     while ( !isline(this->cur) )
     {
         this->next();
     }
-    //保险
-    remove_line();
+
+    return remove_line();
 }
 
 /*
@@ -455,11 +464,20 @@ void LexState::remove_blank(){
     }
 }
 
-void LexState::remove_line(){
-    while ( ';' == this->cur || isnewline() )
-    {
+bool LexState::remove_line() {
+    unsigned char old = this->cur;
+    this->next();
+    if ( isnewline() && this->cur != old ) {
         this->next();
     }
+
+    //如果行数超出最大值，进行报错
+    if ( this->_row > QD_SIZE_MAX ) {
+        logger->error("codes has too many lines");
+        return true;
+    }
+    
+    return false;
 }
 
 bool LexState::is_keyw(size_t tok) {

@@ -118,7 +118,6 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
         parse_args(argv[i]);
     }
 
-
     if(b.test(has_error)) {
         std::cout << helpings << std::endl;
         return 1;

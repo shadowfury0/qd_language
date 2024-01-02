@@ -29,7 +29,7 @@ _QD_BEGIN
 // NUM 
 #define FIN_END  SIZE_MAX - 1
 #define ERR_END  SIZE_MAX
-#define QD_INT_32_MAX  INT32_MAX
+#define QD_SIZE_MAX  SIZE_MAX
 
 
 // KEY WORD

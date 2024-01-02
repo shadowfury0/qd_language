@@ -133,7 +133,7 @@ struct LexState
     int  read_numeral();
     void read_decimal();
     int  read_string(size_t c);
-    void read_comment();
+    bool read_comment();
     
     void inclinenumber();
 
@@ -143,8 +143,8 @@ struct LexState
     void prev_number();
     //跳过空白符号
     void remove_blank();
-    //跳过结束符
-    void remove_line();
+    //跳过结束符,true表示行数越界了
+    bool remove_line();
 
     //判断是否为关键字
     bool is_keyw(size_t tok);
@@ -158,8 +158,13 @@ struct LexState
 
 
     unsigned char cur;   //当前token类型
+
     size_t _row;  //当前行
-    size_t _col;         //当前列
+    size_t _lrow; //上一行
+    size_t _col;  //当前列
+    size_t _end;  //上一行末尾
+
+
     size_t lastline; //上一个token行数
 
     Token t;  //当前token类型
