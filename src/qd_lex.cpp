@@ -112,9 +112,10 @@ int LexState::llex(){
     }
     case '.': {  /* '.', '..', '...', or number */
         this->next();
-        logger->error("undefine lexical type period");
+        // logger->error("undefine lexical type period");
+        printf(". ");
         //暂时不需要
-        return T_ERR;
+        return T_PERIOD;
     }
     case '=': {
         this->next();

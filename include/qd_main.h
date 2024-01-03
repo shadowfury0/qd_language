@@ -25,10 +25,14 @@ public:
     size_t script_mode();
     
 private:
+    Logger* logger;
+
     Dio* io;
     D_VM* vm;
     DParser* parser;
-    Logger* logger;
+    Lib_State* state;
+
+    std::vector<D_LIB*>* lib;
 
     BITSET b;
 };

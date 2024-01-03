@@ -3,6 +3,8 @@
 
 #include "qd_log.h"
 #include "qd_call.h"
+#include "qd_state.h"
+#include "qd_lib.h"
 
 _QD_BEGIN
 
@@ -23,6 +25,9 @@ struct D_VM
     _qd_uint size_call();
 
     size_t init_fun(FunHead* fun);
+    size_t init_state(Lib_State* l);
+    size_t init_lib(std::vector<D_LIB*>* l);
+
     CallInfo* cur_fun();
     CallInfo* head_fun();
     
@@ -62,13 +67,14 @@ struct D_VM
     void print_variables(const CallInfo* call);
 
     Logger* logger;
+    Lib_State* state;
 
     CallStack* st;
     
     //全局栈信息，目的是为了交互模式保留上下文
     CallInfo* global;
-    //原始函数，负责让其他的栈进行拷贝运行
-    // FunHead* fun;
+
+    std::vector<D_LIB*>* lib;
 };
 
 

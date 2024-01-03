@@ -38,6 +38,12 @@ QDMAIN::QDMAIN(){
     io = nullptr;
     io = new Dio();
 
+    lib = nullptr;
+    lib = new std::vector<D_LIB*>();
+
+    state = nullptr;
+    state = new Lib_State();
+
     this->b.new_bitset(has_);
     parser->init_io(this->io);
 }
@@ -57,6 +63,22 @@ QDMAIN::~QDMAIN(){
     if ( io != nullptr ) {
         delete io;
         io = nullptr;
+    }
+
+    if ( state != nullptr ) {
+        delete state;
+        state = nullptr;
+    }
+
+    for ( D_LIB* l : *this->lib ) {
+        if ( l != nullptr ) {
+            delete l;
+            l = nullptr;
+        }
+    }
+    if ( this->lib != nullptr) {
+        delete this->lib;
+        this->lib = nullptr;
     }
 
     logger->release();
@@ -215,16 +237,41 @@ size_t QDMAIN::interactive_mode() {
 }
 
 size_t QDMAIN::script_mode() {
+    // 加载库
+    if ( parser->load_lib(this->lib) ) {
+        logger->error("load local lib error");
+        return 1;
+    }
 
-    if(this->parser->parse()) {
+    if ( parser->init_state(this->state) ) {
+        logger->error("load state error");
+        return 1;
+    }
+
+    if( parser->parse() ) {
         this->io->clean_back();
         logger->error("script mode parser error");
-        return ERR_END;
+        return 1;
+    }
+
+
+    for (auto& i : this->parser->env_stack_head()->lv) {
+        logger->error(i.first,"  ",i.second);
     }
 
     //这里把funhead传入给虚拟机
-    vm->init_fun(parser->env_stack_top()->cur);
-    vm->execute();
+    // if (vm->init_fun(parser->env_stack_top()->cur)) {
+    //     return 1;
+    // }
+    // if ( vm->init_lib(this->lib) ) {
+    //     return 1;
+    // }
+    // if (vm->init_state(this->state) ) {
+    //     return 1;
+    // }
+    // if (vm->execute()) {
+    //     return 1;
+    // }
     
     // logger->error(parser->env.size()," : ",vm->size_call() );
 
@@ -259,6 +306,7 @@ size_t QDMAIN::read_more(std::string& str) {
 
     return 0;
 }
+
 
 _QD_END
 

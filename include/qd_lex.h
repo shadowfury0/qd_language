@@ -63,6 +63,7 @@ enum TOK_TYPE {
     T_COLON,                //冒号
     T_COMMENT,              //注释
     T_COMMA,                //逗号
+    T_PERIOD,               //句号
 /*   variable    */
     T_INT,                  //整数
     T_DECIMAL,              //小数

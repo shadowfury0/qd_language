@@ -1,4 +1,6 @@
 #include "qd_parser.h"
+#include "qd_baselib.h"
+
 
 _QD_BEGIN
 
@@ -9,7 +11,7 @@ return ERR_END;\
 }
 
 
-DParser::DParser(){
+DParser::DParser() {
     logger = Logger::getInstance();
 
     // env = nullptr;
@@ -17,13 +19,16 @@ DParser::DParser(){
     ls = nullptr;
     ls = new LexState();
 
+    state = nullptr;
+
+    lib = nullptr;
 
     //初始化环境变量
     D_ENV* env = new D_ENV();
     this->env.push_back(env);
 }
 
-DParser::~DParser(){
+DParser::~DParser() {
     if ( ls != nullptr ) {
         delete ls;
         ls = nullptr;
@@ -45,7 +50,7 @@ void DParser::env_clear() {
     this->env.clear();
 }
 
-size_t DParser::parseX_next(){
+size_t DParser::parseX_next() {
 
     if ( T_BLANK != ls->t.token ) {
         this->ls->prevhead.token = this->ls->lookahead.token;
@@ -80,7 +85,7 @@ size_t DParser::parse() {
     return 0;
 }
 
-size_t DParser::parse_Func(FunHead& fun){
+size_t DParser::parse_Func(FunHead& fun) {
     logger->debug(" <------------------ start --------------------> ");
     
     bool err_flag = false;
@@ -186,6 +191,11 @@ size_t DParser::parse_Func(FunHead& fun){
             logger->error(ls->_row,":",ls->_col," only else statement error");
             return ERR_END;
         }
+        case T_PERIOD:{
+            logger->error("can not use period single ");
+            err_flag = true;
+            break;
+        }
         default:{
             logger->info("do nothing  ");
             break;
@@ -207,7 +217,7 @@ size_t DParser::parse_Func(FunHead& fun){
     return 0;
 }
 
-size_t DParser::skip_blank(){
+size_t DParser::skip_blank() {
     if ( T_BLANK == ls->t.token )
     {
         if(this->parseX_next()) {
@@ -227,7 +237,7 @@ size_t DParser::skip_line() {
     return 0;
 }
 
-size_t DParser::findX_next(){
+size_t DParser::findX_next() {
     if (this->parseX_next()) {
         return ERR_END;
     }
@@ -244,7 +254,7 @@ size_t DParser::skip_to_end() {
     return 0;
 }
 
-size_t DParser::parse_Opr(Instruction& inc,short type){
+size_t DParser::parse_Opr(Instruction& inc,short type) {
     //判断操作符
     switch (type)
     {
@@ -283,7 +293,7 @@ size_t DParser::parse_Opr(Instruction& inc,short type){
     }
 }
 
-size_t DParser::symbol_reversal(Instruction& inc){
+size_t DParser::symbol_reversal(Instruction& inc) {
     if ( OC_MINUS == inc.restype ) {
         inc.restype = OC_NIL;
     }
@@ -291,6 +301,16 @@ size_t DParser::symbol_reversal(Instruction& inc){
         inc.restype = OC_MINUS;
     }
     return 0;
+}
+
+bool DParser::is_lib_fun(const std::string& l,const std::string& f) {
+    for ( D_LIB* i : *this->lib ) {
+        if ( i->name == l ) {
+            if ( i->funs.find(f) != i->funs.end() ) return true;
+            else break;
+        }
+    }
+    return false;
 }
 
 size_t DParser::statement(FunHead& fun){
@@ -1498,43 +1518,6 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     return 0;
 }
 
-size_t DParser::def_expr() {
-    FIND_NEXT
-
-    if ( T_UDATA != ls->t.token ) {
-        logger->error(ls->_row,":",ls->_col," module define is not userdata ");
-        return ERR_END;
-    }
-    //包名称
-    D_VAR name = ls->dvar;
-    FIND_NEXT
-
-    if ( T_END != ls->t.token ) {
-        logger->error(ls->_row,":",ls->_col," module define error");
-        return ERR_END;
-    }
-
-    return 0;
-}
-
-size_t DParser::using_expr() {
-    FIND_NEXT
-
-    if ( T_UDATA != ls->t.token ) {
-        logger->error(ls->_row,":",ls->_col," module use is not userdata ");
-        return ERR_END;
-    }
-    //包名称
-    D_VAR name = ls->dvar;
-    FIND_NEXT
-
-    if ( T_END != ls->t.token ) {
-        logger->error(ls->_row,":",ls->_col," module use error");
-        return ERR_END;
-    }
-
-    return 0;
-}
 
 D_VAR* DParser::variable_check(const std::string& name,D_ENV* fun) {
     D_ENV* tmpfun = fun;
@@ -1680,6 +1663,39 @@ size_t DParser::read_line(const char* line,size_t len){
     return 0;
 }
 
+size_t DParser::load_lib(std::vector<D_LIB*>* lib) {
+    if (lib == nullptr) {
+        return 1;
+    }
+    this->lib = lib;
+    if (this->lib == nullptr) {
+        return 1;
+    }
+
+    BASE_LIB* base = new BASE_LIB();
+
+    this->lib->push_back(base);
+
+    //变量加载
+    for ( D_LIB* i : *this->lib ) {
+        this->env_stack_head()->lv[i->name] = 0;
+        this->env_stack_head()->lv[i->name].type = VE_LIB;
+    }
+
+    return 0;
+}
+
+size_t DParser::init_state(Lib_State* l) {
+    if (l == nullptr) {
+        return 1;
+    }
+    this->state = l;
+    if (this->state == nullptr) {
+        return 1;
+    }
+
+    return 0;
+}
 
 
 _QD_END

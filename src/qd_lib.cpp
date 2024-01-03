@@ -2,16 +2,12 @@
 
 _QD_BEGIN
 
+D_LIB::D_LIB() {
 
-BASE_LIB::BASE_LIB() {
 }
 
-BASE_LIB::BASE_LIB(const BASE_LIB& d) {
+D_LIB::~D_LIB() {
+    
 }
-
-
-BASE_LIB::~BASE_LIB() {
-}
-
 
 _QD_END

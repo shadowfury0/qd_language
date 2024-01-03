@@ -46,9 +46,9 @@ D_VAR::~D_VAR(){
 }
 
 void D_VAR::clear(){
-    if (  VE_STR == this->type ||
+    if ( VE_STR == this->type ||
          VE_USER == this->type ||
-         VE_UNION == this->type
+         VE_UNION == this->type 
           ){
         delete[] this->var.chv;
         this->var.chv = nullptr;
@@ -154,6 +154,7 @@ bool D_VAR::operator==(const D_VAR& dv){
     {
     case VE_INT:
     case VE_FUNC:
+    case VE_LIB:
         return *this == dv.var.iv;
     case VE_BOOL:
         return *this == dv.var.bv;
@@ -194,6 +195,7 @@ bool D_VAR::operator!=(const D_VAR& dv){
     {
     case VE_INT:
     case VE_FUNC:
+    case VE_LIB:
         return *this != dv.var.iv;
     case VE_BOOL:
         return *this != dv.var.bv;
@@ -254,6 +256,9 @@ std::ostream& operator<<(std::ostream& os, const D_VAR& p){
         break;
     case VE_UNION:
         os << " union " << p.var.chv;
+        break;
+    case VE_LIB:
+        os << " lib ";
         break;
     default:
         os << " error type ";

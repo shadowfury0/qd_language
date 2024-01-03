@@ -5,6 +5,8 @@
 #include "qd_instruction.h"
 #include "qd_env.h"
 #include "qd_lex.h"
+#include "qd_state.h"
+#include "qd_lib.h"
 
 _QD_BEGIN
 
@@ -38,6 +40,9 @@ struct DParser{
     //符号反转,目前是负数
     size_t symbol_reversal(Instruction& inc);
 
+    //是否为库函数
+    bool is_lib_fun(const std::string& l,const std::string& f);
+
     //基本表达式
     size_t statement(FunHead& fun);
     //赋值表达式
@@ -65,10 +70,6 @@ struct DParser{
     size_t function_expr(FunHead& func);
     //调用表达式
     size_t call_expr(std::string name,FunHead& fun);
-    //模块定义
-    size_t def_expr();
-    //模块使用
-    size_t using_expr(); 
 
     //列表访问表达式
     size_t list_access_expr(const std::string& name,FunHead& func);
@@ -90,11 +91,17 @@ struct DParser{
 
     //清空 Env
     void env_clear();
+    //加载库,返回0加载成功
+    size_t load_lib(std::vector<D_LIB*>* lib);
+    size_t init_state(Lib_State* l);
     
     Logger* logger;
     LexState* ls;
+    Lib_State* state;
 
     std::vector<D_ENV*> env;
+    //库名，以及库子函数名
+    std::vector<D_LIB*>* lib;
 };
 
 

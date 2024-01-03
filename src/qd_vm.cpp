@@ -18,9 +18,11 @@ D_VM::D_VM(const D_VM& vm) {
 }
 
 void D_VM::init() {
-    // fun = nullptr;
+
     st = nullptr;
     global = nullptr;
+    state = nullptr;
+    lib = nullptr;
 
     logger = Logger::getInstance();
 
@@ -40,6 +42,7 @@ D_VM::~D_VM() {
         delete st;
         st = nullptr;
     }
+
 }
 
 void D_VM::push_call(CallInfo* in) {
@@ -79,6 +82,35 @@ size_t D_VM::init_fun(FunHead* fun) {
     global->f = fun;
 
     push_call(global);
+
+    return 0;
+}
+
+size_t D_VM::init_state(Lib_State* l) {
+    if (l == nullptr) {
+        logger->error("lib state is null");
+        return 1;
+    }
+    
+    this->state = l;
+
+    if ( this->state == nullptr ) {
+        return 1;
+    }
+
+    return 0;
+}
+
+size_t D_VM::init_lib(std::vector<D_LIB*>* l) {
+    if (l == nullptr) {
+        return 1;
+    }
+    this->lib = l;
+    if (this->lib == nullptr) {
+        return 1;
+    }
+
+    //变量加载
 
     return 0;
 }
