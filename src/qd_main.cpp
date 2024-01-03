@@ -260,18 +260,18 @@ size_t QDMAIN::script_mode() {
     }
 
     //这里把funhead传入给虚拟机
-    // if (vm->init_fun(parser->env_stack_top()->cur)) {
-    //     return 1;
-    // }
-    // if ( vm->init_lib(this->lib) ) {
-    //     return 1;
-    // }
-    // if (vm->init_state(this->state) ) {
-    //     return 1;
-    // }
-    // if (vm->execute()) {
-    //     return 1;
-    // }
+    if (vm->init_fun(parser->env_stack_top()->cur)) {
+        return 1;
+    }
+    if ( vm->init_lib(this->lib) ) {
+        return 1;
+    }
+    if (vm->init_state(this->state) ) {
+        return 1;
+    }
+    if (vm->execute()) {
+        return 1;
+    }
     
     // logger->error(parser->env.size()," : ",vm->size_call() );
 
