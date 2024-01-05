@@ -16,10 +16,11 @@ struct D_State
     ~D_State();
     
     // 当前函数调用参数个数
-    size_t pos;
+    size_t v_pos;
     // 内置函数参数变量 
-    std::list<D_VAR> vars;
-
+    std::list<D_OBJ> vars;
+    // 内置函数返回值
+    std::list<D_OBJ> rets;
 };
 
 /*

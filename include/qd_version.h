@@ -6,7 +6,7 @@
 */
 
 #define QD_VERSION_MAJOR	"1"
-#define QD_VERSION_MINOR	"1"
+#define QD_VERSION_MINOR	"2"
 #define QD_VERSION_RELEASE	"1"
 
 

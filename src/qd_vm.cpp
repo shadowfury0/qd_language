@@ -600,7 +600,7 @@ size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
         else if ( VA_GLOBAL == inc.lpos ) {
             global_assign(inc.left.var.chv,ass.right);
         }
-        logger->debug(inc.left.var.chv," -> ",ass.right);
+        logger->error(inc.left.var.chv," -> ",ass.right);
     }
     
     
@@ -656,7 +656,7 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
     size_t len = inc.lpos;
     fun->f->set_state_pos(len);
 
-    auto start = fun->f->state->vars.begin();
+    std::_List_iterator<D_OBJ>  start = fun->f->state->vars.begin();
 
     while (len)
     {
@@ -670,7 +670,10 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
 
     //开始参数更新操作
     //内部函数调用
-    (this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv])(fun->f->state);
+    if ( (this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv])(fun->f->state) ) {
+        logger->error("system call error");
+        return ERR_END;
+    }
     return 0;
 }
 

@@ -3,11 +3,11 @@
 _QD_BEGIN
 
 D_State::D_State() {
-    this->pos = 0;
+    this->v_pos = 0;
 }
 
 D_State::D_State(const D_State& s) {
-    this->pos = s.pos;
+    this->v_pos = s.v_pos;
     this->vars = s.vars;
 }
 

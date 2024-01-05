@@ -85,14 +85,15 @@ size_t DParser::parse() {
 
 size_t DParser::parse_Func(FunHead& fun) {
     logger->debug(" <------------------ start --------------------> ");
-    
+
     bool err_flag = false;
     //暂时
     bool haser = false;
 
     for(;;){
         //因为有if fun while等情况
-        if ( T_END == ls->t.token ) {
+        //同时存在多个换行情况
+        while ( T_END == ls->t.token ) {
             FIND_NEXT
         }
         
@@ -363,7 +364,7 @@ size_t DParser::statement(FunHead& fun){
         }
         return 0;
     }
-    
+
     //数组下标赋值
     else if ( T_LBRACKET == ls->t.token ) {
         if(array_element_expr(inc.left.var.chv,fun)){
@@ -1500,11 +1501,23 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     //参数判断
     size_t stacksize = 0;
     size_t argpos = FIN_END;
-    while ( ls->is_variable(ls->t.token) )
+    while ( ls->is_variable(ls->t.token) || T_MINUS == ls->t.token )
     {
         Instruction arg;
         arg.type = OC_ARG;
-        arg.right = ls->dvar;
+
+        if ( T_MINUS == ls->t.token ) {
+            FIND_NEXT
+            if ( T_INT != ls->t.token && T_DECIMAL != ls->t.token ) {
+                logger->error("function negative is incorrect");
+                return ERR_END;
+            }
+            arg.right = -ls->dvar;
+        }
+        else {
+            arg.right = ls->dvar;
+        }
+        
         arg.rpos = argpos;
         argpos = arg.curpos = fun.codes.size();
         fun.codes.push_back(arg);
@@ -1519,6 +1532,7 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
             logger->error("missing comma between variable in call function ");
             return ERR_END;
         }
+
         FIND_NEXT
 
     }
@@ -1586,17 +1600,28 @@ size_t DParser::lib_expr(FunHead& fun) {
     //参数个数
     size_t nums = fun.state_var_size(); 
     //参数获取
-    while ( ls->is_variable(ls->t.token) ) {
+    while ( ls->is_variable(ls->t.token) || T_MINUS == ls->t.token ) {
+
+        if ( T_MINUS == ls->t.token ) {
+            FIND_NEXT
+            if ( T_INT != ls->t.token && T_DECIMAL != ls->t.token ) {
+                logger->error("lib function negative is incorrect");
+                return ERR_END;
+            }
+            fun.state_push_var(-ls->dvar);
+        }
+        else {
+            fun.state_push_var(ls->dvar);
+        }
+
         //判断用户变量是否存在
-        if ( VE_USER == ls->dvar.type) {
+        if ( VE_USER == ls->dvar.type ) {
             D_VAR* tmpvar = variable_check(ls->dvar.var.chv,this->env_stack_top());
             if (!tmpvar) {
                 logger->error("lib fun args do not exist this variable");
                 return ERR_END;
             }
         }
-
-        fun.state_push_var(ls->dvar);
 
         FIND_NEXT
         if ( T_RPARENTH == ls->t.token ) {

@@ -52,11 +52,11 @@ size_t FunHead::state_var_size() {
 }
 
 size_t FunHead::state_var_pos() {
-    return this->state->pos;
+    return this->state->v_pos;
 }
 
 void FunHead::set_state_pos(const size_t& i) {
-    this->state->pos = i;
+    this->state->v_pos = i;
 }
 
 

@@ -7,11 +7,11 @@ _QD_BEGIN
 */
 
 size_t print(D_State* l) {
-    size_t len = l->pos;
+    size_t len = l->v_pos;
 
     while ( len && l->vars.size() )
     {
-        D_VAR& v = l->vars.front();
+        D_OBJ& v = l->vars.front();
         switch (v.type)
         {
         case VE_BOOL:
@@ -34,13 +34,15 @@ size_t print(D_State* l) {
         len -- ;
     }
     std::cout << std::endl;
+
+    return 0;
 }
 
 //只判断第一个数据类型
 size_t type(D_State* l) {
-    size_t len = l->pos;
+    size_t len = l->v_pos;
 
-    D_VAR& v = l->vars.front();
+    D_OBJ& v = l->vars.front();
     switch (v.type)
     {
     case VE_BOOL:
@@ -67,6 +69,69 @@ size_t type(D_State* l) {
     {
         l->vars.pop_front();
     }
+    return 0;
+}
+
+size_t error(D_State* l) {
+    std::cout << "system error !!! " ;
+    print(l);
+    return 1;
+}
+
+size_t assert(D_State* l) {
+    size_t len = l->v_pos;
+
+    D_OBJ& v = l->vars.front();
+
+    //判断该数是否为true，如果为true，继续执行下面代码
+    bool ass = false;
+
+    switch (v.type)
+    {
+    case VE_BOOL:
+        ass =  v.var.bv == true ? true : false;
+        break;
+    case VE_INT:
+        ass = v.var.iv == 0 ? true : false;
+        break;
+    default:
+        ass = false;
+        break;
+    }
+
+    l->vars.pop_front();
+
+    //其他函数出栈
+    while (--len)
+    {
+        l->vars.pop_front();
+    }
+
+    return !ass;
+}
+
+size_t len(D_State* l) {
+    size_t len = l->v_pos;
+
+    D_OBJ& v = l->vars.front();
+    
+    size_t s = 0;
+    if ( VE_UNION == v.type ) {
+        s = v.uni->larr.size();
+    }
+
+    l->vars.pop_front();
+
+    //其他函数出栈
+    while (--len)
+    {
+        l->vars.pop_front();
+    }
+
+    // l->rets.push_back(s);
+    std::cout << s << "\n";
+
+    return 0;
 }
 
 BASE_LIB::BASE_LIB() {
@@ -78,8 +143,11 @@ BASE_LIB::~BASE_LIB() {
 }
 
 void BASE_LIB::load_lib() {
-    funs["print"] = print;
-    funs["type"] = type;
+    funs["print"]  = print;
+    funs["type"]   = type;
+    funs["error"]  = error;
+    funs["assert"] = assert;
+    funs["len"]    = len;
 }
 
 

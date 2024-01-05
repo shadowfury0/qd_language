@@ -1,5 +1,6 @@
 #include "qd_lib.h"
 #include "qd_baselib.h"
+#include "qd_mathlib.h"
 
 _QD_BEGIN
 
@@ -45,6 +46,9 @@ size_t D_LIB::init_libs() {
     base_lib->load_lib();
     this->l["sys"] = base_lib;
 
+    MATH_LIB* math_lib = new MATH_LIB();
+    math_lib->load_lib();
+    this->l["math"] = math_lib;
     
     return 0;
 }
