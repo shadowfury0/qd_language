@@ -130,9 +130,15 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
     // 解析参数
     size_t i = 0;
     if (argc < 1) {
+        //清除两个初始化的函数变量
+        delete this->parser->env_stack_top()->cur;
+        delete this->vm->global;
         return 1;
     }
     else if ( 1 == argc ){
+        //清除两个初始化的函数变量
+        delete this->parser->env_stack_top()->cur;
+        delete this->vm->global;
         return 0;
     }
 
