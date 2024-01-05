@@ -25,8 +25,7 @@ struct D_VM
     _qd_uint size_call();
 
     size_t init_fun(FunHead* fun);
-    size_t init_state(Lib_State* l);
-    size_t init_lib(std::vector<D_LIB*>* l);
+    size_t init_lib(D_LIB* l);
 
     CallInfo* cur_fun();
     CallInfo* head_fun();
@@ -42,7 +41,7 @@ struct D_VM
     void local_assign(const std::string& name,const D_OBJ& var,CallInfo* const info);
     void global_assign(const std::string& name,const D_VAR& var);
     void global_assign(const std::string& name,const D_OBJ& var);
-    
+
     //解析指令集
     size_t analyse_code(size_t& i,CallInfo* info);
     //解析表达式指令集
@@ -51,7 +50,8 @@ struct D_VM
     size_t analyse_assign(Instruction& inc,CallInfo* fun);
     //数组下标赋值
     size_t analyse_array_index_assign(Instruction& inc,FunHead& fun);
-
+    //本地库函数解析
+    size_t analyse_lib_expr(Instruction& inc,CallInfo* fun);
 
     //第一个call是当前指令所在位置，第二个是变量输入函数位置,函数参数输入,性能会有点差
     size_t input_args(const Instruction& inc,CallInfo* cur,CallInfo* push);
@@ -67,14 +67,13 @@ struct D_VM
     void print_variables(const CallInfo* call);
 
     Logger* logger;
-    Lib_State* state;
 
     CallStack* st;
     
     //全局栈信息，目的是为了交互模式保留上下文
     CallInfo* global;
 
-    std::vector<D_LIB*>* lib;
+    D_LIB* lib;
 };
 
 

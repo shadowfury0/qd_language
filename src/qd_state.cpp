@@ -2,11 +2,17 @@
 
 _QD_BEGIN
 
-Lib_State::Lib_State() {
-
+D_State::D_State() {
+    this->pos = 0;
 }
 
-Lib_State::~Lib_State() {
+D_State::D_State(const D_State& s) {
+    this->pos = s.pos;
+    this->vars = s.vars;
+}
+
+
+D_State::~D_State() {
 
 }
 

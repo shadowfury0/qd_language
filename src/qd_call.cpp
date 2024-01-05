@@ -32,7 +32,7 @@ void CallInfo::init() {
     this->ifstate = false;
 }
 
-CallInfo::Stack_V& CallInfo::v(const std::string name){
+D_OBJ& CallInfo::v(const std::string name){
     return this->sv[name];
 }
 

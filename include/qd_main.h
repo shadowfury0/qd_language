@@ -30,9 +30,9 @@ private:
     Dio* io;
     D_VM* vm;
     DParser* parser;
-    Lib_State* state;
+    D_State* state;
 
-    std::vector<D_LIB*>* lib;
+    D_LIB* lib;
 
     BITSET b;
 };

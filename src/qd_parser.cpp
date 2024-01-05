@@ -14,18 +14,16 @@ return ERR_END;\
 DParser::DParser() {
     logger = Logger::getInstance();
 
-    // env = nullptr;
-    // env = new D_ENV();
+
     ls = nullptr;
     ls = new LexState();
-
-    state = nullptr;
 
     lib = nullptr;
 
     //初始化环境变量
     D_ENV* env = new D_ENV();
     this->env.push_back(env);
+
 }
 
 DParser::~DParser() {
@@ -40,11 +38,11 @@ DParser::~DParser() {
 }
 
 void DParser::env_clear() {
-    for ( auto i : this->env ) {
+    for ( D_ENV* i : this->env ) {
         if (i != nullptr) {
             delete i;
+            i = nullptr;
         }
-        i = nullptr;
     }
     //清空所有元素
     this->env.clear();
@@ -89,6 +87,8 @@ size_t DParser::parse_Func(FunHead& fun) {
     logger->debug(" <------------------ start --------------------> ");
     
     bool err_flag = false;
+    //暂时
+    bool haser = false;
 
     for(;;){
         //因为有if fun while等情况
@@ -202,7 +202,12 @@ size_t DParser::parse_Func(FunHead& fun) {
         }
         }
 
-        if (err_flag) {
+        //解析到末尾的是文件终止符
+        if ( T_EOF == ls->t.token ) {
+            return ERR_END;
+        }
+        else if (err_flag) {
+            haser = true;
             if (skip_to_end()) {
                 return ERR_END;
             }
@@ -211,6 +216,10 @@ size_t DParser::parse_Func(FunHead& fun) {
         }
     }
 
+    //有错误
+    if (haser) {
+        return ERR_END;
+    }
     
     logger->debug(" <------------------ end --------------------> ");
     
@@ -303,16 +312,6 @@ size_t DParser::symbol_reversal(Instruction& inc) {
     return 0;
 }
 
-bool DParser::is_lib_fun(const std::string& l,const std::string& f) {
-    for ( D_LIB* i : *this->lib ) {
-        if ( i->name == l ) {
-            if ( i->funs.find(f) != i->funs.end() ) return true;
-            else break;
-        }
-    }
-    return false;
-}
-
 size_t DParser::statement(FunHead& fun){
     Instruction inc;
 
@@ -334,10 +333,23 @@ size_t DParser::statement(FunHead& fun){
         return ERR_END;
     }
 
+
+    //判断是否为用户变量且，这个用户变量是否为库函数名
+    D_VAR* libvar = variable_check(ls->dvar.var.chv,this->env_stack_head());
+    if (libvar) {
+        if ( VE_LIB == libvar->type ) {
+            if(lib_expr(fun)) {
+                logger->error("lib expression error");
+                return ERR_END;
+            }
+            return 0;            
+        }
+    }
+
     //记录左值
     inc.left = ls->dvar;
     FIND_NEXT
-
+    
     //下一个如果是函数调用的话
     if ( T_LPARENTH == ls->t.token ) {
         if(call_expr(inc.left.var.chv,fun)) {
@@ -351,6 +363,7 @@ size_t DParser::statement(FunHead& fun){
         }
         return 0;
     }
+    
     //数组下标赋值
     else if ( T_LBRACKET == ls->t.token ) {
         if(array_element_expr(inc.left.var.chv,fun)){
@@ -525,7 +538,9 @@ size_t DParser::if_expr(FunHead& func){
     env_stack_top()->cur->lfuns.push_back(e->cur);
     this->env.push_back(e);
 
-    parse_Func(*e->cur);
+    if(parse_Func(*e->cur)) {
+        return ERR_END;
+    }
 
     delete env_stack_top();
     this->env.pop_back();
@@ -595,7 +610,10 @@ size_t DParser::elif_expr(FunHead& func){
         env_stack_top()->cur->lfuns.push_back(e->cur);
         this->env.push_back(e);
 
-        parse_Func(*e->cur);
+        if(parse_Func(*e->cur)) {
+            return ERR_END;
+        }
+
         delete env_stack_top();
         this->env.pop_back();
 
@@ -644,7 +662,9 @@ size_t DParser::else_expr(FunHead& func){
     env_stack_top()->cur->lfuns.push_back(e->cur);
     this->env.push_back(e);
 
-    parse_Func(*e->cur);
+    if(parse_Func(*e->cur)) {
+        return ERR_END;
+    }
 
     delete env_stack_top();
     this->env.pop_back();
@@ -822,7 +842,10 @@ size_t DParser::while_expr(FunHead& func) {
         return ERR_END;
     }
     FIND_NEXT
-    parse_Func(*e->cur);
+
+    if(parse_Func(*e->cur)) {
+        return ERR_END;
+    }
 
     //第二次跳转到头部
     jmp.curpos = e->cur->codes.size();
@@ -998,7 +1021,9 @@ size_t DParser::function_expr(FunHead& func){
     FIND_NEXT // end
     
     //进入函数解析
-    parse_Func(*e->cur);
+    if(parse_Func(*e->cur)) {
+        return ERR_END;
+    }
 
     delete env_stack_top();
     this->env.pop_back();
@@ -1371,7 +1396,7 @@ size_t DParser::simple_expr(FunHead& fun){
             path --;
             if ( path && ls->lookahead.token == T_RPARENTH ) {
                 if (funflag) {
-                    logger->error("extra function right parenthesis");
+                    logger->error("extra function right parentheses");
                     return ERR_END;
                 }
                 funflag = false;
@@ -1472,7 +1497,6 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     inc.lpos = tmpobj->var.iv;
     FIND_NEXT
 
-
     //参数判断
     size_t stacksize = 0;
     size_t argpos = FIN_END;
@@ -1487,7 +1511,8 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
 
         FIND_NEXT
         stacksize++;
-        if ( T_RPARENTH == ls->t.token ) {
+        
+        if ( T_RPARENTH == ls->t.token  ) {
             break;
         }
         else if ( T_COMMA != ls->t.token ) {
@@ -1495,6 +1520,7 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
             return ERR_END;
         }
         FIND_NEXT
+
     }
 
     FunHead* cur = find_function(name,this->env_stack_top());
@@ -1518,6 +1544,87 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     return 0;
 }
 
+size_t DParser::lib_expr(FunHead& fun) {
+    Instruction inc;
+    inc.left = ls->dvar;
+
+    //如果存在 local global 关键字 报错
+    if ( T_GLOBAL == ls->lookahead.token || T_LOCAL == ls->lookahead.token ) {
+        logger->error("can not use global or local with lib ");
+        return ERR_END;
+    }
+    
+    FIND_NEXT
+
+    //库函数调用步骤
+    if ( T_PERIOD != ls->t.token ) {
+        logger->error("lib call without period");
+        return ERR_END;
+    }
+
+    FIND_NEXT
+    
+    inc.right = ls->dvar;
+    //查找调用函数名是否存在
+    if ( !this->lib->is_fun(inc.left.var.chv,inc.right.var.chv) ) {
+        logger->error("is not exist function name ",ls->dvar.var.chv," in ",inc.left.var.chv);
+        return ERR_END;
+    }
+
+    //定义库函数调用指令集
+    inc.type = OC_LIB;
+    
+    FIND_NEXT
+
+    if ( T_LPARENTH != ls->t.token ) {
+        logger->error("missing left parentheses ");
+        return ERR_END;
+    }
+
+    FIND_NEXT
+
+    //参数个数
+    size_t nums = fun.state_var_size(); 
+    //参数获取
+    while ( ls->is_variable(ls->t.token) ) {
+        //判断用户变量是否存在
+        if ( VE_USER == ls->dvar.type) {
+            D_VAR* tmpvar = variable_check(ls->dvar.var.chv,this->env_stack_top());
+            if (!tmpvar) {
+                logger->error("lib fun args do not exist this variable");
+                return ERR_END;
+            }
+        }
+
+        fun.state_push_var(ls->dvar);
+
+        FIND_NEXT
+        if ( T_RPARENTH == ls->t.token ) {
+            break;
+        }
+        else if ( T_COMMA != ls->t.token ) {
+            logger->error("missing comma between lib function call");
+            return ERR_END;
+        }
+
+        FIND_NEXT
+    }
+
+    if ( T_RPARENTH != ls->t.token ) {
+        logger->error("missing right parentheses ");
+        return ERR_END;
+    }
+
+    inc.curpos = fun.codes.size();
+    //参数个数
+    inc.lpos = fun.state_var_size() - nums;
+
+    fun.codes.push_back(inc);
+    
+    FIND_NEXT
+
+    return 0;
+}
 
 D_VAR* DParser::variable_check(const std::string& name,D_ENV* fun) {
     D_ENV* tmpfun = fun;
@@ -1663,7 +1770,7 @@ size_t DParser::read_line(const char* line,size_t len){
     return 0;
 }
 
-size_t DParser::load_lib(std::vector<D_LIB*>* lib) {
+size_t DParser::init_lib(D_LIB* lib) {
     if (lib == nullptr) {
         return 1;
     }
@@ -1672,26 +1779,11 @@ size_t DParser::load_lib(std::vector<D_LIB*>* lib) {
         return 1;
     }
 
-    BASE_LIB* base = new BASE_LIB();
-
-    this->lib->push_back(base);
 
     //变量加载
-    for ( D_LIB* i : *this->lib ) {
-        this->env_stack_head()->lv[i->name] = 0;
-        this->env_stack_head()->lv[i->name].type = VE_LIB;
-    }
-
-    return 0;
-}
-
-size_t DParser::init_state(Lib_State* l) {
-    if (l == nullptr) {
-        return 1;
-    }
-    this->state = l;
-    if (this->state == nullptr) {
-        return 1;
+    for ( auto& i : this->lib->l ) {
+        this->env_stack_head()->lv[i.first] = 0;
+        this->env_stack_head()->lv[i.first].type = VE_LIB;
     }
 
     return 0;

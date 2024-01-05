@@ -11,7 +11,6 @@ _QD_BEGIN
 
 struct CallInfo 
 {
-    using Stack_V = D_OBJ;
 
     CallInfo();
     //浅拷贝
@@ -21,7 +20,7 @@ struct CallInfo
     void init();
 
     //改变变量的值
-    Stack_V& v(const std::string name);
+    D_OBJ& v(const std::string name);
 
     //匿名 if for else while 
     bool anonymous;
@@ -29,10 +28,8 @@ struct CallInfo
     bool ifstate;
     size_t pos;
     FunHead* f;               //当前函数
-    // CallInfo* prev;        //上一级变量
-    //闭包上级函数
-    // std::map<std::string,Stack_V>*  closure;
-    std::map<std::string,Stack_V>   sv;
+
+    std::map<std::string,D_OBJ>   sv;
 };
 
 

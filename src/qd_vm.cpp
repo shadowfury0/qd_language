@@ -6,7 +6,8 @@ _QD_BEGIN
 
 D_VM::D_VM() {
     this->init();
-
+    global = new CallInfo();
+    st = new CallStack();
 }
 
 D_VM::D_VM(const D_VM& vm) {
@@ -21,22 +22,14 @@ void D_VM::init() {
 
     st = nullptr;
     global = nullptr;
-    state = nullptr;
     lib = nullptr;
 
     logger = Logger::getInstance();
 
-    st = nullptr;
-    st = new CallStack();
 }
 
 D_VM::~D_VM() {
     //清除parser 传递函数
-    // if ( fun != nullptr ) {
-    //     fun->clear();
-    //     delete fun;
-    //     fun = nullptr;
-    // }
 
     if ( st != nullptr ) {
         delete st;
@@ -74,11 +67,11 @@ CallInfo* D_VM::head_fun() {
 }
 
 size_t D_VM::init_fun(FunHead* fun) {
-    if ( !fun ) {
+    if ( fun == nullptr ) {
         logger->error("function is null");
         return 1;
     }
-    global = new CallInfo();
+
     global->f = fun;
 
     push_call(global);
@@ -86,22 +79,7 @@ size_t D_VM::init_fun(FunHead* fun) {
     return 0;
 }
 
-size_t D_VM::init_state(Lib_State* l) {
-    if (l == nullptr) {
-        logger->error("lib state is null");
-        return 1;
-    }
-    
-    this->state = l;
-
-    if ( this->state == nullptr ) {
-        return 1;
-    }
-
-    return 0;
-}
-
-size_t D_VM::init_lib(std::vector<D_LIB*>* l) {
+size_t D_VM::init_lib(D_LIB* l) {
     if (l == nullptr) {
         return 1;
     }
@@ -178,6 +156,14 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
         // logger->error(inc);
         switch (inc.type)
         {
+            case OC_LIB:
+            {
+                if (analyse_lib_expr(inc,this->cur_fun())) {
+                    logger->error("analyse lib expression error");
+                    return ERR_END;
+                }
+                break;
+            }
             case OC_JMP:
             {
                 logger->debug("<-----  analyse  jump  ----->");
@@ -614,7 +600,7 @@ size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
         else if ( VA_GLOBAL == inc.lpos ) {
             global_assign(inc.left.var.chv,ass.right);
         }
-        logger->error(inc.left.var.chv," -> ",ass.right);
+        logger->debug(inc.left.var.chv," -> ",ass.right);
     }
     
     
@@ -661,6 +647,30 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
     }
 
     array->uni->larr[index] = value.right;
+    return 0;
+}
+
+size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
+    logger->debug("<-----  analyse  lib  ----->");
+
+    size_t len = inc.lpos;
+    fun->f->set_state_pos(len);
+
+    auto start = fun->f->state->vars.begin();
+
+    while (len)
+    {
+        if ( VE_USER == start->type ) {
+            //parser 阶段已经检查过变量是否存在
+            *start = *find_variable(start->var.chv);
+        }
+        start ++;
+        len --;
+    }
+
+    //开始参数更新操作
+    //内部函数调用
+    (this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv])(fun->f->state);
     return 0;
 }
 
@@ -800,7 +810,7 @@ CallInfo* D_VM::last_var(CallInfo* info) {
 void D_VM::print_variables(const CallInfo* call) {
     
     for (
-        std::map<std::string, CallInfo::Stack_V>::const_iterator 
+        std::map<std::string, D_OBJ>::const_iterator 
         iter = call->sv.begin();
         iter != call->sv.end() ; iter ++ ) {
         std::cout << iter->first << " -> " << iter->second << std::endl;

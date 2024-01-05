@@ -6,7 +6,7 @@
 _QD_BEGIN
 
 
-struct BASE_LIB : D_LIB
+struct BASE_LIB : _LIB
 {
     BASE_LIB();
     //目前是浅拷贝

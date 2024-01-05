@@ -17,11 +17,10 @@ struct D_ENV
 
     bool anonymous;
     size_t code_pos;
-    D_ENV* prev;                       //上一级环境  
+    D_ENV* prev;                       //上一级环境
     FunHead* cur;                      //当前函数头信息
 
     std::map<std::string,D_VAR> lv;       //局部变量  debug 检测
-    // std::map<std::string,D_OBJ> lv;       //局部变量  debug 检测
 };
 
 

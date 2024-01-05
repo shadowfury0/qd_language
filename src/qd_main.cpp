@@ -39,10 +39,10 @@ QDMAIN::QDMAIN(){
     io = new Dio();
 
     lib = nullptr;
-    lib = new std::vector<D_LIB*>();
+    lib = new D_LIB();
 
     state = nullptr;
-    state = new Lib_State();
+    state = new D_State();
 
     this->b.new_bitset(has_);
     parser->init_io(this->io);
@@ -70,12 +70,12 @@ QDMAIN::~QDMAIN(){
         state = nullptr;
     }
 
-    for ( D_LIB* l : *this->lib ) {
-        if ( l != nullptr ) {
-            delete l;
-            l = nullptr;
-        }
-    }
+    // for ( auto i : this->lib ) {
+        // if ( l != nullptr ) {
+            // delete l;
+            // l = nullptr;
+        // }
+    // }
     if ( this->lib != nullptr) {
         delete this->lib;
         this->lib = nullptr;
@@ -124,8 +124,8 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
 #endif
 
     logger->setLogLevel(3);
-    logger->setLogId(false);
-    logger->setLogTime(false);
+    // logger->setLogId(false);
+    // logger->setLogTime(false);
 
     // 解析参数
     size_t i = 0;
@@ -237,14 +237,12 @@ size_t QDMAIN::interactive_mode() {
 }
 
 size_t QDMAIN::script_mode() {
-    // 加载库
-    if ( parser->load_lib(this->lib) ) {
-        logger->error("load local lib error");
-        return 1;
-    }
+    
+    this->lib->init_libs();
 
-    if ( parser->init_state(this->state) ) {
-        logger->error("load state error");
+    // 加载库
+    if ( parser->init_lib(this->lib) ) {
+        logger->error("load local lib error");
         return 1;
     }
 
@@ -254,10 +252,10 @@ size_t QDMAIN::script_mode() {
         return 1;
     }
 
-
-    for (auto& i : this->parser->env_stack_head()->lv) {
-        logger->error(i.first,"  ",i.second);
-    }
+    // for (auto& i : this->parser->env_stack_head()->lv) {
+    //     logger->error(i.first,"  ",i.second);
+    // }
+    logger->error("going to virtual machine");
 
     //这里把funhead传入给虚拟机
     if (vm->init_fun(parser->env_stack_top()->cur)) {
@@ -266,10 +264,7 @@ size_t QDMAIN::script_mode() {
     if ( vm->init_lib(this->lib) ) {
         return 1;
     }
-    if (vm->init_state(this->state) ) {
-        return 1;
-    }
-    if (vm->execute()) {
+    if ( vm->execute() ) {
         return 1;
     }
     

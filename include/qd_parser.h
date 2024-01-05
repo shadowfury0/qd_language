@@ -40,10 +40,10 @@ struct DParser{
     //符号反转,目前是负数
     size_t symbol_reversal(Instruction& inc);
 
-    //是否为库函数
-    bool is_lib_fun(const std::string& l,const std::string& f);
-
-    //基本表达式
+    /**
+     * @brief 基本表达式
+     * @return ERR_END 正常错误(暂时) 
+     */
     size_t statement(FunHead& fun);
     //赋值表达式
     size_t assign_expr(Instruction& inc,FunHead& fun);
@@ -70,6 +70,8 @@ struct DParser{
     size_t function_expr(FunHead& func);
     //调用表达式
     size_t call_expr(std::string name,FunHead& fun);
+    // 库表达式
+    size_t lib_expr(FunHead& fun);
 
     //列表访问表达式
     size_t list_access_expr(const std::string& name,FunHead& func);
@@ -92,16 +94,14 @@ struct DParser{
     //清空 Env
     void env_clear();
     //加载库,返回0加载成功
-    size_t load_lib(std::vector<D_LIB*>* lib);
-    size_t init_state(Lib_State* l);
+    size_t init_lib(D_LIB* lib);
     
     Logger* logger;
     LexState* ls;
-    Lib_State* state;
+    // D_State* state;
 
     std::vector<D_ENV*> env;
-    //库名，以及库子函数名
-    std::vector<D_LIB*>* lib;
+    D_LIB* lib;
 };
 
 

@@ -85,8 +85,8 @@ enum TOK_TYPE {
     T_DIV,                  // /
     T_AMPERSAND,            //&
     T_VERTICAL_BAR,         //|   
-/*    others    */
     // T_DDIV,                 // //
+/*    others    */
     T_LPARENTH,             // (
     T_RPARENTH,             // )
     T_LBRACKET,             // [

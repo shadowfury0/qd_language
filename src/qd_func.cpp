@@ -4,14 +4,13 @@ _QD_BEGIN
 
 
 FunHead::FunHead(){
-    // this->anonymous = false;
-    // this->maxstacksize = 0;
+    this->state = nullptr;
+    this->state = new D_State();
 }
 
 FunHead::FunHead(const FunHead& head){
-    // this->anonymous = head.anonymous;
-    //这个变量做一下更改，如果为VE_NULL 不进行拷贝
-    // this->maxstacksize = head.maxstacksize;
+    this->state = new D_State(*head.state);
+
     this->args = head.args;
     this->codes = head.codes;
 
@@ -23,18 +22,10 @@ FunHead::FunHead(const FunHead& head){
 }
 
 FunHead::~FunHead(){
-    //可能会重复释放
-    // if ( !lfuns.empty()) {
-    //     //析构所有子函数的堆内存空间
-    //     for ( std::vector<FunHead *>::iterator
-    //     iter = lfuns.begin() ; iter != lfuns.end() ; iter++)
-    //     {
-    //         if (*iter != nullptr) {
-    //             delete *iter;
-    //             *iter = nullptr;
-    //         }
-    //     }
-    // }
+    if ( this->state != nullptr ) {
+        delete this->state;
+        this->state = nullptr;
+    }
 }
 
 void FunHead::clear() {
@@ -54,6 +45,23 @@ void FunHead::clear() {
 
 size_t FunHead::args_size(){
     return args.size();
+}
+
+size_t FunHead::state_var_size() {
+    return this->state->vars.size();
+}
+
+size_t FunHead::state_var_pos() {
+    return this->state->pos;
+}
+
+void FunHead::set_state_pos(const size_t& i) {
+    this->state->pos = i;
+}
+
+
+void FunHead::state_push_var(const D_VAR& var) {
+    this->state->vars.push_back(var);
 }
 
 

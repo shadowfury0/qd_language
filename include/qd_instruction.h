@@ -93,10 +93,12 @@ enum OprCode {
     OC_IF,                // IF
     OC_FOR,               // FOR 
     OC_WHILE,             // WHILE
-    OC_JMP,               //跳转指令
-    OC_CALL,              //调用函数
-    OC_RET,               //返回
+    OC_JMP,               // 跳转指令
+    OC_CALL,              // 调用函数
+    OC_RET,               // 返回
     OC_ARG,               // 函数参数
+    /* lib */
+    OC_LIB,               // 库调用
 };
 
 //操作码

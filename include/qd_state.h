@@ -9,19 +9,23 @@ _QD_BEGIN
     负责语言内部函数调用传参
 */
 
-struct Lib_State
+struct D_State
 {
-    Lib_State();
-    ~Lib_State();
+    D_State();
+    D_State(const D_State& s);
+    ~D_State();
     
-    /* 内置函数参数变量 */
-    std::vector<D_VAR> vars;
+    // 当前函数调用参数个数
+    size_t pos;
+    // 内置函数参数变量 
+    std::list<D_VAR> vars;
+
 };
 
 /*
     定义内部函数调用指针
 */
-typedef size_t (*qd_inner_fun) (Lib_State *L);
+typedef size_t (*qd_inner_fun) (D_State *L);
 
 
 _QD_END
