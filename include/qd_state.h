@@ -28,6 +28,12 @@ struct D_State
 */
 typedef size_t (*qd_inner_fun) (D_State *L);
 
+// rets 返回值传入空值
+#define D_STA_PUS_NUL \
+D_OBJ obj;\
+obj.type = VE_NULL;\
+l->rets.push_back(obj);
+
 
 _QD_END
 

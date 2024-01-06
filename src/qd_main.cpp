@@ -131,14 +131,12 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
     size_t i = 0;
     if (argc < 1) {
         //清除两个初始化的函数变量
-        delete this->parser->env_stack_top()->cur;
-        delete this->vm->global;
+        clear_chunk();
         return 1;
     }
     else if ( 1 == argc ){
         //清除两个初始化的函数变量
-        delete this->parser->env_stack_top()->cur;
-        delete this->vm->global;
+        clear_chunk();
         return 0;
     }
 
@@ -261,7 +259,7 @@ size_t QDMAIN::script_mode() {
     // for (auto& i : this->parser->env_stack_head()->lv) {
     //     logger->error(i.first,"  ",i.second);
     // }
-    logger->error("going to virtual machine");
+    logger->info("going to virtual machine");
 
     //这里把funhead传入给虚拟机
     if (vm->init_fun(parser->env_stack_top()->cur)) {
@@ -306,6 +304,12 @@ size_t QDMAIN::read_more(std::string& str) {
     str.append(line);
 
     return 0;
+}
+
+
+void QDMAIN::clear_chunk() {
+    delete this->parser->env_stack_top()->cur;
+    delete this->vm->global;
 }
 
 

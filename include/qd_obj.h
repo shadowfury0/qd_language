@@ -155,7 +155,10 @@ struct D_OBJ
     void operator=(const char* v);
     void alloc_str(const char* v,size_t len);
 
+    D_OBJ operator-();
+
     friend std::ostream& operator<<(std::ostream& os, const D_OBJ& p);
+    
 };
 
 

@@ -70,7 +70,7 @@ struct DParser{
     size_t function_expr(FunHead& func);
     //调用表达式
     size_t call_expr(std::string name,FunHead& fun);
-    // 库表达式
+    // 库表达式 , 当前函数token为 句号.
     size_t lib_expr(FunHead& fun);
 
     //列表访问表达式

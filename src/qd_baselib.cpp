@@ -33,7 +33,11 @@ size_t print(D_State* l) {
         l->vars.pop_front();
         len -- ;
     }
+    
     std::cout << std::endl;
+
+    //压栈
+    D_STA_PUS_NUL
 
     return 0;
 }
@@ -69,6 +73,9 @@ size_t type(D_State* l) {
     {
         l->vars.pop_front();
     }
+
+    D_STA_PUS_NUL
+
     return 0;
 }
 
@@ -89,7 +96,7 @@ size_t assert(D_State* l) {
     switch (v.type)
     {
     case VE_BOOL:
-        ass =  v.var.bv == true ? true : false;
+        ass =  v.var.bv == false ? true : false;
         break;
     case VE_INT:
         ass = v.var.iv == 0 ? true : false;
@@ -107,17 +114,21 @@ size_t assert(D_State* l) {
         l->vars.pop_front();
     }
 
+    D_STA_PUS_NUL
+
     return !ass;
 }
 
 size_t len(D_State* l) {
+    
     size_t len = l->v_pos;
 
     D_OBJ& v = l->vars.front();
     
-    size_t s = 0;
+    int s = 0;
     if ( VE_UNION == v.type ) {
-        s = v.uni->larr.size();
+        //潜在溢出
+        s = (int)v.uni->larr.size();
     }
 
     l->vars.pop_front();
@@ -128,8 +139,7 @@ size_t len(D_State* l) {
         l->vars.pop_front();
     }
 
-    // l->rets.push_back(s);
-    std::cout << s << "\n";
+    l->rets.push_back(s);
 
     return 0;
 }

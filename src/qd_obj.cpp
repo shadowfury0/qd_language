@@ -233,6 +233,9 @@ bool D_VAR::operator!=(const char* chv){
 std::ostream& operator<<(std::ostream& os, const D_VAR& p){
     switch (p.type)
     {
+    case VE_VOID:
+        os << " null ";
+        break;
     case VE_BOOL:
         os << " bool : " << p.var.bv ;
         break;
@@ -470,6 +473,9 @@ void D_OBJ::alloc_str(const char* v,size_t len) {
 std::ostream& operator<<(std::ostream& os, const D_OBJ& p) {
     switch (p.type)
     {
+    case VE_VOID:
+        os << " null ";
+        break;
     case VE_BOOL:
         os << " bool : " << p.var.bv ;
         break;
@@ -500,5 +506,27 @@ std::ostream& operator<<(std::ostream& os, const D_OBJ& p) {
     }
     return os << " ";
 }
+
+
+D_OBJ D_OBJ::operator-() {
+    D_OBJ tmp;
+    switch (this->type)
+    {
+    case VE_BOOL:
+        tmp = !this->var.bv;
+        break;
+    case VE_INT:
+        tmp = -this->var.iv;
+        break;
+    case VE_FLT:
+        tmp = -this->var.dv;
+        break;
+    default:
+        printf("dobj type is string or void or null \n");
+        break;
+    }
+    return tmp;
+}
+
 
 _QD_END

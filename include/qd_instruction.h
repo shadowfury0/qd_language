@@ -99,6 +99,7 @@ enum OprCode {
     OC_ARG,               // 函数参数
     /* lib */
     OC_LIB,               // 库调用
+    OC_LIBV,              // 库参数
 };
 
 //操作码

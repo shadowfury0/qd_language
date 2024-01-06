@@ -164,6 +164,43 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 }
                 break;
             }
+            case OC_LIBV:
+            {
+                //判断是否为用户变量
+                if ( VE_USER ==  inc.left.type )
+                {
+                    D_OBJ* tmp = find_variable(inc.left.var.chv);
+
+                    if (!tmp) {
+                        logger->error("variable not found in lib function");
+                        return ERR_END;
+                    }
+                    
+                    //判断是否符合条件
+                    if ( OC_MINUS == inc.restype ) {
+                        if ( VE_INT == tmp->type || VE_FLT == tmp->type || VE_BOOL == tmp->type ) {
+                            info->f->state->vars.push_back(-(*tmp));
+                        }
+                        else {
+                            logger->error(*tmp," has no negative to use ");
+                            info->f->state->vars.push_back(*tmp);
+                        }
+                    }
+                    else {
+                        info->f->state->vars.push_back(*tmp);
+                    }
+                }
+                else {
+                    if ( OC_MINUS == inc.restype ) {
+                        info->f->state->vars.push_back(-inc.left);
+                    }
+                    else {
+                        info->f->state->vars.push_back(inc.left);
+                    }
+                }
+    
+                break;
+            }
             case OC_JMP:
             {
                 logger->debug("<-----  analyse  jump  ----->");
@@ -225,7 +262,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 
                 CallInfo* call = new CallInfo();
                 call->f = new FunHead( *find_function(inc.left.var.chv)->lfuns[inc.lpos] );
-                // call->f = new FunHead(*info->f->lfuns[inc.lpos]);
+
                 if (!call->f){
                     logger->error("function error");
                     return ERR_END;
@@ -259,8 +296,14 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                     i = clen;
                     continue;
                 }
+                //如果返回值为空
+                if ( FIN_END == inc.rpos ) {
+                    D_OBJ tmpobj;
+                    tmpobj.type = VE_NULL;
+                    call->v(inc.left.var.chv) = tmpobj;
+                }
                 //保存上一级函数返回值变量,匿名函数不赋值直接跳出
-                if ( FIN_END != inc.rpos && call ) {
+                else if ( call ) {
                     call->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
                 }
                 //当前代码行数终止
@@ -400,6 +443,8 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         tright = *tmp;
     }
 
+    logger->debug("left type is :  ",(short)inc.left.type);
+    logger->debug("right type is :  ",(short)inc.right.type);
 
     //如果只有一个值
     if ( VE_VOID == tleft.type ) {
@@ -413,16 +458,17 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         else if ( VE_USER == inc.left.type ) {
             array = find_variable(inc.left.var.chv);
             if(!array){
-                logger->error("single var name not found");
+                logger->error("var is not exist ");
+                return ERR_END;
+            }
+            else if ( VE_NULL == array->type ) {
+                logger->error("maybe function return is null");
                 return ERR_END;
             }
             tleft = *array;
         }
     }
     
-
-    logger->debug("left type is  : ",(int)tleft.type);
-    logger->debug("right type is  : ",(int)tright.type);
     
     //解析指令
     switch (inc.type)
@@ -600,7 +646,7 @@ size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
         else if ( VA_GLOBAL == inc.lpos ) {
             global_assign(inc.left.var.chv,ass.right);
         }
-        logger->error(inc.left.var.chv," -> ",ass.right);
+        logger->debug(inc.left.var.chv," -> ",ass.right);
     }
     
     
@@ -653,27 +699,27 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
 size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
     logger->debug("<-----  analyse  lib  ----->");
 
-    size_t len = inc.lpos;
-    fun->f->set_state_pos(len);
+    FunHead& s = *fun->f;
 
-    std::_List_iterator<D_OBJ>  start = fun->f->state->vars.begin();
+    s.set_state_pos(inc.lpos);
 
-    while (len)
-    {
-        if ( VE_USER == start->type ) {
-            //parser 阶段已经检查过变量是否存在
-            *start = *find_variable(start->var.chv);
-        }
-        start ++;
-        len --;
-    }
-
-    //开始参数更新操作
     //内部函数调用
-    if ( (this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv])(fun->f->state) ) {
+    if ( ( this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv] )( s.state ) ) {
         logger->error("system call error");
         return ERR_END;
     }
+
+    //调用完后将变量赋值到ret
+    fun->v(QD_KYW_RET) = s.state->rets.front();
+
+    if (s.state->rets.empty()) {
+        logger->error("cur lib returns is empty");
+        return ERR_END;
+    }
+    //出栈
+    s.state->rets.pop_front();
+
+
     return 0;
 }
 
@@ -682,6 +728,7 @@ size_t D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
     if (inc.rpos == FIN_END){
         return 0;
     }
+    
     //push func
     Instruction tmp = cur->f->codes[inc.rpos];
     size_t len = push->f->args_size();
@@ -697,7 +744,19 @@ size_t D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
             tmp.right = *t;
         }
 
-        push->v(push->f->args[i]) = tmp.right;
+        if ( OC_MINUS == tmp.restype  ) {
+            if (  VE_INT == tmp.right.type || VE_FLT == tmp.right.type || VE_BOOL == tmp.right.type ) {
+                push->v(push->f->args[i]) = -tmp.right;
+            }
+            else {
+                logger->warn(tmp.right," has no negative to use ");
+                push->v(push->f->args[i]) = tmp.right;
+            }
+        }
+        else {
+            push->v(push->f->args[i]) = tmp.right;
+        }
+
         if (tmp.rpos == FIN_END) break;
         tmp = cur->f->codes[tmp.rpos];
     }

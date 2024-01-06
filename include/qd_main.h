@@ -16,6 +16,7 @@ public:
     //函数主窗口
     size_t qd_main(int argc, char **argv);
 
+private:
     void parse_args(char* str);
 
     bool is_backslash(const std::string& s);
@@ -23,6 +24,9 @@ public:
 
     size_t interactive_mode();
     size_t script_mode();
+
+    // 清除parser env funhead 和 vm global
+    void clear_chunk();
     
 private:
     Logger* logger;

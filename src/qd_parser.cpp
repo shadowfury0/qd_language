@@ -69,11 +69,6 @@ size_t DParser::parse() {
     //第一个token
     FIND_NEXT
 
-    //如果为换行
-    while ( T_END == ls->t.token) {
-        FIND_NEXT
-    }
-
     //这里开始全局解析
     if (parse_Func(*this->env_stack_head()->cur)) {
         return ERR_END;
@@ -205,7 +200,7 @@ size_t DParser::parse_Func(FunHead& fun) {
 
         //解析到末尾的是文件终止符
         if ( T_EOF == ls->t.token ) {
-            return ERR_END;
+            break;
         }
         else if (err_flag) {
             haser = true;
@@ -219,6 +214,7 @@ size_t DParser::parse_Func(FunHead& fun) {
 
     //有错误
     if (haser) {
+        logger->error("parse function has error");
         return ERR_END;
     }
     
@@ -337,19 +333,22 @@ size_t DParser::statement(FunHead& fun){
 
     //判断是否为用户变量且，这个用户变量是否为库函数名
     D_VAR* libvar = variable_check(ls->dvar.var.chv,this->env_stack_head());
+    //记录左值
+    inc.left = ls->dvar;
+    FIND_NEXT
+    
     if (libvar) {
-        if ( VE_LIB == libvar->type ) {
+        //当前tok 为函数调用
+        if ( VE_LIB == libvar->type && T_EQ != ls->t.token ) {
             if(lib_expr(fun)) {
                 logger->error("lib expression error");
                 return ERR_END;
             }
             return 0;            
         }
+        //如果不是函数调用而是普通赋值
     }
 
-    //记录左值
-    inc.left = ls->dvar;
-    FIND_NEXT
     
     //下一个如果是函数调用的话
     if ( T_LPARENTH == ls->t.token ) {
@@ -1026,6 +1025,13 @@ size_t DParser::function_expr(FunHead& func){
         return ERR_END;
     }
 
+    //函数默认必须添加return返回不管有没有
+    Instruction rtt;
+    rtt.type = OC_RET;
+    rtt.left = QD_KYW_RET;
+    rtt.curpos = e->cur->codes.size();
+    e->cur->codes.push_back(rtt);
+
     delete env_stack_top();
     this->env.pop_back();
 
@@ -1035,6 +1041,7 @@ size_t DParser::function_expr(FunHead& func){
         this->env_stack_top()->lv.erase(funcname);
         return ERR_END;
     }
+
     FIND_NEXT
     
     return 0;
@@ -1279,10 +1286,11 @@ size_t DParser::simple_expr(FunHead& fun){
                     return ERR_END;
                 }
             }
+
             inc.left = ls->dvar;
 
             if (tmpobj) {
-                //这里判断是函数调用还是普通成员变量,还是数组
+                //函数
                 if ( VE_FUNC == tmpobj->type ) {
                     FIND_NEXT
                     //函数调用                
@@ -1293,6 +1301,17 @@ size_t DParser::simple_expr(FunHead& fun){
                     inc.left = QD_KYW_RET;
                     inc.left.type = VE_USER;
 
+                    funflag = true;
+                }
+                else if ( VE_LIB == tmpobj->type ) {
+                    FIND_NEXT
+
+                    if (lib_expr(fun)) {
+                        logger->error("lib parse error in simple expression ");
+                        return ERR_END;
+                    }
+                    inc.left = QD_KYW_RET;
+                    inc.left.type = VE_USER;
                     funflag = true;
                 }
                 //数组
@@ -1345,6 +1364,12 @@ size_t DParser::simple_expr(FunHead& fun){
             }
             fun.codes.push_back(inc);
             values.push_back(inc.curpos);
+
+            //是否为库函数调用
+            if ( tmpobj ) 
+                if ( VE_LIB == tmpobj->type )
+                    continue;
+
         } else if ( T_MINUS == ls->t.token ) {
             if ( ls->lookahead.token != T_RPARENTH 
             && !ls->is_variable(ls->lookahead.token) ){
@@ -1508,15 +1533,14 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
 
         if ( T_MINUS == ls->t.token ) {
             FIND_NEXT
-            if ( T_INT != ls->t.token && T_DECIMAL != ls->t.token ) {
+            if ( T_INT != ls->t.token && T_DECIMAL != ls->t.token && T_UDATA != ls->t.token ) {
                 logger->error("function negative is incorrect");
                 return ERR_END;
             }
-            arg.right = -ls->dvar;
+            arg.restype = OC_MINUS;
         }
-        else {
-            arg.right = ls->dvar;
-        }
+
+        arg.right = ls->dvar;
         
         arg.rpos = argpos;
         argpos = arg.curpos = fun.codes.size();
@@ -1563,12 +1587,10 @@ size_t DParser::lib_expr(FunHead& fun) {
     inc.left = ls->dvar;
 
     //如果存在 local global 关键字 报错
-    if ( T_GLOBAL == ls->lookahead.token || T_LOCAL == ls->lookahead.token ) {
+    if ( T_GLOBAL == ls->prevhead.token || T_LOCAL == ls->prevhead.token ) {
         logger->error("can not use global or local with lib ");
         return ERR_END;
     }
-    
-    FIND_NEXT
 
     //库函数调用步骤
     if ( T_PERIOD != ls->t.token ) {
@@ -1598,22 +1620,26 @@ size_t DParser::lib_expr(FunHead& fun) {
     FIND_NEXT
 
     //参数个数
-    size_t nums = fun.state_var_size(); 
+    size_t nums = 0; 
     //参数获取
     while ( ls->is_variable(ls->t.token) || T_MINUS == ls->t.token ) {
-
+        Instruction add;
+        add.type = OC_LIBV;
+        add.curpos = fun.codes.size();
         if ( T_MINUS == ls->t.token ) {
             FIND_NEXT
-            if ( T_INT != ls->t.token && T_DECIMAL != ls->t.token ) {
+            if ( T_INT != ls->t.token && T_DECIMAL != ls->t.token && T_UDATA != ls->t.token ) {
                 logger->error("lib function negative is incorrect");
                 return ERR_END;
             }
-            fun.state_push_var(-ls->dvar);
-        }
-        else {
-            fun.state_push_var(ls->dvar);
+            add.restype = OC_MINUS;
         }
 
+        add.left = ls->dvar;
+
+        fun.codes.push_back(add);
+        nums++;
+        
         //判断用户变量是否存在
         if ( VE_USER == ls->dvar.type ) {
             D_VAR* tmpvar = variable_check(ls->dvar.var.chv,this->env_stack_top());
@@ -1642,7 +1668,7 @@ size_t DParser::lib_expr(FunHead& fun) {
 
     inc.curpos = fun.codes.size();
     //参数个数
-    inc.lpos = fun.state_var_size() - nums;
+    inc.lpos = nums;
 
     fun.codes.push_back(inc);
     
