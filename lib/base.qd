@@ -1,0 +1,13 @@
+fun print(s):
+    sys.print(s)
+pass
+fun type(t):
+    sys.type(t)
+pass
+fun assert(a):
+    sys.assert(a)
+pass
+fun error(a):
+    sys.error(a)
+pass
+

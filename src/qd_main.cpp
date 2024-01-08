@@ -8,7 +8,8 @@ const char* const helpings  =
     "Available options are:\n"
     "  -v  version       show version information\n"
     "  -h  help          viewing  help  documents\n"
-    "  -i  interactive   enter  interactive mode after executing 'script'\n"
+    "  -l  include       include  simplify  local  lib\n"
+    "  -i  interactive   enter  interactive  mode  after  executing  'script'\n"
 ;
 
 const char* const helpsargs = 
@@ -22,9 +23,10 @@ const char* const helpsargs =
 ;
 
 #define has_error	0	/* bad option */
-#define has_v	    1	/* bad option */
-#define has_i		2	/* -i */
-#define has_        3   /* max */
+#define has_v	    1	/* -v */
+#define has_l	    2	/* -l */
+#define has_i		3	/* -i */
+#define has_        4   /* max */
 
 QDMAIN::QDMAIN(){
     logger = Logger::getInstance();
@@ -90,7 +92,8 @@ void QDMAIN::parse_args(char* str) {
         handle = true;        
     }
     if (!handle) {
-        this->parser->read_file(str);
+        // this->parser->read_file(str);
+        this->args.push_back(str);
         return;
     }
     switch (str[1])
@@ -101,6 +104,14 @@ void QDMAIN::parse_args(char* str) {
             this->b.add_bit(has_error);
         else
             this->b.add_bit(has_v);
+        break;
+    }
+    case 'l':
+    {
+        if (str[2] != '\0')
+            this->b.add_bit(has_error);
+        else
+            this->b.add_bit(has_l);
         break;
     }
     case 'i':
@@ -141,7 +152,7 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
     }
 
     for ( i = 1 ; i < argc ; i++) {
-        parse_args(argv[i]);
+        this->parse_args(argv[i]);
     }
 
     if(b.test(has_error)) {
@@ -153,9 +164,20 @@ size_t QDMAIN::qd_main(int argc, char **argv) {
         std::cout << QD_VERSION << std::endl;
     }
 
-    // if ( this->parser->read_file("../lib/math.qd") ) {
-    //     return 1;
-    // }
+    //目前是这样
+    if (b.test(has_l)) {
+        if ( this->parser->read_file("../lib/base.qd") ) {
+            return 1;
+        }
+        if ( this->parser->read_file("../lib/math.qd") ) {
+            return 1;
+        }
+    }
+
+    //读取剩下的参数
+    for (std::string& i : this->args) {
+        this->parser->read_file(i.c_str());
+    }
 
     if (b.test(has_i)) {
         this->interactive_mode();

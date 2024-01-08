@@ -1,0 +1,9 @@
+#计算一元二次函数方程的解
+fun delta_max(a,b,c):
+    d = b * b - 4 * a * c
+    ret (-b+math.sqrt(d))/(2*a)
+pass
+fun delta_min(a,b,c):
+    d = b * b - 4 * a * c
+    ret (-b-math.sqrt(d))/(2*a);
+pass

@@ -292,10 +292,10 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 
                 CallInfo* call = last_function(info);
 
-                if (!call) {
-                    i = clen;
-                    continue;
-                }
+                // if (!call) {
+                //     // i = clen;
+                //     // continue;
+                // }
                 //如果返回值为空
                 if ( FIN_END == inc.rpos ) {
                     D_OBJ tmpobj;
@@ -303,7 +303,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                     call->v(inc.left.var.chv) = tmpobj;
                 }
                 //保存上一级函数返回值变量,匿名函数不赋值直接跳出
-                else if ( call ) {
+                else if (call) {
                     call->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
                 }
                 //当前代码行数终止
@@ -495,6 +495,10 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         break;
     }
     case OC_MOD:{
+        if ( 0 == tright.var.iv ) {
+            logger->error("mod is not allow 0 ");
+            return ERR_END;
+        }
         if(D_VAR_MOD(tres,tleft,tright)){
             logger->error("error  in  mod  expression");
             return ERR_END;
@@ -502,10 +506,10 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         break;
     }
     case OC_DIV:{
-        if ( 0 == tright.var.iv || 0.0 == tright.var.dv ) {
-            logger->error("dividend is not allow 0 or 0.0");
-            return ERR_END;
-        }
+        // if ( 0 == tright.var.iv || 0.0 == tright.var.dv ) {
+        //     logger->error("dividend is not allow 0 or 0.0");
+        //     return ERR_END;
+        // }
         if(D_VAR_DIV(tres,tleft,tright)){
             logger->error("error  in  divide  expression");
             return ERR_END;
@@ -709,16 +713,15 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
         return ERR_END;
     }
 
-    //调用完后将变量赋值到ret
-    fun->v(QD_KYW_RET) = s.state->rets.front();
-
     if (s.state->rets.empty()) {
         logger->error("cur lib returns is empty");
         return ERR_END;
     }
+    //调用完后将变量赋值到ret
+    fun->v(QD_KYW_RET) = s.state->rets.front();
+    
     //出栈
     s.state->rets.pop_front();
-
 
     return 0;
 }

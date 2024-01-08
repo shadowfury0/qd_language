@@ -164,11 +164,9 @@ size_t DParser::parse_Func(FunHead& fun) {
                     logger->error(ls->_row,":",ls->_col," return assign expression error");
                     err_flag = true;
                 }
-                else {
-                    ret.type = OC_RET;
-                    fun.codes.push_back(ret);
-                }
             }
+            ret.type = OC_RET;
+            fun.codes.push_back(ret);
 
             break;
         }
@@ -1808,6 +1806,7 @@ size_t DParser::read_file(const char* file){
         logger->debug("file block size is ",this->ls->io->buffs.size());
     }
     else {
+        is.close();
         logger->error("file open error ");
         return ERR_END;
     }

@@ -63,8 +63,8 @@ int _dvar_mul(D_VAR& result,const D_VAR& left,const D_VAR& right){
     }
     return 0;
 }
-
-int _dvar_mod(D_VAR& result,const D_VAR& left,const D_VAR& right){
+// right 不允许为0
+int _dvar_mod(D_VAR& result,const D_VAR& left,const D_VAR& right) {
     if ( VE_INT == left.type && VE_INT == right.type ) {
         result = left.var.iv % right.var.iv;
     }

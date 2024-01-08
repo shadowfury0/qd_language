@@ -39,6 +39,8 @@ private:
     D_LIB* lib;
 
     BITSET b;
+    //其他参数字符串读取
+    std::vector<std::string> args;
 };
 
 

@@ -249,12 +249,12 @@ int LexState::llex(){
     }
     default:{
     //解析字母
-        if (this->islalpha(this->cur)){
+        if (this->islalpha(this->cur) || '_' == this->cur){
             std::string data;
             do{
                 data.push_back(this->cur);
                 next();
-            }while( this->islalpha(this->cur) || this->isdigit(this->cur));
+            }while( this->islalpha(this->cur) || this->isdigit(this->cur) || '_' == this->cur );
             //判断关键字
             int keyw = is_keyword(data.c_str());
             if ( -1 !=  keyw ) {

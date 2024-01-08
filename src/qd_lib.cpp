@@ -1,6 +1,7 @@
 #include "qd_lib.h"
 #include "qd_baselib.h"
 #include "qd_mathlib.h"
+#include "qd_iolib.h"
 
 _QD_BEGIN
 
@@ -9,7 +10,7 @@ _LIB::_LIB() {
 }
 
 _LIB::~_LIB() {
-    
+
 }
 
 bool _LIB::is_fun(const std::string& name) {
@@ -22,12 +23,10 @@ D_LIB::D_LIB() {
 }
     
 D_LIB::~D_LIB() {
-    for ( auto i : this->l ) {
-        if (i.second != nullptr) {
-            delete i.second;
-            i.second = nullptr;
-        } 
-    }
+    //这样做相对好一点
+    delete  (BASE_LIB*)this->l["sys"];
+    delete  (MATH_LIB*)this->l["math"];
+    delete  (IO_LIB*)this->l["io"];
 }
 
 bool D_LIB::is_fun(const std::string& k,const std::string& n) {
@@ -49,6 +48,10 @@ size_t D_LIB::init_libs() {
     MATH_LIB* math_lib = new MATH_LIB();
     math_lib->load_lib();
     this->l["math"] = math_lib;
+
+    IO_LIB* io_lib = new IO_LIB();
+    io_lib->load_lib();
+    this->l["io"] = io_lib;
     
     return 0;
 }
