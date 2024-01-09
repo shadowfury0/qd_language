@@ -162,7 +162,7 @@ size_t DParser::parse_Func(FunHead& fun) {
             if ( T_END != ls->t.token ) {
                 if( assign_expr(ret,fun) ){
                     logger->error(ls->_row,":",ls->_col," return assign expression error");
-                    err_flag = true;
+                    return ERR_END;
                 }
             }
             ret.type = OC_RET;
