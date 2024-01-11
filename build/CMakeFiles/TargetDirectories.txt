@@ -1,3 +1,0 @@
-D:/C++_Vscode/qd_language/build/CMakeFiles/qd.dir
-D:/C++_Vscode/qd_language/build/CMakeFiles/edit_cache.dir
-D:/C++_Vscode/qd_language/build/CMakeFiles/rebuild_cache.dir
