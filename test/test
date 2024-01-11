@@ -1,1 +1,2 @@
-
+p = io.open('../test/1')
+io.close(p)

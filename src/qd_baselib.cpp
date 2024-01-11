@@ -15,7 +15,8 @@ size_t print(D_State* l) {
         switch (v.type)
         {
         case VE_BOOL:
-            std::cout <<  v.var.bv ;
+            if (v.var.bv) std::cout << "true ";
+            else    std::cout << "false ";
             break;
         case VE_INT:
             std::cout << v.var.iv ;
