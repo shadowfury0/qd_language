@@ -1,0 +1,3 @@
+a = "nbfhh"
+
+a = string.upper(a)

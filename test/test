@@ -1,2 +1,8 @@
-p = io.open('../test/1')
-io.close(p)
+io.open('../test/1')
+
+while io.eof() != true:
+    p = io.read(1)
+    sys.print(p)
+pass
+
+io.close('../test/test')

@@ -34,6 +34,11 @@ D_OBJ obj;\
 obj.type = VE_NULL;\
 l->rets.push_back(obj);
 
+//清空,vars的len个变量
+#define D_STA_CLEAN_(len)\
+while (len--)\
+{l->vars.pop_front();}
+
 
 _QD_END
 

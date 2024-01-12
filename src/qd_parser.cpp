@@ -1793,11 +1793,14 @@ size_t DParser::read_file(const char* file){
         }
 
         //处理剩余字符串
-        int rest = length % chunk;
-        char * buffer = new char[ rest + 1 ];
-        buffer[rest] = '\0'; //末尾一定要加
+        size_t rest = length % chunk;
+
+        char * buffer = new char[ rest + 2 ];
+        //多加一个是防止最后eof而没解析到end
+        buffer[rest] = ';'; 
+        buffer[rest+1] = '\0';//末尾一定要加
         is.read( buffer, rest );
-        ls->alloc_buff(buffer,rest);
+        ls->alloc_buff(buffer,rest + 1);
 
         delete[] buffer;
 

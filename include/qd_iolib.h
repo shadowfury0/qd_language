@@ -13,7 +13,6 @@ struct IO_LIB : _LIB
 
     void load_lib() override;
 
-
 };
 
 

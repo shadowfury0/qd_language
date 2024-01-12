@@ -1,3 +1,14 @@
-1111111
-222222
-33333
+io.open('../test/tes
+t')
+
+while io.eof() 
+!= true:
+    p = io.
+read(9)
+    sys.prin
+t(p)
+pass
+
+io.close(
+'../test/test')
+

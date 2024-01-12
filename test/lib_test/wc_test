@@ -1,0 +1,9 @@
+len = 0
+f = io.open('../test/lib_test/tmp')
+while io.eof() != true:
+    p = io.read()
+    global len = len + 1
+    sys.print(p)
+pass
+sys.print(len)
+io.close(f)

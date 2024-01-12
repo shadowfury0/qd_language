@@ -707,6 +707,11 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
 
     s.set_state_pos(inc.lpos);
 
+    if ( s.state->v_pos > s.state->vars.size() ) {
+        logger->error("v_pos is larger than args size");
+        return ERR_END;
+    }
+
     //内部函数调用
     if ( ( this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv] )( s.state ) ) {
         logger->error("system call error");

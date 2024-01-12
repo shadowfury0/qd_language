@@ -66,14 +66,10 @@ size_t type(D_State* l) {
         std::cout << " null ";
         break;
     }
-    l->vars.pop_front();
     std::cout << std::endl;
 
     //其他函数出栈
-    while (--len)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len)
 
     D_STA_PUS_NUL
 
@@ -107,13 +103,7 @@ size_t assert(D_State* l) {
         break;
     }
 
-    l->vars.pop_front();
-
-    //其他函数出栈
-    while (--len)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len);
 
     D_STA_PUS_NUL
 
@@ -132,13 +122,8 @@ size_t len(D_State* l) {
         s = (int)v.uni->larr.size();
     }
 
-    l->vars.pop_front();
-
     //其他函数出栈
-    while (--len)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len);
 
     l->rets.push_back(s);
 
