@@ -316,7 +316,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 logger->debug("<-----  analyse  break  ----->");
                 logger->debug("cur line is :  ",inc.curpos);
 
-                // last_break();
+                last_break();
                 
                 break;
             }
@@ -828,17 +828,33 @@ D_OBJ* D_VM::find_variable(const std::string& name) {
     return nullptr;
 }
 
+void D_VM::last_break() {
+    if (!this->st->cs.size()) return;
+    size_t i = this->st->cs.size() - 1;
+    if (!i) return;
+    CallInfo* tmp = this->st->cs[i];
+    
+    //匿名函数是前提
+    while (tmp->anonymous)
+    {
+        tmp->pos = tmp->f->codes.size();
+        --i;
+        if (!i) break;
+        tmp = this->st->cs[i];
+    }
+}
 
-CallInfo* D_VM::last_return() { 
-    int i = this->st->cs.size() - 1;
-    if ( i <= 0 ) return nullptr;
+CallInfo* D_VM::last_return() {
+    if (!this->st->cs.size()) return nullptr;
+    //这里必须是有符号
+    size_t i = this->st->cs.size() - 1;
+    if ( !i ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
 
     //如果不是匿名函数
     if (!tmpin->anonymous) {
-        // logger->error(i);
+        if ( !i ) return nullptr;
         --i;
-        if ( i < 0 ) return nullptr;
         tmpin->pos = tmpin->f->codes.size();
         tmpin =  this->st->cs[i];
     }
@@ -849,18 +865,17 @@ CallInfo* D_VM::last_return() {
             if (!tmpin->anonymous) {
                 break;
             }
+            if ( !i ) return nullptr;
             --i;
-            if ( i < 0 ) return nullptr;
             tmpin->pos = tmpin->f->codes.size();
             tmpin = this->st->cs[i];
         }
 
         //再找上一个函数
+        if ( !i ) return nullptr;
         --i;
-        if ( i < 0 ) return nullptr;
         tmpin->pos = tmpin->f->codes.size();
         tmpin =  this->st->cs[i];
-
     }
 
     while ( tmpin )
@@ -868,8 +883,8 @@ CallInfo* D_VM::last_return() {
         if (!tmpin->anonymous) {
             return tmpin;
         }
+        if ( !i ) return nullptr;
         --i;
-        if ( i < 0 ) return nullptr;
         tmpin = this->st->cs[i];
     }
 
@@ -877,17 +892,22 @@ CallInfo* D_VM::last_return() {
 }
 
 CallInfo* D_VM::last_var(CallInfo* info) {
-    int i = this->st->cs.size() - 1;
-    if ( i <= 0 ) return this->head_fun();
+    if (!this->st->cs.size()) return nullptr;
+
+    size_t i = this->st->cs.size() - 1;
+    if ( !i ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
 
-    for (;;)
+    while ( tmpin )
     {
-        i --;
-        if ( i < 0 ) return this->head_fun();
+        if (!tmpin->anonymous) {
+            return tmpin;
+        }
+        if ( !i ) return this->head_fun();
+        --i;
         tmpin = this->st->cs[i];
-        if (!tmpin->anonymous) break;
     }
+
     //返回全局函数
     return tmpin;
 }

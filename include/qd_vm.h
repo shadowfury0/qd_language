@@ -60,7 +60,7 @@ struct D_VM
     //上一级，非匿名函数位置
     CallInfo* last_return();
     //上一级，返回匿名函数
-    // void last_break();
+    void last_break();
     //上一级变量位置，(local位置查找)
     CallInfo* last_var(CallInfo* info);
 

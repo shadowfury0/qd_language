@@ -275,7 +275,6 @@ IO_LIB::~IO_LIB() {
     for (auto i : os_file) {
         delete i.second;
         i.second = nullptr;
-        std::cout << "-------- \n";
     }
 }
 

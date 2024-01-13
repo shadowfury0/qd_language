@@ -1,3 +1,7 @@
 a = "nbfhh"
 
 a = string.upper(a)
+sys.print(a)
+
+a = string.lower(a)
+sys.print(a)
