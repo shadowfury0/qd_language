@@ -1,5 +1,5 @@
-#ifndef __QD_STATE_H__
-#define __QD_STATE_H__
+#ifndef __QD_CALL_INFO_H__
+#define __QD_CALL_INFO_H__
 
 #include "qd_header.h"
 #include "qd_obj.h"

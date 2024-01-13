@@ -7,7 +7,7 @@ _QD_BEGIN
 //获取字符串,str 为 std::string 类型
 #define STR_FUN_(str)\
 do{\
-if ( VE_STR != l->vars.front().type ) {return 1;}\
+if ( VE_STR != l->vars.front().type ) {return EL_TYPE;}\
 str = l->vars.front().var.chv;--len;\
 l->vars.pop_front();\
 }while (0)
@@ -16,8 +16,7 @@ l->vars.pop_front();\
 size_t _str_len(D_State* l) {
     size_t len = l->v_pos;
     if ( len < 1 ) {
-        D_STA_PUS_NUL
-        return 0;
+        return EL_ARG_NUM;
     }
 
     D_OBJ& str = l->vars.front();
@@ -33,12 +32,9 @@ size_t _str_len(D_State* l) {
         l->rets.push_back(s);
     }
 
-    while (len--)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len)
     
-    return 0;
+    return EL_OK;
 }
 
 /**
@@ -51,7 +47,7 @@ size_t _str_sub(D_State* l) {
     size_t len = l->v_pos;
 
     if ( len < 2 ) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     std::string str;
@@ -61,8 +57,11 @@ size_t _str_sub(D_State* l) {
 
     //第二个参数
     D_OBJ var1 = l->vars.front();
-    if ( VE_INT != var1.type || ( var1.var.iv < 0 && var1.var.iv > str.size() - 1 ) ) {
-        return 1;
+    if ( VE_INT != var1.type ) {
+        return EL_TYPE;
+    }
+    else if ( var1.var.iv < 0 || var1.var.iv > str.size() - 1 ) {
+        return EL_ACE_OUT;
     }
     --len;
     l->vars.pop_front();
@@ -71,8 +70,11 @@ size_t _str_sub(D_State* l) {
     if (len > 0) {
         //第三个参数
         D_OBJ var2 = l->vars.front();
-        if ( VE_INT != var2.type || var2.var.iv < 0 ) {
-            return 1;
+        if ( VE_INT != var2.type ) {
+            return EL_TYPE;
+        }
+        else if ( var2.var.iv < 0 ) {
+            return EL_ACE_OUT;
         }
         --len;
         l->vars.pop_front();
@@ -85,13 +87,13 @@ size_t _str_sub(D_State* l) {
     
     D_STA_CLEAN_(len)
 
-    return 0;
+    return EL_OK;
 }
 
 size_t _str_cmp(D_State* l) {
     size_t len = l->v_pos;
     if ( len < 2 ) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     std::string str1;
@@ -108,18 +110,15 @@ size_t _str_cmp(D_State* l) {
         l->rets.push_back(false);
     }
 
-    while (len--)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len)
 
-    return 0;
+    return EL_OK;
 }
 
 size_t _str_upper(D_State* l) {
     size_t len = l->v_pos;
     if ( len < 1 ) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     std::string str;
@@ -129,13 +128,13 @@ size_t _str_upper(D_State* l) {
 
     l->rets.push_back(str.c_str());
 
-    return 0;
+    return EL_OK;
 }
 
 size_t _str_lower(D_State* l) {
     size_t len = l->v_pos;
     if ( len < 1 ) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     std::string str;
@@ -144,7 +143,7 @@ size_t _str_lower(D_State* l) {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
 
     l->rets.push_back(str.c_str());
-    return 0;
+    return EL_OK;
 }
 
 STR_LIB::STR_LIB() {

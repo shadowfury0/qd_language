@@ -3,7 +3,6 @@
 
 #include "qd_log.h"
 #include "qd_call.h"
-#include "qd_state.h"
 #include "qd_lib.h"
 
 _QD_BEGIN
@@ -65,6 +64,7 @@ struct D_VM
     D_OBJ* find_variable(const std::string& name);
     //打印所有变量
     void print_variables(const CallInfo* call);
+
 
     Logger* logger;
 

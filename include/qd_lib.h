@@ -1,5 +1,5 @@
-#ifndef _QD_LIB_H_
-#define _QD_LIB_H_
+#ifndef __QD_LIB_H__
+#define __QD_LIB_H__
 
 #include "qd_header.h"
 #include "qd_state.h"

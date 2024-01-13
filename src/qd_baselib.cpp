@@ -40,7 +40,7 @@ size_t print(D_State* l) {
     //压栈
     D_STA_PUS_NUL
 
-    return 0;
+    return EL_OK;
 }
 
 //只判断第一个数据类型
@@ -73,13 +73,13 @@ size_t type(D_State* l) {
 
     D_STA_PUS_NUL
 
-    return 0;
+    return EL_OK;
 }
 
 size_t error(D_State* l) {
     std::cout << "system error !!! " ;
     print(l);
-    return 1;
+    return EL_SYS;
 }
 
 size_t assert(D_State* l) {
@@ -127,7 +127,7 @@ size_t len(D_State* l) {
 
     l->rets.push_back(s);
 
-    return 0;
+    return EL_OK;
 }
 
 BASE_LIB::BASE_LIB() {

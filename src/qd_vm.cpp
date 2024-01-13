@@ -292,18 +292,17 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 
                 CallInfo* call = last_function(info);
 
-                // if (!call) {
-                //     // i = clen;
-                //     // continue;
-                // }
-                //如果返回值为空
-                if ( FIN_END == inc.rpos ) {
+                //如果为全局函数的话,直接执行后续步骤
+                if (!call) {
+                    continue;
+                }
+                else if ( FIN_END == inc.rpos ) {
                     D_OBJ tmpobj;
                     tmpobj.type = VE_NULL;
                     call->v(inc.left.var.chv) = tmpobj;
                 }
                 //保存上一级函数返回值变量,匿名函数不赋值直接跳出
-                else if (call) {
+                else  {
                     call->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
                 }
                 //当前代码行数终止
@@ -712,8 +711,10 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
         return ERR_END;
     }
 
+    size_t ret = ( this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv] )( s.state );
+    
     //内部函数调用
-    if ( ( this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv] )( s.state ) ) {
+    if ( ret ) {
         logger->error("system call error");
         return ERR_END;
     }

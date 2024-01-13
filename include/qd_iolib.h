@@ -1,5 +1,5 @@
-#ifndef _QD_IO_LIB_H_
-#define _QD_IO_LIB_H_
+#ifndef __QD_IO_LIB_H__
+#define __QD_IO_LIB_H__
 
 #include "qd_lib.h"
 

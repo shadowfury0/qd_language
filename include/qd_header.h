@@ -1,5 +1,5 @@
-#ifndef __QD_HEADER_H_
-#define __QD_HEADER_H_
+#ifndef __QD_HEADER_H__
+#define __QD_HEADER_H__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +16,9 @@
 #include <deque>
 #include <queue>
 #include <algorithm>
+
+
+#include "qd_err.h"
 
 
 #define _QD_BEGIN namespace qd_header{
@@ -46,6 +49,7 @@ _QD_BEGIN
 #define QD_KYW_LOCAL    "local"
 #define QD_KYW_FUNC     "fun"
 #define QD_KYW_RET      "ret"
+#define QD_KYW_BRK      "break"
 #define QD_KYW_IN       "in"
 #define QD_KYW_DEFINE   "def"
 #define QD_KYW_USING    "using"

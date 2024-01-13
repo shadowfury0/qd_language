@@ -11,15 +11,15 @@ size_t len = l->v_pos;\
 D_OBJ& v = l->vars.front();\
 if ( VE_INT == v.type ) {l->rets.push_back(f(v.var.iv));}\
 else if ( VE_FLT == v.type ) {l->rets.push_back(f(v.var.dv));}\
-else {return 1;}\
+else {return EL_TYPE;}\
 D_STA_CLEAN_(len)\
-return 0;\
+return EL_OK;\
 } while (0)
 
 #define MATH_FUN2_(f)\
 do{\
 size_t len = l->v_pos;\
-if ( l->vars.size() < 2 ) {return 1;}\
+if ( l->vars.size() < 2 ) {return EL_ARG_NUM;}\
 D_OBJ v1 = l->vars.front();\
 l->vars.pop_front();--len;\
 D_OBJ v2 = l->vars.front();\
@@ -28,9 +28,9 @@ if ( VE_INT == v1.type && VE_INT == v2.type ) {l->rets.push_back(f(v1.var.iv,v2.
 else if ( VE_FLT == v1.type && VE_INT == v2.type ) {l->rets.push_back(f(v1.var.dv,v2.var.iv));}\
 else if ( VE_INT == v1.type && VE_FLT == v2.type ) {l->rets.push_back(f(v1.var.iv,v2.var.dv));}\
 else if ( VE_FLT == v1.type && VE_FLT == v2.type ) {l->rets.push_back(f(v1.var.dv,v2.var.dv));}\
-else {return 1;}\
+else {return EL_TYPE;}\
 D_STA_CLEAN_(len)\
-return 0;\
+return EL_OK;\
 } while (0)
 
 
@@ -94,11 +94,11 @@ size_t random(D_State* l) {
         len--;
         D_OBJ& obj = l->vars.front();
         if ( VE_INT != obj.type ) {
-            return 1;
+            return EL_TYPE;
         }
         //数学错误
         if ( 0 == obj.var.iv) {
-            return 1;
+            return EL_MATH;
         }
         mod = obj.var.iv;
         l->vars.pop_front();
@@ -117,7 +117,7 @@ size_t random(D_State* l) {
     r = r % mod;
 
     l->rets.push_back( r ) ;
-    return 0;
+    return EL_OK;
 }
 
 size_t sin(D_State* l) {

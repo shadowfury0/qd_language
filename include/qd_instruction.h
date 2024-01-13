@@ -1,5 +1,5 @@
-#ifndef __QD_INSTRUCTION_H_
-#define __QD_INSTRUCTION_H_
+#ifndef __QD_INSTRUCTION_H__
+#define __QD_INSTRUCTION_H__
 
 #include "qd_header.h"
 #include "qd_obj.h"
@@ -96,6 +96,7 @@ enum OprCode {
     OC_JMP,               // 跳转指令
     OC_CALL,              // 调用函数
     OC_RET,               // 返回
+    OC_BRK,               // break
     OC_ARG,               // 函数参数
     /* lib */
     OC_LIB,               // 库调用

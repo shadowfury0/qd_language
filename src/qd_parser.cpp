@@ -170,6 +170,18 @@ size_t DParser::parse_Func(FunHead& fun) {
 
             break;
         }
+        case T_BREAK: {
+            Instruction ret;
+            ret.type = OC_BRK;
+            ret.curpos = fun.codes.size();
+            
+            FIND_NEXT
+            if ( T_END != ls->t.token ) {
+                logger->error(ls->_row,":",ls->_col," break error");
+                return ERR_END;
+            }
+            break;
+        }
         case T_IF:{
             if( if_expr(fun) ){
                 logger->error(ls->_row,":",ls->_col," if statement error");

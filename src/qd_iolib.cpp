@@ -16,14 +16,14 @@ size_t open(D_State* l) {
     size_t len = l->v_pos;
 
     if ( len < 1 || l->vars.size() < 1 ) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     D_OBJ var1 = l->vars.front();
 
     if ( VE_STR != var1.type ) {
         // logger->error("args is not correct ");
-        return 1;
+        return EL_TYPE;
     }
 
     std::string filename = var1.var.chv;
@@ -69,21 +69,21 @@ size_t open(D_State* l) {
 read_end:
     D_STA_CLEAN_(len)
 
-    return 0;
+    return EL_OK;
 }
 
 size_t close(D_State* l) {
     size_t len = l->v_pos;
 
     if (len < 1 || l->vars.size() < 1) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     D_OBJ& var1 = l->vars.front();
 
     if ( VE_STR != var1.type ) {
         // logger->error("args is not correct ");
-        return 1;
+        return EL_TYPE;
     }
 
     std::string filename = var1.var.chv;
@@ -113,7 +113,7 @@ size_t close(D_State* l) {
 
     D_STA_PUS_NUL
 
-    return 0;
+    return EL_OK;
 }
 
 size_t write(D_State* l) {
@@ -121,7 +121,7 @@ size_t write(D_State* l) {
     if (!cur_file) {
         // logger->warn("cur file is null");
         D_STA_PUS_NUL
-        return 0;
+        return EL_OK;
     }
 
     size_t len = l->v_pos;
@@ -152,7 +152,7 @@ size_t write(D_State* l) {
 
     D_STA_PUS_NUL
 
-    return 0;
+    return EL_OK;
 }
 
 // 按行读取
@@ -162,7 +162,7 @@ size_t read(D_State* l) {
     if (!cur_file) {
         // logger->error("file is not open");
         D_STA_PUS_NUL
-        return 0;
+        return EL_OK;
     }
 
     D_OBJ obj;
@@ -170,7 +170,7 @@ size_t read(D_State* l) {
     //如果有参数
     if (len > 0) {
         if ( VE_INT != l->vars.front().type) {
-            return 1;
+            return EL_TYPE;
         }
         
         size_t s = l->vars.front().var.iv;
@@ -188,7 +188,7 @@ size_t read(D_State* l) {
     
     D_STA_CLEAN_(len)
 
-    return 0;
+    return EL_OK;
 }
 
 size_t _switch(D_State* l) {
@@ -198,13 +198,13 @@ size_t _switch(D_State* l) {
         // logger->warn("arg is incorrect");
         D_STA_PUS_NUL
         D_STA_CLEAN_(len)
-        return 0;
+        return EL_OK;
     }
     else if ( VE_STR != l->vars.front().type) {
         // logger->error("arg is not string");
         D_STA_PUS_NUL
         D_STA_CLEAN_(len)
-        return 0;
+        return EL_OK;
     }
 
     cur_file = find_os(l->vars.front().var.chv);
@@ -216,7 +216,7 @@ size_t _switch(D_State* l) {
     l->vars.pop_front();
 
     D_STA_PUS_NUL
-    return 0;
+    return EL_OK;
 }
 
 size_t eof(D_State* l) {
@@ -227,7 +227,7 @@ size_t eof(D_State* l) {
     if (!cur_file) {
         // logger->warn("file is not exist in is_end() function");
         D_STA_PUS_NUL
-        return 0;
+        return EL_OK;
     }
 
     D_OBJ end;
@@ -247,14 +247,14 @@ size_t eof(D_State* l) {
 size_t is_open(D_State* l) {
     size_t len = l->v_pos;
     if (len < 1) {
-        return 1;
+        return EL_ARG_NUM;
     }
 
     D_OBJ& var1 = l->vars.front();
 
     if ( VE_STR != var1.type ) {
         // logger->error("args is not correct ");
-        return 1;
+        return EL_TYPE;
     }
 
     if(!find_os(var1.var.chv)){
@@ -266,7 +266,7 @@ size_t is_open(D_State* l) {
 
     D_STA_CLEAN_(len)
 
-    return 0;  
+    return EL_OK;  
 }
 
 IO_LIB::IO_LIB() {
