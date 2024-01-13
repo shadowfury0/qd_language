@@ -174,6 +174,7 @@ size_t DParser::parse_Func(FunHead& fun) {
             Instruction ret;
             ret.type = OC_BRK;
             ret.curpos = fun.codes.size();
+            fun.codes.push_back(ret);
             
             FIND_NEXT
             if ( T_END != ls->t.token ) {

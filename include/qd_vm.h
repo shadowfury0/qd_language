@@ -56,10 +56,14 @@ struct D_VM
     size_t input_args(const Instruction& inc,CallInfo* cur,CallInfo* push);
     //查找函数
     FunHead* find_function(const std::string& name);
+
     //上一级，非匿名函数位置
-    CallInfo* last_function(CallInfo* info);
+    CallInfo* last_return();
+    //上一级，返回匿名函数
+    // void last_break();
     //上一级变量位置，(local位置查找)
     CallInfo* last_var(CallInfo* info);
+
     
     D_OBJ* find_variable(const std::string& name);
     //打印所有变量

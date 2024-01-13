@@ -229,6 +229,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 logger->debug("left pos is :  ",inc.lpos);
                 
                 CallInfo* call = new CallInfo();
+                call->anonymous = true;
                 call->f = new FunHead(*cur_fun()->f->lfuns[inc.lpos]);
 
                 this->push_call(call);
@@ -290,13 +291,14 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 logger->debug("cur line is :  ",inc.curpos);
                 //出栈
                 
-                CallInfo* call = last_function(info);
+                CallInfo* call = last_return();
 
+                
                 //如果为全局函数的话,直接执行后续步骤
                 if (!call) {
                     continue;
                 }
-                else if ( FIN_END == inc.rpos ) {
+                if ( FIN_END == inc.rpos ) {
                     D_OBJ tmpobj;
                     tmpobj.type = VE_NULL;
                     call->v(inc.left.var.chv) = tmpobj;
@@ -305,10 +307,17 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 else  {
                     call->v(inc.left.var.chv) = info->f->codes[inc.rpos].right;
                 }
-                //当前代码行数终止
-                i = clen;
-                //存储return变量
-                // logger->error(size_call());
+
+                break;
+            }
+            //目前不需要
+            case OC_BRK:
+            {
+                logger->debug("<-----  analyse  break  ----->");
+                logger->debug("cur line is :  ",inc.curpos);
+
+                // last_break();
+                
                 break;
             }
             case OC_IF:
@@ -331,6 +340,10 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                     }
                     delete this->cur_fun();
                     this->pop_call();
+                }
+                else {
+                    //要析构
+                    delete call;
                 }
                 
                 break;
@@ -815,13 +828,15 @@ D_OBJ* D_VM::find_variable(const std::string& name) {
     return nullptr;
 }
 
-CallInfo* D_VM::last_function(CallInfo* info) { 
+
+CallInfo* D_VM::last_return() { 
     int i = this->st->cs.size() - 1;
     if ( i <= 0 ) return nullptr;
     CallInfo* tmpin = this->st->cs[i];
 
     //如果不是匿名函数
     if (!tmpin->anonymous) {
+        // logger->error(i);
         --i;
         if ( i < 0 ) return nullptr;
         tmpin->pos = tmpin->f->codes.size();
@@ -843,7 +858,6 @@ CallInfo* D_VM::last_function(CallInfo* info) {
         //再找上一个函数
         --i;
         if ( i < 0 ) return nullptr;
-
         tmpin->pos = tmpin->f->codes.size();
         tmpin =  this->st->cs[i];
 

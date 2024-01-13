@@ -98,17 +98,13 @@ size_t close(D_State* l) {
     else {
         fs->close();
         // logger->warn("file is closing");
+        delete fs;
         os_file.erase(filename);
     }
     cur_file = nullptr;
 
-    l->vars.pop_front();
-    --len;
 
-    while (len--)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len)
 
 
     D_STA_PUS_NUL
@@ -240,7 +236,7 @@ size_t eof(D_State* l) {
 
     l->rets.push_back(end);
 
-    return 0;
+    return EL_OK;
 }
 
 //文件是否打开状态
@@ -279,6 +275,7 @@ IO_LIB::~IO_LIB() {
     for (auto i : os_file) {
         delete i.second;
         i.second = nullptr;
+        std::cout << "-------- \n";
     }
 }
 
