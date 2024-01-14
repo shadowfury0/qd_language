@@ -26,7 +26,7 @@ struct FunHead {
     //内部库状态
     D_State* state;
 
-    //函数参数
+    //函数参数,这个可以不需要？？
     std::vector<std::string> args;
     //匿名内部函数，如if  for
     std::vector<FunHead*>  lfuns;

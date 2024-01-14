@@ -250,7 +250,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 logger->debug("right pos is :  ",inc.rpos);
                 logger->debug("left value is ->  ",inc.left);
                 logger->debug("right value is ->  ",inc.right);
-
+                // logger->error(inc);
                 break;
             }
             case OC_CALL:
@@ -268,13 +268,14 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                     logger->error("function error");
                     return ERR_END;
                 }
-                this->push_call(call);
                 
                 //输入参数
                 if(this->input_args(inc,info,call)){
                     logger->error("args input error");
                     return ERR_END;
                 }
+                //这个必须放在输入参数后面,因为input_args 是从栈顶开始查找变量
+                this->push_call(call);
 
                 if(analyse_code(cur_fun()->pos,cur_fun())){
                     return ERR_END;

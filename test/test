@@ -1,8 +1,8 @@
-io.open('../test/1')
-
-while io.eof() != true:
-    p = io.read(1)
-    sys.print(p)
+a = 'a'
+b = 'b'
+fun ff(b,c):
+    sys.print(b,'  ',c)
+    ff(c,b)
 pass
 
-io.close('../test/test')
+ff(a,b)

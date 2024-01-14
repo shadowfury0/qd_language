@@ -1535,8 +1535,19 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
     FIND_NEXT
 
     //参数判断
-    size_t stacksize = 0;
+    size_t startpos = 0;
+
+    FunHead* cur = find_function(name,this->env_stack_top());
+    //函数未找到
+    if(!cur) {
+        logger->error("function not found ");
+        return ERR_END;
+    }
+    
+    cur = cur->lfuns[tmpobj->var.iv];
+    size_t stacksize = cur->args_size();
     size_t argpos = FIN_END;
+
     while ( ls->is_variable(ls->t.token) || T_MINUS == ls->t.token )
     {
         Instruction arg;
@@ -1551,6 +1562,7 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
             arg.restype = OC_MINUS;
         }
 
+        arg.left = cur->args[startpos].c_str();
         arg.right = ls->dvar;
         
         arg.rpos = argpos;
@@ -1558,9 +1570,10 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
         fun.codes.push_back(arg);
 
         FIND_NEXT
-        stacksize++;
-        
-        if ( T_RPARENTH == ls->t.token  ) {
+        startpos++;
+
+        //超出站范围大小        
+        if ( T_RPARENTH == ls->t.token || startpos > stacksize ) {
             break;
         }
         else if ( T_COMMA != ls->t.token ) {
@@ -1572,9 +1585,8 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
 
     }
 
-    FunHead* cur = find_function(name,this->env_stack_top());
     //查找当前参数不匹配
-    if ( stacksize != cur->lfuns[tmpobj->var.iv]->args_size() ) {
+    if ( startpos != stacksize ) {
         logger->error("function args number error ");
         return ERR_END;
     }
