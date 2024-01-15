@@ -67,12 +67,12 @@ struct D_VAR{
     void init();
     void clear();
 
-    D_VAR& operator=(const D_VAR& dv);
-    D_VAR& operator=(const D_OBJ& dv);
-    D_VAR& operator=(const bool& b);
-    D_VAR& operator=(const int& v);
-    D_VAR& operator=(const double& v);
-    D_VAR& operator=(const char* v);
+    void operator=(const D_VAR& dv);
+    void operator=(const D_OBJ& dv);
+    void operator=(const bool& b);
+    void operator=(const int& v);
+    void operator=(const double& v);
+    void operator=(const char* v);
     void alloc_str(const char* v,size_t len);
     
     bool operator==(const D_VAR& dv);
@@ -106,9 +106,11 @@ struct D_ARRAY {
 
     D_ARRAY();
     D_ARRAY(const D_ARRAY& ar);
+    D_ARRAY(const D_OBJ& ar);
     ~D_ARRAY();
 
-    D_ARRAY& operator=(const D_ARRAY& arr);
+    void operator=(const D_ARRAY& arr);
+    void operator=(const D_OBJ& obj);
 };
 
 /*
@@ -127,8 +129,8 @@ struct D_UNION {
     D_UNION(const D_OBJ& un);
     ~D_UNION();
 
-    D_UNION& operator=(const D_UNION& un);
-    D_UNION& operator=(const D_OBJ& obj);
+    void operator=(const D_UNION& un);
+    void operator=(const D_OBJ& obj);
 
     friend std::ostream& operator<<(std::ostream& os, const D_UNION& p);
 };
@@ -172,14 +174,14 @@ struct D_OBJ
     D_OBJ(const double& v);
     D_OBJ(const char* v);
     
-    D_OBJ& operator=(const D_VAR& dv);
-    D_OBJ& operator=(const D_OBJ& dv);
-    D_OBJ& operator=(const D_UNION& un);
-    D_OBJ& operator=(const D_ARRAY& un);
-    D_OBJ& operator=(const bool& b);
-    D_OBJ& operator=(const int& v);
-    D_OBJ& operator=(const double& v);
-    D_OBJ& operator=(const char* v);
+    void operator=(const D_VAR& dv);
+    void operator=(const D_OBJ& dv);
+    void operator=(const D_UNION& un);
+    void operator=(const D_ARRAY& un);
+    void operator=(const bool& b);
+    void operator=(const int& v);
+    void operator=(const double& v);
+    void operator=(const char* v);
     void alloc_str(const char* v,size_t len);
 
     D_OBJ operator-();

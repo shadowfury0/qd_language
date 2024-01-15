@@ -280,11 +280,19 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 else if ( VE_ARRAY == var->type ) {
                     step = var->size();
                     D_PRO pro = var->arr->arr[inc.lpos];
-                    D_VAR un;
-                    memcpy(&un,&pro,sizeof(D_PRO));
-                    un.type = var->at;
 
-                    default_assign(inc.left.var.chv,un,info);
+                    D_VAR ar;
+                    if ( VE_STR == var->at ) {
+                        ar = pro.chv;
+                    }
+                    else
+                    {
+                        ar.var = pro;
+                    }
+                    // memcpy(&un,&pro,sizeof(D_PRO));
+                    // ar.type = var->at;
+
+                    default_assign(inc.left.var.chv,ar,info);
                     inc.lpos++;
                 }
                 else if ( VE_UNION == var->type ) {
@@ -485,20 +493,24 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 }
 
                 //赋值
-                if ( VE_UNION == arr->type ) {
-                    inc.right = arr->uni->un[pos];
+                if ( VE_ARRAY == arr->type ) {
+                    if ( VE_STR == arr->at ) {
+                        inc.right = arr->arr->arr[pos].chv;
+                    }
+                    else
+                    {
+                        inc.right.var = arr->arr->arr[pos];
+                    }
+                    inc.right.type = arr->at;
                 }
                 else {
-                    inc.right.var = arr->arr->arr[pos];
-                    inc.right.type = arr->at;
+                    inc.right = arr->uni->un[pos];
                 }
                 
                 break;
             }
             case OC_ARR_SET:
             {
-                
-
                 if (analyse_array_index_assign(inc,*info->f)) {
                     logger->error("error in array index assign function");
                     return ERR_END;
@@ -797,6 +809,7 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
         {
             array->at = inc.right.type;
         }
+
         array->push_back(inc.right);
     }
     else {
@@ -835,12 +848,22 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
         D_VAR& var = fun.codes[inc.rpos].right;
         //这里判断数组类别
         if ( VE_ARRAY == array->type ) {
+            D_PRO pro;
             if (var.type != array->at ) {
                 logger->error("can not assign this type into array");
                 return ERR_END;
             }
-            D_PRO pro;
-            memcpy(&pro,&var,sizeof(D_PRO));
+            //如果是字符串
+            else if ( VE_STR == array->at ) {
+                //有些繁琐
+                size_t len = strlen(var.var.chv);
+                pro.chv = new char[len + 1];
+                strncpy(pro.chv,var.var.chv,len);
+            }
+            else {
+                memcpy(&pro,&var,sizeof(D_PRO));
+            }
+
             array->arr->arr[pos] = pro;
         }
         else if ( VE_UNION == array->type ) {

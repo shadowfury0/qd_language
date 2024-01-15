@@ -46,6 +46,9 @@ D_VAR::~D_VAR(){
 }
 
 void D_VAR::clear(){
+    if (VE_VOID == this->type ) {
+        return;
+    }
     if ( VE_STR == this->type ||
          VE_USER == this->type ||
          VE_ARRAY == this->type ||
@@ -58,8 +61,8 @@ void D_VAR::clear(){
     memset(&this->var,'\0',sizeof(this->var));
 }
 
-D_VAR& D_VAR::operator=(const D_VAR& dv){
-    // clear();
+void D_VAR::operator=(const D_VAR& dv){
+    clear();
     if (VE_STR == dv.type ||
         VE_USER == dv.type || 
         VE_ARRAY == dv.type || 
@@ -70,11 +73,10 @@ D_VAR& D_VAR::operator=(const D_VAR& dv){
         this->var = dv.var;
     }
     this->type = dv.type;
-    return *this;
 }
 
-D_VAR& D_VAR::operator=(const D_OBJ& dv){
-    // clear();
+void D_VAR::operator=(const D_OBJ& dv){
+    clear();
     if ( 
         VE_ARRAY == this->type || 
          VE_UNION == dv.type ) {
@@ -90,21 +92,18 @@ D_VAR& D_VAR::operator=(const D_OBJ& dv){
         this->var = dv.var;
         this->type = dv.type;
     }
-    return *this;
 }
 
-D_VAR& D_VAR::operator=(const bool& b){
+void D_VAR::operator=(const bool& b){
     clear();
     this->type = VE_BOOL;
     this->var.bv = b;
-    return *this;
 }
 
-D_VAR& D_VAR::operator=(const int& v){
+void D_VAR::operator=(const int& v){
     clear();
     this->type = VE_INT;
     this->var.iv = v;
-    return *this;
 }
 
 // void D_VAR::operator=(const size_t& u){
@@ -113,25 +112,25 @@ D_VAR& D_VAR::operator=(const int& v){
 //     this->var.iv = u;
 // }
 
-D_VAR& D_VAR::operator=(const double& v){
+void D_VAR::operator=(const double& v){
     clear();
     this->type = VE_FLT;
     this->var.dv = v;
-    return *this;
 }
 
-D_VAR& D_VAR::operator=(const char* v){
+void D_VAR::operator=(const char* v){
     clear();
     this->type = VE_STR;
     this->var.chv = new char[strlen(v) + 1 ];
+    this->var.chv[strlen(v)] = '\0';
     strcpy(this->var.chv,v);
-    return *this;
 }
 
 void D_VAR::alloc_str(const char* v,size_t len) {
     clear();
     this->type = VE_STR;
     this->var.chv = new char[strlen(v) + 1 ];
+    this->var.chv[strlen(v)] = '\0';
     strcpy(this->var.chv,v);
 }
 
@@ -286,13 +285,22 @@ D_ARRAY::D_ARRAY(const D_ARRAY& ar) {
     this->arr = ar.arr;
 }
 
+D_ARRAY::D_ARRAY(const D_OBJ& obj) {
+    *this = obj;
+}
+
 D_ARRAY::~D_ARRAY() {
 
 }
 
-D_ARRAY& D_ARRAY::operator=(const D_ARRAY& ar){
+void D_ARRAY::operator=(const D_ARRAY& ar){
     this->arr = ar.arr;
-    return *this;
+}
+
+void D_ARRAY::operator=(const D_OBJ& obj) {
+    if ( VE_ARRAY == obj.type ) {
+        *this = *obj.arr;
+    }
 }
 
 D_UNION::D_UNION(){
@@ -310,23 +318,14 @@ D_UNION::D_UNION(const D_OBJ& obj){
 D_UNION::~D_UNION(){
 }
 
-D_UNION& D_UNION::operator=(const D_UNION& un){
+void D_UNION::operator=(const D_UNION& un){
     this->un = un.un;
-    return *this;
 }
 
-D_UNION& D_UNION::operator=(const D_OBJ& obj){
-    // if ( VE_UNION == obj.type ) {
-    //     this->larr.clear();
-    //     for (std::vector<D_VAR>::iterator iter = obj.uni->larr.begin() ;
-    //         iter != obj.uni->larr.end() ; iter ++ ) {
-    //         this->larr.push_back(*iter);
-    //     }
-    // }
+void D_UNION::operator=(const D_OBJ& obj){
     if ( VE_UNION == obj.type ) {
         *this = *obj.uni;
     }
-    return *this;
 }
 
 std::ostream& operator<<(std::ostream& os, const D_UNION& u) {
@@ -344,6 +343,9 @@ void D_OBJ::init(){
 }
 
 void D_OBJ::clear(){
+    if (VE_VOID == this->type ) {
+        return;
+    }
     if ( VE_STR == this->type ||
          VE_USER == this->type
           ){
@@ -357,7 +359,14 @@ void D_OBJ::clear(){
         }
     }
     else if ( VE_ARRAY == this->type ) {
-        if ( this->arr != nullptr){
+        //如果是字符串
+        if ( VE_STR == this->at) {
+            for (D_PRO& i : this->arr->arr ) {
+                delete[] i.chv;
+                i.chv = nullptr;
+            }
+        }
+        if ( this->arr != nullptr ){
             delete this->arr;
             this->arr = nullptr;
         }
@@ -371,7 +380,15 @@ void D_OBJ::push_back(const D_VAR& var) {
         this->uni->un.push_back(var);
     else if ( VE_ARRAY == this->type ) {
         D_PRO pro;
-        memcpy(&pro,&var,sizeof(D_PRO));
+        if ( VE_STR == this->at ) {
+            size_t len = strlen(var.var.chv);
+            pro.chv = new char[len + 1];
+            pro.chv[len] = '\0';
+            strncpy(pro.chv,var.var.chv,len);
+        }
+        else {
+            memcpy(&pro,&var,sizeof(D_PRO));
+        }
         this->arr->arr.push_back(pro);
     } 
 }
@@ -438,7 +455,7 @@ D_OBJ::D_OBJ(const char* v){
     *this = v;
 }
 
-D_OBJ& D_OBJ::operator=(const D_VAR& dv){
+void D_OBJ::operator=(const D_VAR& dv){
     if ( VE_STR == dv.type ||
          VE_USER == dv.type ) {
         *this = dv.var.chv;
@@ -453,11 +470,10 @@ D_OBJ& D_OBJ::operator=(const D_VAR& dv){
         this->var = dv.var;
         this->type = dv.type;
     }
-    return *this;
 }
 
-D_OBJ& D_OBJ::operator=(const D_OBJ& ob) {
-    // clear();
+void D_OBJ::operator=(const D_OBJ& ob) {
+    clear();
     switch (ob.type)
     {
     case VE_STR:
@@ -476,35 +492,30 @@ D_OBJ& D_OBJ::operator=(const D_OBJ& ob) {
         break;
     }
     this->type = ob.type;
-    return *this;
 }
 
-D_OBJ& D_OBJ::operator=(const D_UNION& un){
+void D_OBJ::operator=(const D_UNION& un){
     clear();
     this->uni = new D_UNION(un);
     this->type = VE_UNION;
-    return *this;
 }
 
-D_OBJ& D_OBJ::operator=(const D_ARRAY& arr){
+void D_OBJ::operator=(const D_ARRAY& ar){
     clear();
-    this->arr = new D_ARRAY(arr);
+    this->arr = new D_ARRAY(ar);
     this->type = VE_ARRAY;
-    return *this;
 }
 
-D_OBJ& D_OBJ::operator=(const bool& b){
+void D_OBJ::operator=(const bool& b){
     clear();
     this->type = VE_BOOL;
     this->var.bv = b;
-    return *this;
 }
 
-D_OBJ& D_OBJ::operator=(const int& v){
+void D_OBJ::operator=(const int& v){
     clear();
     this->type = VE_INT;
     this->var.iv = v;
-    return *this;
 }
 
 // void D_OBJ::operator=(const size_t& u){
@@ -513,27 +524,25 @@ D_OBJ& D_OBJ::operator=(const int& v){
 //     this->var.iv = u;
 // }
 
-D_OBJ& D_OBJ::operator=(const double& v){
+void D_OBJ::operator=(const double& v){
     clear();
     this->type = VE_FLT;
     this->var.dv = v;
-    return *this;
 }
 
-D_OBJ& D_OBJ::operator=(const char* v){
+void D_OBJ::operator=(const char* v){
     clear();
     this->type = VE_STR;
     this->var.chv = new char[ strlen(v) + 1 ];
-
+    this->var.chv[strlen(v)] = '\0';
     strcpy(this->var.chv,v);
-    return *this;
 }
 
 void D_OBJ::alloc_str(const char* v,size_t len) {
     clear();
     this->type = VE_STR;
     this->var.chv = new char[strlen(v) + 1 ];
-
+    this->var.chv[strlen(v)] = '\0';
     strcpy(this->var.chv,v);
 }
 
