@@ -73,6 +73,7 @@ enum TOK_TYPE {
     T_UDATA,                //用户变量
 /*   symbols    */
     T_EQ,                   //=
+    T_CEQ,                  //:=
     T_DEQ,                  //==
     T_EXCLAMATION,          //!
     T_NEQ,                  //!=

@@ -67,9 +67,15 @@ int LexState::llex(){
         return T_END;
     }
     case ':':{
-        // printf(": ");
         this->next();
-        return T_COLON;
+        if (check1_next('=')) {
+            // printf(":= ");
+            return T_CEQ;  /* ':=' */
+        }
+        else {
+            // printf(": ");
+            return T_COLON;
+        }
     }
     /* line breaks */
     case '\n': case '\r':{

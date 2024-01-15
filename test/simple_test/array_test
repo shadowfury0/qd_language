@@ -1,10 +1,8 @@
 #warning out of range test
-a = [ 1212,"asdqw",12.3,"asd" ]
+a = { 1212,2,3,4 }
 
-a[0] = 2.2
-a[1] = 12.1
-a[2] = 3
-a[3] = 2 + -(-(2 + 2))
+#错误
+#a[2] = 'asd'
 
 i = 0
 
@@ -14,4 +12,3 @@ while i < 4:
     sys.print(val)
     i = i + 1
 pass
-

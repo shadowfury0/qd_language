@@ -25,7 +25,13 @@ size_t print(D_State* l) {
             std::cout << v.var.dv ;
             break;
         case VE_STR:
-            std::cout << v.var.chv ;
+            std::cout << v.var.chv;
+            break;
+        case VE_ARRAY:
+            std::cout << "array ";
+            break;
+        case VE_UNION:
+            std::cout << "union ";
             break;
         default:
             std::cout << " null ";
@@ -119,13 +125,27 @@ size_t len(D_State* l) {
     int s = 0;
     if ( VE_UNION == v.type ) {
         //潜在溢出
-        s = (int)v.uni->larr.size();
+        s = (int)v.uni->un.size();
     }
 
     //其他函数出栈
     D_STA_CLEAN_(len);
 
     l->rets.push_back(s);
+
+    return EL_OK;
+}
+
+//目前只是接受屏幕输入的字符串而已没什么区别
+size_t input(D_State* l) {
+    size_t len = l->v_pos;
+    D_STA_CLEAN_(len);
+
+
+    std::string line;
+    std::getline(std::cin,line);
+
+    l->rets.push_back(line.c_str());
 
     return EL_OK;
 }
@@ -143,6 +163,8 @@ void BASE_LIB::load_lib() {
     funs["type"]   = type;
     funs["error"]  = error;
     funs["assert"] = assert;
+    funs["input"]  = input;
+    
     funs["len"]    = len;
 }
 

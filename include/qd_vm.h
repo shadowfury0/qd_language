@@ -64,7 +64,10 @@ struct D_VM
     //上一级变量位置，(local位置查找)
     CallInfo* last_var(CallInfo* info);
 
-    
+    //按作用域给变量赋值
+    size_t assing_variable(const Instruction& inc,const D_OBJ& var,CallInfo* const info);
+    size_t assing_variable(const Instruction& inc,const D_VAR& var,CallInfo* const info);
+
     D_OBJ* find_variable(const std::string& name);
     //打印所有变量
     void print_variables(const CallInfo* call);

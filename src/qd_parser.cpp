@@ -10,6 +10,9 @@ if ( this->findX_next() ) \
 return ERR_END;\
 }
 
+#define CLEAN_ERR_CODE(x,f)\
+if (!x) {while(x--){f.codes.pop_back();}}
+
 
 DParser::DParser() {
     logger = Logger::getInstance();
@@ -352,17 +355,23 @@ size_t DParser::statement(FunHead& fun){
         //当前tok 为函数调用
         if ( VE_LIB == libvar->type && T_EQ != ls->t.token ) {
             if(lib_expr(fun)) {
-                logger->error("lib expression error");
+                logger->error(ls->_row,":",ls->_col," lib expression error");
                 return ERR_END;
             }
             return 0;            
         }
-        //如果不是函数调用而是普通赋值
     }
 
-    
+    //数组运算
+    if ( T_CEQ == ls->t.token ) {
+        if (array_opr(inc,fun)) {
+            logger->error(ls->_row,":",ls->_col," array operation error");
+            return ERR_END;
+        }
+        return 0;
+    }
     //下一个如果是函数调用的话
-    if ( T_LPARENTH == ls->t.token ) {
+    else if ( T_LPARENTH == ls->t.token ) {
         if(call_expr(inc.left.var.chv,fun)) {
             logger->error(ls->_row,":",ls->_col," call  error");
             return ERR_END;
@@ -374,7 +383,6 @@ size_t DParser::statement(FunHead& fun){
         }
         return 0;
     }
-
     //数组下标赋值
     else if ( T_LBRACKET == ls->t.token ) {
         if(array_element_expr(inc.left.var.chv,fun)){
@@ -392,15 +400,37 @@ size_t DParser::statement(FunHead& fun){
 
     FIND_NEXT
 
-    //数组
-    if ( T_LBRACKET == ls->t.token ) {
-        if(array_expr(inc.left.var.chv,fun)){
-            logger->error(ls->_row,":",ls->_col," array parse error");
+    //union
+    if ( T_LBRACKET == ls->t.token  ) {
+        inc.curpos = fun.codes.size();
+        inc.rpos = 1;
+        inc.type = OC_ARR_NEW;
+        fun.codes.push_back(inc);
+
+        if(union_expr(inc.left.var.chv,fun)){
+            logger->error(ls->_row,":",ls->_col," union parse error");
+            CLEAN_ERR_CODE(fun.codes.size()-inc.curpos,fun)
             return ERR_END;
         }
-        //局部
+
         this->env_stack_top()->lv[inc.left.var.chv] = "";
         this->env_stack_top()->lv[inc.left.var.chv].type = VE_UNION;
+    }
+    //数组
+    else if ( T_LBRACE == ls->t.token ) {
+        inc.curpos = fun.codes.size();
+        inc.rpos = 0;
+        inc.type = OC_ARR_NEW;
+        fun.codes.push_back(inc);
+
+        if(array_expr(inc.left.var.chv,fun)){
+            logger->error(ls->_row,":",ls->_col," array parse error");
+            CLEAN_ERR_CODE(fun.codes.size()-inc.curpos,fun)
+            return ERR_END;
+        }
+
+        this->env_stack_top()->lv[inc.left.var.chv] = "";
+        this->env_stack_top()->lv[inc.left.var.chv].type = VE_ARRAY;
     }
     else {
         if ( assign_expr(inc,fun) ) {
@@ -530,7 +560,7 @@ size_t DParser::if_expr(FunHead& func){
 
     inc.curpos = func.codes.size();
     //记录跳转的函数是第几个
-    inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
+    inc.lpos = this->env_stack_top()->cur->lfuns.size();
     inc.type = OC_IF;      //调用
 
     func.codes.push_back(inc);
@@ -604,7 +634,7 @@ size_t DParser::elif_expr(FunHead& func){
         inc.rpos = simple_expr(func);
 
         inc.curpos = func.codes.size();
-        inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
+        inc.lpos = this->env_stack_top()->cur->lfuns.size();
         inc.type = OC_IF;      //调用
         func.codes.push_back(inc);
 
@@ -655,7 +685,7 @@ size_t DParser::else_expr(FunHead& func){
     inc.rpos = istrue.curpos;
 
     inc.curpos = func.codes.size();
-    inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
+    inc.lpos = this->env_stack_top()->cur->lfuns.size();
     inc.type = OC_IF;      //调用
     func.codes.push_back(inc);
 
@@ -696,127 +726,113 @@ size_t DParser::else_expr(FunHead& func){
 }
 
 size_t DParser::for_expr(FunHead& func){
-//     DPARSER_NEXT
-
-//     Instruction forinc;
-//     forinc.type = OC_FOR;
-//     forinc.curpos = func.codes.size();
-//     forinc.lpos = func.lfuns.size();
-//     func.codes.push_back(forinc);
-
-//     FunHead* forstate = new FunHead();
-//     forstate->anonymous = true;
-//     // forstate->prev = &func;
-
-//     //初始化值
-//     Instruction first;
-//     first.left = 1;
-//     first.type = OC_NULL;
-//     first.curpos = forstate->codes.size();
-//     forstate->codes.push_back(first);
-
-//     Instruction assign;
-//     assign.curpos = forstate->codes.size();
-
-//     if ( T_UDATA != ls->t.token ) {
-//         logger->error(ls->_row,":",ls->_col," for initialization type is not correct");
-//         return ERR_END;
-//     }
-//     std::string varname = ls->dvar.var.chv;
-//     assign.left = ls->dvar;//迭代计数器
-//     assign.rpos = first.curpos;
-//     assign.type = OC_ASSIGN;
-//     forstate->codes.push_back(assign);
-//     env->lv[ls->dvar.var.chv] = 0;
-//     env->lv[ls->dvar.var.chv].type = VE_NULL;
-//     DPARSER_NEXT
-
     
-//     if (T_IN != ls->t.token) {
-//         logger->error(ls->_row,":",ls->_col," for condition missing in symbol");
-//         return ERR_END;
-//     }
-//     DPARSER_NEXT
-
-//     Instruction second;
-//     if ( T_UDATA != ls->t.token && T_INT != ls->t.token ) {
-//         logger->error(ls->_row,":",ls->_col," for iterator type is not correct");
-//         return ERR_END;
-//     }
-//     second.left = ls->dvar;//这个值到时候可以改改
-//     second.type = OC_NULL;
-//     second.curpos = forstate->codes.size();
-//     forstate->codes.push_back(second);
-//     //迭代类型变量
-//     assign.left = "for";
-//     assign.left.type = VE_USER;
-//     assign.curpos = forstate->codes.size();
-//     assign.rpos = second.curpos;
-//     env->lv["for"] = 0;
-//     env->lv["for"].type = VE_NULL;
-//     forstate->codes.push_back(assign);
-
-//     DPARSER_NEXT
-//     size_t forstart = forstate->codes.size();
-
-//     //判断结束符号是否正确
-//     if (T_COLON != ls->t.token) {
-//         logger->error(ls->_row,":",ls->_col," for condition judgment error");
-//         return ERR_END;
-//     }
-//     //line
-//     DPARSER_NEXT
-
-//     //解析内部for函数
-//     parse_Func(*forstate);
-//     if ( T_PASS != ls->t.token) {
-//         logger->error("missing pass end in for statement");
-//         return ERR_END;
-//     }
-//     //pass
-//     DPARSER_NEXT
-
-//     //自增操作 区间
-// //--------------------------------------------------------------------------------------- 
-//     Instruction incre;
-//     incre.type = OC_NULL;
-//     incre.left = 1;
-//     incre.curpos = forstate->codes.size();
-//     forstate->codes.push_back(incre);
+    if ( T_PASS == ls->t.token ) {
+        return 0;
+    }
     
-//     Instruction add;
-//     add.type = OC_ADD;
-//     add.left = varname.c_str();
-//     add.left.type = VE_USER;
-//     add.rpos = incre.curpos;
-//     add.curpos = forstate->codes.size();
-//     forstate->codes.push_back(add);
+    Instruction forinc;
+    forinc.curpos = func.codes.size();
+    //进入for循环
+    forinc.lpos = this->env_stack_top()->cur->lfuns.size();
+    forinc.type = OC_LOOP;
+    func.codes.push_back(forinc);
 
-//     assign.left = varname.c_str();
-//     assign.left.type = VE_USER;
-//     assign.rpos = add.curpos;
-//     assign.curpos = forstate->codes.size();
-//     forstate->codes.push_back(assign);
+
+    D_ENV* e = new D_ENV();
+    e->anonymous = true;
+    e->prev = env_stack_top();
+    env_stack_top()->cur->lfuns.push_back(e->cur);
+    this->env.push_back(e);
+
+
+    // jmp.curpos = e->cur->codes.size();
+    // jmp.lpos = FIN_END; // 跳转到最后位置
+    // jmp.rpos = simple_expr(*e->cur);
+    // e->cur->codes.push_back(jmp);
     
-// //---------------------------------------------------------------------------------------    
+    FIND_NEXT
 
-//     //比较大小是否跳转
-//     Instruction cmp;
-//     cmp.curpos = forstate->codes.size();
-//     cmp.type = OC_GT;
-//     cmp.left = varname.c_str();
-//     cmp.left.type = VE_USER;
-//     cmp.rpos = second.curpos;
-//     forstate->codes.push_back(cmp);
-//     Instruction jmp;
-//     jmp.lpos = forstart - 1;
-//     jmp.curpos = forstate->codes.size();
-//     jmp.type = OC_JMP;
-//     jmp.rpos = cmp.curpos;
-//     forstate->codes.push_back(jmp);
+    //判断当前变量
+    if ( T_UDATA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," is not userdata in for expression");
+        return ERR_END;
+    }
 
-//     func.lfuns.push_back(forstate);
+    Instruction first;
+    first.left = ls->dvar;
+    first.lpos = 0;
+    first.type = OC_VLOOP;
+
+    FIND_NEXT
+
+    if ( T_IN != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing in keyword in for expression");
+        return ERR_END;
+    }
+
+    FIND_NEXT
+
+    if ( T_UDATA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," varibale type is not correct in for expression");
+        return ERR_END;
+    }
+
+    //传入第二个变量
+    first.right = ls->dvar;
+
+    //左右两个变量必须不一致
+    if (first.left == first.right) {
+        logger->error(ls->_row,":",ls->_col," these two parameter is same ");
+        return ERR_END;
+    }
+
+    //第一个变量
+    first.curpos = e->cur->codes.size();
+    e->cur->codes.push_back(first);
+
+    this->env_stack_top()->lv[first.left.var.chv] = 0;
+    this->env_stack_top()->lv[first.left.var.chv].type = VE_NULL;
+
+    FIND_NEXT
+
+    if ( T_COLON != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," for condition judgment error");
+        return ERR_END;
+    }
+
+    FIND_NEXT
+
+    if(parse_Func(*e->cur)) {
+        return ERR_END;
+    }
+
+    Instruction jmp;
+    jmp.type = OC_JMP;
+    jmp.curpos = e->cur->codes.size();
+    jmp.lpos = first.curpos - 1; // 跳转到第一个变量的位置
+    jmp.rpos = FIN_END;
+    e->cur->codes.push_back(jmp);
+
+
+    delete env_stack_top();
+    this->env.pop_back();
+
+    // 直接结束
+    if ( T_PASS != ls->t.token) {
+        //pass
+        logger->error(ls->_row,":",ls->_col," missing pass end in for statement");
+        return ERR_END;
+    }
+    FIND_NEXT
+    //end
+    if ( T_END != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col,"end error in for statement");
+        return ERR_END;
+    }
     
+    FIND_NEXT
+
     return 0;//正常退出
 }
 
@@ -829,8 +845,8 @@ size_t DParser::while_expr(FunHead& func) {
     Instruction inc;
     inc.curpos = func.codes.size();
     //记录跳转的函数是第几个
-    inc.lpos = (int)this->env_stack_top()->cur->lfuns.size();
-    inc.type = OC_WHILE;
+    inc.lpos = this->env_stack_top()->cur->lfuns.size();
+    inc.type = OC_LOOP;
     func.codes.push_back(inc);
 
 
@@ -886,7 +902,8 @@ size_t DParser::while_expr(FunHead& func) {
     return 0;
 }
 
-size_t DParser::array_element_expr(const std::string& name,FunHead& fun){
+size_t DParser::array_element_expr(const std::string& name,FunHead& fun) {
+
     Instruction inc;
     inc.left = name.c_str();
     D_VAR* tmpobj = variable_check(inc.left.var.chv,this->env_stack_top());
@@ -895,11 +912,18 @@ size_t DParser::array_element_expr(const std::string& name,FunHead& fun){
         logger->error(ls->_row,":",ls->_col," array or union is not exist");
         return ERR_END;
     }
+
     //[
     FIND_NEXT
     //用户变量或数字
+    if ( VE_USER == ls->dvar.type && VE_INT == ls->dvar.type ) {
+        logger->error(ls->_row,":",ls->_col," array set index type error");
+        return ERR_END;
+    }
     inc.right = ls->dvar;
+
     FIND_NEXT
+    
     //]
     if ( T_RBRACKET != ls->t.token ) {
         logger->error(ls->_row,":",ls->_col," right bracket missing ");
@@ -916,7 +940,8 @@ size_t DParser::array_element_expr(const std::string& name,FunHead& fun){
         logger->error(ls->_row,":",ls->_col," array assign expression error");
         return ERR_END;
     }
-    inc.type = OC_ARR_IAS;
+
+    inc.type = OC_ARR_SET;
 
     inc.curpos = fun.codes.size();
     fun.codes.push_back(inc);
@@ -1058,7 +1083,42 @@ size_t DParser::function_expr(FunHead& func){
     return 0;
 }
 
-size_t DParser::array_expr(const std::string& name,FunHead& fun){
+size_t DParser::array_opr(Instruction& inc,FunHead& fun) {
+
+    FIND_NEXT
+
+    //暂时只支持单个赋值后续会添加
+    Instruction arr;
+    arr.type = OC_NULL;
+    arr.curpos = fun.codes.size();
+    arr.left = ls->dvar;
+    //潜在问题虽然可以运行array但是没有进行array判断
+    arr.left.type = VE_UNION;
+    
+    FIND_NEXT
+
+    //如果名称相同并且只有一个那么就不赋值操作了
+    if ( T_END == ls->t.token && arr.left == inc.left ) {
+        logger->info("array assign same variable");
+        return 0;
+    }
+
+    
+    if (T_END != ls->t.token ) {
+        return ERR_END;
+    }
+
+    fun.codes.push_back(arr);
+
+    inc.curpos = fun.codes.size();
+    inc.type = OC_ASSIGN;
+    inc.rpos = arr.curpos;
+    fun.codes.push_back(inc);
+
+    return 0;
+}
+
+size_t DParser::union_expr(const std::string& name,FunHead& fun){
 
     for (;;) {
         Instruction inc;
@@ -1073,11 +1133,12 @@ size_t DParser::array_expr(const std::string& name,FunHead& fun){
             logger->error(ls->_row,":",ls->_col," missing right bracket ");
             return ERR_END;        
         }
+
         //数组名
         inc.left = name.c_str();
         //值
         inc.right = ls->dvar;
-        inc.type = OC_ARR_VAL;
+        inc.type = OC_ARR_SET;
         inc.curpos = fun.codes.size();
         fun.codes.push_back(inc);
         
@@ -1087,18 +1148,112 @@ size_t DParser::array_expr(const std::string& name,FunHead& fun){
             break;
         }
         else if ( T_COMMA != ls->t.token ) {
-            logger->error(ls->_row,":",ls->_col," missing comma in array or array is null");
+            logger->error(ls->_row,":",ls->_col," missing comma in union or union is null");
             return ERR_END;
         }
     }
 
     if ( T_RBRACKET != ls->t.token ) {
-        logger->error(ls->_row,":",ls->_col," missing right bracket ");
+        logger->error(ls->_row,":",ls->_col," missing right bracket");
         return ERR_END;
     }
 
+    FIND_NEXT
+
+    return 0;
+}
+
+size_t DParser::array_expr(const std::string& name,FunHead& fun){
+    //类型名
+    int vt;
+
+    //第一个变量
+    Instruction first;
+    FIND_NEXT
+
+    if ( T_EOF == ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," parser end error");
+        return ERR_END;
+    }
+    else if ( T_END == ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing right parenthese ");
+        return ERR_END;        
+    }
+    else if ( T_RBRACE == ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," array is null");
+        return ERR_END;
+    }
+
+    //数组名
+    first.left = name.c_str();
+    //值
+    first.right = ls->dvar;
+    vt = first.right.type;
+    first.type = OC_ARR_SET;
+    first.curpos = fun.codes.size();
+    fun.codes.push_back(first);
 
     FIND_NEXT
+
+    //只有一个变量
+    if ( T_RBRACE == ls->t.token ) {
+        FIND_NEXT
+        if ( T_END != ls->t.token ) return ERR_END;
+        return 0;
+    }
+    else if ( T_COMMA != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing comma in array");
+        return ERR_END;
+    }
+
+    for (;;) {
+        Instruction inc;
+
+        FIND_NEXT
+
+        if ( T_EOF == ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," parser end error");
+            return ERR_END;
+        }
+        else if ( T_END == ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," missing right parenthese ");
+            return ERR_END;        
+        }
+
+        //数组名
+        inc.left = name.c_str();
+        //值
+        inc.right = ls->dvar;
+
+        //数组类型不一致
+        if ( vt != inc.right.type ) {
+            logger->error(ls->_row,":",ls->_col," array type is error");
+            return ERR_END;
+        }
+
+        inc.type = OC_ARR_SET;
+        inc.curpos = fun.codes.size();
+        fun.codes.push_back(inc);
+
+        
+        FIND_NEXT
+        if ( T_RBRACE == ls->t.token ) {
+            //正常退出
+            break;
+        }
+        else if ( T_COMMA != ls->t.token ) {
+            logger->error(ls->_row,":",ls->_col," missing comma in array");
+            return ERR_END;
+        }
+    }
+
+    if ( T_RBRACE != ls->t.token ) {
+        logger->error(ls->_row,":",ls->_col," missing right parenthese");
+        return ERR_END;
+    }
+
+    FIND_NEXT
+
     return 0;
 }
 
@@ -1326,23 +1481,23 @@ size_t DParser::simple_expr(FunHead& fun){
                     funflag = true;
                 }
                 //数组
-                else if ( VE_UNION == tmpobj->type ) {
-                    inc.left.type = VE_UNION;
+                else if ( VE_UNION == tmpobj->type || VE_ARRAY == tmpobj->type ) {
+                    inc.left.type = tmpobj->type;
 
                     FIND_NEXT
                     //判断是否为[
                     if ( T_LBRACKET != ls->t.token ) {
-                        inc.type = OC_NULL;
-                        inc.curpos = fun.codes.size();
-                        //暂时不需要处理负数前缀
-                        // if (negative % 2 != 0) {
-                        //     symbol_reversal(inc); // 处理负数前缀
-                        //     --negative;
-                        // }
-                        fun.codes.push_back(inc);
-                        values.push_back(inc.curpos);
-                        continue;
+                        logger->error("array accessment error");
+                        return ERR_END;
                     }
+                    inc.type = OC_ARR_GET;
+                    
+                    //暂时不需要处理负数前缀
+                    // if (negative % 2 != 0) {
+                    //     symbol_reversal(inc); // 处理负数前缀
+                    //     --negative;
+                    // }
+
                     FIND_NEXT
                     if ( T_UDATA != ls->t.token && T_INT != ls->t.token ) {
                         logger->error("array index type error");
@@ -1352,11 +1507,11 @@ size_t DParser::simple_expr(FunHead& fun){
                     Instruction arr;
                     arr.type = OC_NULL;
                     arr.left = ls->dvar;
-                    arr.curpos = fun.codes.size();
+                    inc.rpos = arr.curpos = fun.codes.size();
                     fun.codes.push_back(arr);
-                    inc.rpos = arr.curpos;
-                    inc.type = OC_ARR_ACE;
+                    
                     FIND_NEXT
+
                     if ( T_RBRACKET != ls->t.token ) {
                         logger->error("right bracket error");
                         return ERR_END;
@@ -1416,7 +1571,7 @@ size_t DParser::simple_expr(FunHead& fun){
             }
             ops.push_back(tok);
             path ++;
-        } else if ( T_RPARENTH == tok && 
+        } else if ( T_RPARENTH == tok &&
             (
                 (
                 T_LPARENTH == ls->lookahead.token &&
@@ -1562,7 +1717,6 @@ size_t DParser::call_expr(std::string name,FunHead& fun){
             arg.restype = OC_MINUS;
         }
 
-        arg.left = cur->args[startpos].c_str();
         arg.right = ls->dvar;
         
         arg.rpos = argpos;
@@ -1761,7 +1915,7 @@ size_t DParser::io_size() {
 D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
     D_UNION tmp;
     int i ;
-    int len = arr.larr.size();
+    int len = arr.un.size();
     if ( start < 0 ) {
         start = len + start + 1;
     }
@@ -1781,7 +1935,7 @@ D_UNION DParser::union_access(int start, int end,const D_UNION& arr){
     }
 
     for ( i = start ; i < len && i < end; i++ ) {
-        tmp.larr.push_back(arr.larr[i]);
+        tmp.un.push_back(arr.un[i]);
     }
     
     return tmp; 

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <array>
 #include <vector>
 #include <list>
 #include <deque>
@@ -33,6 +34,7 @@ _QD_BEGIN
 #define FIN_END  SIZE_MAX - 1
 #define ERR_END  SIZE_MAX
 #define QD_SIZE_MAX  SIZE_MAX
+#define QD_INT32_MAX  INT32_MAX
 
 
 // KEY WORD

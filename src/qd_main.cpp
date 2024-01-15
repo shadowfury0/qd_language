@@ -260,6 +260,7 @@ size_t QDMAIN::interactive_mode() {
         
         }
     }
+    return 0;
 }
 
 size_t QDMAIN::script_mode() {
