@@ -121,17 +121,18 @@ void D_VAR::operator=(const double& v){
 void D_VAR::operator=(const char* v){
     clear();
     this->type = VE_STR;
-    this->var.chv = new char[strlen(v) + 1 ];
-    this->var.chv[strlen(v)] = '\0';
+    size_t len = strlen(v);
+    this->var.chv = new char[len + 1 ];
     strcpy(this->var.chv,v);
+    this->var.chv[len] = '\0';
 }
 
 void D_VAR::alloc_str(const char* v,size_t len) {
     clear();
     this->type = VE_STR;
-    this->var.chv = new char[strlen(v) + 1 ];
-    this->var.chv[strlen(v)] = '\0';
+    this->var.chv = new char[len + 1 ];
     strcpy(this->var.chv,v);
+    this->var.chv[len] = '\0';
 }
 
 
@@ -455,14 +456,14 @@ D_OBJ::D_OBJ(const char* v){
     *this = v;
 }
 
-void D_OBJ::operator=(const D_VAR& dv){
+void D_OBJ::operator=(const D_VAR& dv) {
+    clear();
     if ( VE_STR == dv.type ||
          VE_USER == dv.type ) {
         *this = dv.var.chv;
         this->type = dv.type;
     }
     else if ( VE_UNION == dv.type || VE_UNION == dv.type ) {
-        clear();
         //do nothing
         std::cout << " var can not assign obj" << std::endl; 
     }
@@ -533,17 +534,18 @@ void D_OBJ::operator=(const double& v){
 void D_OBJ::operator=(const char* v){
     clear();
     this->type = VE_STR;
-    this->var.chv = new char[ strlen(v) + 1 ];
-    this->var.chv[strlen(v)] = '\0';
+    size_t len = strlen(v);
+    this->var.chv = new char[ len + 1 ];
     strcpy(this->var.chv,v);
+    this->var.chv[len] = '\0';
 }
 
 void D_OBJ::alloc_str(const char* v,size_t len) {
     clear();
     this->type = VE_STR;
-    this->var.chv = new char[strlen(v) + 1 ];
-    this->var.chv[strlen(v)] = '\0';
+    this->var.chv = new char[ len + 1 ];
     strcpy(this->var.chv,v);
+    this->var.chv[len] = '\0';
 }
 
 D_OBJ D_OBJ::operator-() {

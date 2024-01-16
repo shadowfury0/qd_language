@@ -196,7 +196,7 @@ size_t QDMAIN::interactive_mode() {
     //提前解析一些文件输入
 
     std::cout << " Welcome to QD 1.0 !!!" << std::endl;
-//交互模式
+    //交互模式
     std::string line;
     size_t pos = 0;
     // this->vm->init_fun(this->parser->env_stack_top()->cur);
@@ -275,6 +275,8 @@ size_t QDMAIN::script_mode() {
 
     if( parser->parse() ) {
         this->io->clean_back();
+        this->clear_chunk();
+        delete this->parser->env_stack_head()->cur;
         logger->error("script mode parser error");
         return 1;
     }
