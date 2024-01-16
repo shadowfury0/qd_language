@@ -23,6 +23,17 @@ enum ERR_LIB {
     EL_MATH,            //数学错误
 };
 
+//解析器错误
+enum ERR_PARSE {
+    EP_OU_RAN = -1,     //超出范围 一般指的是大于size_t 最大值
+    EP_OK = 0,     
+};
+
+enum ERR_VM {
+    EV_OK  = 0,
+    EV_SYS = 1,         //默认错误
+    EV_NULL,            //空
+};
 
 #endif
 

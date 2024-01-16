@@ -21,7 +21,7 @@ struct D_VM
     //保留全局栈信息
     void reserve_global();
 
-    _qd_uint size_call();
+    size_t size_call();
 
     size_t init_fun(FunHead* fun);
     size_t init_lib(D_LIB* l);
