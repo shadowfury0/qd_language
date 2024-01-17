@@ -275,8 +275,10 @@ size_t QDMAIN::script_mode() {
 
     if( parser->parse() ) {
         this->io->clean_back();
-        this->clear_chunk();
         delete this->parser->env_stack_head()->cur;
+        delete this->vm->global;
+        //明天改这里
+        // this->clear_chunk();
         logger->error("script mode parser error");
         return 1;
     }
