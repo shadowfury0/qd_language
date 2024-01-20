@@ -42,6 +42,8 @@ size_t open(D_State* l) {
     if (!fs) {
         // logger->warn("file is not exist ");
         D_STA_PUS_NUL
+        delete fs;
+        fs = nullptr;
         goto read_end;
     }
 
@@ -56,6 +58,8 @@ size_t open(D_State* l) {
     if (!fs->is_open()) {
         // logger->error("file open error ");
         D_STA_PUS_NUL
+        delete fs;
+        fs = nullptr;
         goto read_end;
     }
 
