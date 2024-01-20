@@ -167,7 +167,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
     //目前是为了防止栈溢出简单的处理
     if ( st->cs.size() > QD_STACK_MAX ) {
         logger->error("stack overflow error ");
-        return EV_SYS;
+        return EV_STK_OVER;
     }
 
     logger->debug("<------  function  analyse  start   ------>");
@@ -187,7 +187,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
             {
                 if (analyse_lib_expr(inc,this->cur_fun())) {
                     logger->error("analyse lib expression error");
-                    return EV_SYS;
+                    return EV_LIB;
                 }
                 break;
             }
@@ -200,7 +200,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
 
                     if (!tmp) {
                         logger->error("variable not found in lib function");
-                        return EV_SYS;
+                        return EV_NULL;
                     }
                     
                     //判断是否符合条件
@@ -264,7 +264,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
 
                 if ( !var ) {
                     logger->error("var is not found in OC_VLOOP ");
-                    return EV_SYS;
+                    return EV_NULL;
                 }
                 else if ( VE_INT == var->type ) {
                     inc.lpos++;
@@ -272,7 +272,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                     //这个值小于int最大值
                     if ( inc.lpos >= QD_INT32_MAX ) {
                         logger->error("for loop index is out of int32 maximum range");
-                        return EV_SYS;
+                        return EV_ACC_OUT;
                     }
                     D_VAR in = (int)inc.lpos;
                     default_assign(inc.left.var.chv,in,info);
@@ -354,8 +354,8 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 call->f = new FunHead( *find_function(inc.left.var.chv)->lfuns[inc.lpos] );
 
                 if (!call->f){
-                    logger->error("function error");
-                    return EV_SYS;
+                    logger->error("function not found error");
+                    return EV_NULL;
                 }
                 
                 //输入参数
@@ -470,7 +470,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 D_OBJ* arr = find_variable(inc.left.var.chv);
                 if (!arr) {
                     logger->error("arr get error arr or union not found ");
-                    return EV_SYS;
+                    return EV_NULL;
                 }
                 else {
                     pos =  acess.right.var.iv;
@@ -487,7 +487,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 //超出范围
                 if ( pos < 0 || pos > len  - 1 ) {
                     logger->error("array access out of range");
-                    return EV_SYS;
+                    return EV_ACC_OUT;
                 }
 
                 //赋值
@@ -539,7 +539,7 @@ size_t D_VM::analyse_code(size_t& i,CallInfo* info){
                 }
                 else {
                     logger->error("is not array or union type");
-                    return EV_SYS;
+                    return EV_TYPE;
                 }
                 break;
             }
@@ -612,18 +612,18 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
             array = find_variable(inc.left.var.chv);
             if(!array){
                 logger->error("union var name not found");
-                return EV_SYS;
+                return EV_NULL;
             }
         }
         else if ( VE_USER == inc.left.type ) {
             array = find_variable(inc.left.var.chv);
             if(!array){
                 logger->error("var is not exist ");
-                return EV_SYS;
+                return EV_NULL;
             }
             else if ( VE_NULL == array->type ) {
                 logger->error("maybe function return is null");
-                return EV_SYS;
+                return EV_NULL;
             }
             tleft = *array;
         }
@@ -636,32 +636,32 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     case OC_ADD:{
         if(D_VAR_ADD(tres,tleft,tright)){
             logger->error("error  in  add  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_SUB:{
         if(D_VAR_SUB(tres,tleft,tright)) {
             logger->error("error  in  sub  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_MUL:{
         if(D_VAR_MUL(tres,tleft,tright)){
             logger->error("error  in  multiply  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_MOD:{
         if ( 0 == tright.var.iv ) {
             logger->error("mod is not allow 0 ");
-            return EV_SYS;
+            return EV_MATH;
         }
         if(D_VAR_MOD(tres,tleft,tright)){
             logger->error("error  in  mod  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
@@ -672,63 +672,63 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
         // }
         if(D_VAR_DIV(tres,tleft,tright)){
             logger->error("error  in  divide  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_AND: {
         if(D_VAR_AND(tres,tleft,tright)){
             logger->error("error  in  and  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_OR:{
         if(D_VAR_OR(tres,tleft,tright)){
             logger->error("error  in  or  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_DEQ:{
         if(D_VAR_EQ(tres,tleft,tright)){
             logger->error("error  in  equal  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_NEQ:{
         if(D_VAR_NE(tres,tleft,tright)){
             logger->error("error  in  not  equal  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_LT:{
         if(D_VAR_LT(tres,tleft,tright)){
             logger->error("error  in  less  than  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_LE:{
         if(D_VAR_LE(tres,tleft,tright)){
             logger->error("error  in  less  equal  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_GT:{
         if(D_VAR_GT(tres,tleft,tright)){
             logger->error("error  in  greater  than  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
     case OC_GE:{
         if(D_VAR_GE(tres,tleft,tright)){
             logger->error("error  in  greater  equal  expression");
-            return EV_SYS;
+            return EV_MATH;
         }
         break;
     }
@@ -743,7 +743,7 @@ size_t D_VM::analyse_expr(Instruction& inc,CallInfo* info) {
     }
     default:{
         // break;
-        return EV_SYS;
+        return EV_MATH;
     }
     }
 
@@ -770,7 +770,7 @@ size_t D_VM::analyse_assign(Instruction& inc,CallInfo* info) {
     //作用域判断
     if ( FIN_END == inc.lpos ) {
         logger->error("variable scope error");
-        return EV_SYS;
+        return EV_ACC_OUT;
     }
     
 
@@ -801,7 +801,7 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
         array = find_variable(inc.left.var.chv);
         if(!array) {
             logger->error("array or union not found ");
-            return EV_SYS;
+            return EV_NULL;
         }
         else if ( VE_ARRAY == array->type && VE_VOID == array->at )
         {
@@ -814,7 +814,7 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
         array = find_variable(inc.left.var.chv);
         if(!array) {
             logger->error("array or union not found ");
-            return EV_SYS;
+            return EV_NULL;
         }
 
         //数组下标
@@ -827,11 +827,11 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
             D_OBJ* var = find_variable(inc.right.var.chv);
             if (!var) {
                 logger->error("array or union index variable is not exist");
-                return EV_SYS;
+                return EV_NULL;
             }
             else if ( VE_INT != var->type ) {
                 logger->error("array index type is error");
-                return EV_SYS;
+                return EV_TYPE;
             }
             else {
                 pos = var->var.iv;
@@ -840,7 +840,7 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
         
         if ( pos < 0 || pos > array->size() - 1 ) {
             logger->error("array index out of range");
-            return EV_SYS;
+            return EV_ACC_OUT;
         }
 
         D_VAR& var = fun.codes[inc.rpos].right;
@@ -849,7 +849,7 @@ size_t D_VM::analyse_array_index_assign(Instruction& inc,FunHead& fun) {
             D_PRO pro;
             if (var.type != array->at ) {
                 logger->error("can not assign this type into array");
-                return EV_SYS;
+                return EV_TYPE;
             }
             //如果是字符串
             else if ( VE_STR == array->at ) {
@@ -881,7 +881,7 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
 
     if ( s.state->v_pos > s.state->vars.size() ) {
         logger->error("v_pos is larger than args size");
-        return EV_SYS;
+        return EV_TYPE;
     }
 
     size_t ret = ( this->lib->l[inc.left.var.chv]->funs[inc.right.var.chv] )( s.state );
@@ -889,12 +889,12 @@ size_t D_VM::analyse_lib_expr(Instruction& inc,CallInfo* fun) {
     //内部函数调用
     if ( ret ) {
         logger->error("system call error");
-        return EV_SYS;
+        return EV_LIB;
     }
 
     if (s.state->rets.empty()) {
         logger->error("cur lib returns is empty");
-        return EV_SYS;
+        return EV_LIB;
     }
     //调用完后将变量赋值到ret
     fun->v(QD_KYW_RET) = s.state->rets.front();
@@ -922,7 +922,7 @@ size_t D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
             D_OBJ* t = find_variable(tmp.right.var.chv);
             if(!t){
                 logger->error("function args name not found");
-                return EV_SYS;
+                return EV_NULL;
             }
             input = *t;
         }
@@ -933,7 +933,7 @@ size_t D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
         //暂时先不支持输入数组
         if ( VE_UNION == input.type || VE_ARRAY == input.type ) {
             logger->error("is not support array or union now");
-            return EV_SYS;
+            return EV_TYPE;
         }
 
         if ( OC_MINUS == tmp.restype  ) {
@@ -954,7 +954,7 @@ size_t D_VM::input_args(const Instruction& inc,CallInfo* cur,CallInfo* push) {
     }
 
     if (i) {
-        return EV_SYS;
+        return EV_ACC_OUT;
     }
 
     return EV_OK;

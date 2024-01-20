@@ -102,7 +102,7 @@ enum TOK_TYPE {
 
 
 struct Token {
-    short token; //词法解析的类别
+    int token; //词法解析的类别
     /* semantics information */
 
     Token();
@@ -128,7 +128,7 @@ struct LexState
     bool check2_next (const char* two);
 
     bool isdigit(size_t c);
-    bool islalpha(size_t c);
+    bool isalpha(size_t c);
     bool isblank(size_t c);
     bool isline(size_t c);
 

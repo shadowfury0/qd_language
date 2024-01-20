@@ -41,11 +41,15 @@ size_t print(D_State* l) {
         len -- ;
     }
     
-    std::cout << std::endl;
-
     //压栈
     D_STA_PUS_NUL
 
+    return EL_OK;
+}
+
+size_t println(D_State* l) {
+    print(l);
+    std::cout << std::endl;
     return EL_OK;
 }
 
@@ -84,7 +88,7 @@ size_t type(D_State* l) {
 
 size_t error(D_State* l) {
     std::cout << "system error !!! " ;
-    print(l);
+    println(l);
     return EL_SYS;
 }
 
@@ -116,6 +120,7 @@ size_t assert(D_State* l) {
     return !ass;
 }
 
+//这个函数暂时识别数组
 size_t len(D_State* l) {
     
     size_t len = l->v_pos;
@@ -160,6 +165,7 @@ BASE_LIB::~BASE_LIB() {
 
 void BASE_LIB::load_lib() {
     funs["print"]  = print;
+    funs["println"]= println;
     funs["type"]   = type;
     funs["error"]  = error;
     funs["assert"] = assert;

@@ -116,6 +116,8 @@ size_t random(D_State* l) {
     r ^= r << 5;
     r = r % mod;
 
+    r = std::abs(r);
+
     l->rets.push_back( r ) ;
     return EL_OK;
 }
