@@ -1,17 +1,14 @@
 #汉诺塔
 
 fun hanoi(n, source, target, auxiliary):  
-    if n > 0:
+    if n > 0 :
         t = n - 1
-        # 将 n-1 个盘子从 source 移动到 auxiliary，以便将最大的盘子从 source 移动到 target 
         hanoi(t, source, auxiliary, target)  
 
-        # 将最大的盘子从 source 移动到 target  
-        sys.print('Move disk ',n , ' from ',source , ' to ',target)  
+        sys.println('Move disk ',n , ' from ',source , ' to ',target)  
 
-        # 将 n-1 个盘子从 auxiliary 移动到 target  
         hanoi(t, auxiliary, target, source) 
     pass
 pass
   
-hanoi(5, 'A', 'C', 'B')
+hanoi(3, 'A', 'C', 'B')

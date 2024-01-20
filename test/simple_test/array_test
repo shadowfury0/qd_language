@@ -1,5 +1,5 @@
 #warning out of range test
-a = { 1212,2,3,4 }
+a = { 'asd','qwe' }
 
 #错误
 #a[2] = 'asd'
@@ -7,8 +7,8 @@ a = { 1212,2,3,4 }
 i = 0
 
 #打印值
-while i < 4:
+while i < 2:
     val = a[i];
-    sys.print(val)
+    sys.println(val)
     i = i + 1
 pass

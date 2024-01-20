@@ -4,7 +4,7 @@ f1 = io.open('../test/test')
 #文件流读取
 while io.eof() != true:
     p = io.read()
-    sys.print(p)
+    sys.println(p)
 pass
 
 io.close(f1)

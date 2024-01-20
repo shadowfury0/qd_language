@@ -47,8 +47,8 @@ struct DParser{
     size_t statement(FunHead& fun);
     //赋值表达式
     size_t assign_expr(Instruction& inc,FunHead& fun);
-    //运算表达式
-    size_t simple_expr(FunHead& fun);
+    //运算表达式,inc.rpos会被更改注意
+    size_t simple_expr(Instruction& inc,FunHead& fun);
 
     //跳转表达式
     size_t jump_expr(FunHead& fun);

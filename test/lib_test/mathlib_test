@@ -1,0 +1,57 @@
+n = -1.5
+
+#绝对值
+r = math.abs(n)
+sys.println(r)
+r = math.ceil(n)
+sys.println(r)
+r = math.floor(n)
+sys.println(r)
+r = math.round(n)
+sys.println(r)
+sys.print('----------------------')
+
+n = 4
+r = math.sqrt(n)
+sys.println(r)
+r = math.cbrt(n)
+sys.println(r)
+r = math.exp(n)
+sys.println(r)
+r = math.log(n)
+sys.println(r)
+r = math.pow(n,n)
+sys.println(r)
+sys.println('----------------------')
+
+n = 1
+# 三角函数
+r = math.sin(n)
+sys.println(r)
+r = math.cos(n)
+sys.println(r)
+r = math.tan(n)
+sys.println(r)
+r = math.asin(n)
+sys.println(r)
+r = math.acos(n)
+sys.println(r)
+r = math.atan(n)
+sys.println(r)
+sys.println('----------------------')
+
+#双曲函数
+r = math.sinh(n)
+sys.println(r)
+r = math.cosh(n)
+sys.println(r)
+r = math.tanh(n)
+sys.println(r)
+r = math.asinh(n)
+sys.println(r)
+r = math.acosh(n)
+sys.println(r)
+r = math.atanh(n)
+sys.println(r)
+
+

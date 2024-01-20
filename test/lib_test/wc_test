@@ -3,10 +3,9 @@ f = io.open('../test/1')
 while true:
     if io.eof():
         break
-        sys.print('asdasd')
     pass
     io.read()
     global len = len + 1
 pass
-sys.print(len)
+sys.println(len)
 io.close(f)

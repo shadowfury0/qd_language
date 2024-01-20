@@ -1,16 +1,16 @@
 #循环测试
 a = 5
 for i in a:
-    sys.print(i)
+    sys.println(i)
 pass
 
 a = [1,'asd',3.12,20]
 for i in a:
-    sys.print(i)
+    sys.println(i)
 pass
 a = {1,2,3,4}
 for i in a:
     for v in i:
-        sys.print(v)
+        sys.println(v)
     pass
 pass

@@ -1,8 +1,2 @@
-fun abc(a):
-    for i in a:
-        sys.print(i)
-    pass
-pass
-
-a = [1,2,3]
-abc(a)
+a = [1,2,'123']
+a[12.3] = 12

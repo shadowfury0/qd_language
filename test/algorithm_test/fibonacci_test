@@ -17,4 +17,4 @@ pass
 n = 6
 #斐波那契计算的是第几个数而已
 res = fibon(n)
-sys.print(res)
+sys.println(res)

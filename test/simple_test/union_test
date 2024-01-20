@@ -11,7 +11,7 @@ i = 0
 #打印值
 while i < 4:
     val = a[i];
-    sys.print(val)
+    sys.println(val)
     i = i + 1
 pass
 

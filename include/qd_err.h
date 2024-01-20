@@ -25,9 +25,16 @@ enum ERR_LIB {
 
 //解析器错误
 enum ERR_PARSE {
-    // EP_OU_RANG = -1,    //超出范围 一般指的是大于size_t 最大值
     EP_OK = 0,
-    EP_SYS = -1,            //系统默认错误
+    EP_SYS = 1,         //系统默认错误
+    EP_NULL,            //空
+    EP_OU_RANG,         //超出范围
+    EP_FUN,             //函数错误
+    EP_RET,             //返回值错误
+    EP_TYPE,            //类型错误
+    EP_LIB,             //本地库错误
+    EP_OP,              //符号错误
+    EP_IO,              //io错误
 };
 
 enum ERR_VM {
