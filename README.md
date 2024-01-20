@@ -48,3 +48,9 @@ is not support printing datetime formatted
 - [While Loops]()
 - [Functions]()
 
+### Local Lib
+- [Base Lib](tutorials/base.md)
+- IO Lib  see   test/lib_test/iolib_test
+- [Math Lib](tutorials/math.md)
+- [String Lib](tutorials/string.md)
+
