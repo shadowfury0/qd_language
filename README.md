@@ -1,3 +1,5 @@
+# C++ implementation of an interpreted programming language
+
 # qd_language
     Imitation from language Lua 
     my first language
