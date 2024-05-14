@@ -2,7 +2,8 @@
 
 # qd_language
     Imitation from language Lua 
-    my first language
+    Only relying on standard libraries, not relying on other third-party libraries
+    My first language
 
 ### How-To-Build
 use cmake:
