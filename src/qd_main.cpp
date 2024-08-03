@@ -211,7 +211,11 @@ size_t QDMAIN::interactive_mode() {
     for(;;){
         std::cout << ">>> ";
         std::getline(std::cin,line);
-
+	
+        if ( std::cin.eof() ) {
+            std::cout << std::endl;
+            break;
+        }
         if ( "help" == line  ) {
             std::cout << helpsargs << std::endl;
         }
