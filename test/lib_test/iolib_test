@@ -1,0 +1,13 @@
+f2 = io.open('../test/2')
+f1 = io.open('../test/1')
+
+#文件流读取
+while io.eof() != true:
+    p = io.read(20)
+    io.switch(f2)
+    io.write(p,'\n')
+    io.switch(f1)
+pass
+
+io.close(f1)
+io.close(f2)

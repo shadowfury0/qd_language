@@ -2,6 +2,7 @@
 #include "qd_baselib.h"
 #include "qd_mathlib.h"
 #include "qd_iolib.h"
+#include "qd_strlib.h"
 
 _QD_BEGIN
 
@@ -27,6 +28,7 @@ D_LIB::~D_LIB() {
     delete  (BASE_LIB*)this->l["sys"];
     delete  (MATH_LIB*)this->l["math"];
     delete  (IO_LIB*)this->l["io"];
+    delete  (STR_LIB*)this->l["string"];
 }
 
 bool D_LIB::is_fun(const std::string& k,const std::string& n) {
@@ -52,6 +54,10 @@ size_t D_LIB::init_libs() {
     IO_LIB* io_lib = new IO_LIB();
     io_lib->load_lib();
     this->l["io"] = io_lib;
+
+    STR_LIB* string_lib = new STR_LIB();
+    string_lib->load_lib();
+    this->l["string"] = string_lib;
     
     return 0;
 }

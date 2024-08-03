@@ -1,5 +1,5 @@
-#ifndef __QD_INSTRUCTION_H_
-#define __QD_INSTRUCTION_H_
+#ifndef __QD_INSTRUCTION_H__
+#define __QD_INSTRUCTION_H__
 
 #include "qd_header.h"
 #include "qd_obj.h"
@@ -80,9 +80,9 @@ enum OprCode {
     /* string operator */
     OC_CONCAT,            //拼接
     /* arrays operators */
-    OC_ARR_VAL,            //数组值
-    OC_ARR_ACE,            //数组下标访问   a[0]
-    OC_ARR_IAS,            //数组赋值      a = [1,2,3,4]
+    OC_ARR_NEW,            //数组值
+    OC_ARR_GET,            //数组下标访问   a[0]
+    OC_ARR_SET,            //数组下标赋值   a = a[0]
     // OC_ARR_LASSIGN,        //数组列表赋值  a = a[i:j]
     // OC_ARR_PASSIGN,        //数组部分赋值  a[i] = 0
     // OC_ARR_ACESS,          //数组访问      
@@ -91,11 +91,12 @@ enum OprCode {
     /* function  operator */
     OC_END,               // 函数终止状态，虚拟机清空状态，目前只有if用到
     OC_IF,                // IF
-    OC_FOR,               // FOR 
-    OC_WHILE,             // WHILE
+    OC_LOOP,              // 循环，WHILE FOR
+    OC_VLOOP,             // 循环变量 
     OC_JMP,               // 跳转指令
     OC_CALL,              // 调用函数
     OC_RET,               // 返回
+    OC_BRK,               // break
     OC_ARG,               // 函数参数
     /* lib */
     OC_LIB,               // 库调用

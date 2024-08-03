@@ -5,12 +5,13 @@ a[0] = 2.2
 a[1] = 12.1
 a[2] = 3
 a[3] = 2 + -(-(2 + 2))
-b = a
 
 i = 0
+
+#打印值
 while i < 4:
-    a[i] =  a[i] * i
+    val = a[i];
+    sys.println(val)
     i = i + 1
 pass
 
-b = a

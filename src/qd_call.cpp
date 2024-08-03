@@ -13,6 +13,7 @@ CallInfo::CallInfo(const CallInfo& ca) {
     this->f = ca.f;
     this->sv = ca.sv;
     this->pos = ca.pos;
+    this->loop = ca.loop;
     this->anonymous = ca.anonymous;
     this->ifstate = ca.ifstate;
 }
@@ -30,6 +31,7 @@ void CallInfo::init() {
     this->pos = 0;
     this->anonymous = false;
     this->ifstate = false;
+    this->loop = false;
 }
 
 D_OBJ& CallInfo::v(const std::string name){

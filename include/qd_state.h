@@ -1,5 +1,5 @@
-#ifndef _QD_STATE_H_
-#define _QD_STATE_H_
+#ifndef __QD_D_STATE_H__
+#define __QD_D_STATE_H__
 
 #include "qd_obj.h"
 
@@ -33,6 +33,11 @@ typedef size_t (*qd_inner_fun) (D_State *L);
 D_OBJ obj;\
 obj.type = VE_NULL;\
 l->rets.push_back(obj);
+
+//清空,vars的len个变量
+#define D_STA_CLEAN_(len)\
+while (len--)\
+{l->vars.pop_front();}
 
 
 _QD_END

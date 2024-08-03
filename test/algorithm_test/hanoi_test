@@ -1,0 +1,14 @@
+#汉诺塔
+
+fun hanoi(n, source, target, auxiliary):  
+    if n > 0 :
+        t = n - 1
+        hanoi(t, source, auxiliary, target)  
+
+        sys.println('Move disk ',n , ' from ',source , ' to ',target)  
+
+        hanoi(t, auxiliary, target, source) 
+    pass
+pass
+  
+hanoi(3, 'A', 'C', 'B')

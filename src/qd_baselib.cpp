@@ -15,7 +15,8 @@ size_t print(D_State* l) {
         switch (v.type)
         {
         case VE_BOOL:
-            std::cout <<  v.var.bv ;
+            if (v.var.bv) std::cout << "true ";
+            else    std::cout << "false ";
             break;
         case VE_INT:
             std::cout << v.var.iv ;
@@ -24,7 +25,13 @@ size_t print(D_State* l) {
             std::cout << v.var.dv ;
             break;
         case VE_STR:
-            std::cout << v.var.chv ;
+            std::cout << v.var.chv;
+            break;
+        case VE_ARRAY:
+            std::cout << "array ";
+            break;
+        case VE_UNION:
+            std::cout << "union ";
             break;
         default:
             std::cout << " null ";
@@ -34,12 +41,16 @@ size_t print(D_State* l) {
         len -- ;
     }
     
-    std::cout << std::endl;
-
     //压栈
     D_STA_PUS_NUL
 
-    return 0;
+    return EL_OK;
+}
+
+size_t println(D_State* l) {
+    print(l);
+    std::cout << std::endl;
+    return EL_OK;
 }
 
 //只判断第一个数据类型
@@ -65,24 +76,20 @@ size_t type(D_State* l) {
         std::cout << " null ";
         break;
     }
-    l->vars.pop_front();
     std::cout << std::endl;
 
     //其他函数出栈
-    while (--len)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len)
 
     D_STA_PUS_NUL
 
-    return 0;
+    return EL_OK;
 }
 
 size_t error(D_State* l) {
     std::cout << "system error !!! " ;
-    print(l);
-    return 1;
+    println(l);
+    return EL_SYS;
 }
 
 size_t assert(D_State* l) {
@@ -106,19 +113,14 @@ size_t assert(D_State* l) {
         break;
     }
 
-    l->vars.pop_front();
-
-    //其他函数出栈
-    while (--len)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len);
 
     D_STA_PUS_NUL
 
     return !ass;
 }
 
+//这个函数暂时识别数组
 size_t len(D_State* l) {
     
     size_t len = l->v_pos;
@@ -128,20 +130,29 @@ size_t len(D_State* l) {
     int s = 0;
     if ( VE_UNION == v.type ) {
         //潜在溢出
-        s = (int)v.uni->larr.size();
+        s = (int)v.uni->un.size();
     }
-
-    l->vars.pop_front();
 
     //其他函数出栈
-    while (--len)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len);
 
     l->rets.push_back(s);
 
-    return 0;
+    return EL_OK;
+}
+
+//目前只是接受屏幕输入的字符串而已没什么区别
+size_t input(D_State* l) {
+    size_t len = l->v_pos;
+    D_STA_CLEAN_(len);
+
+
+    std::string line;
+    std::getline(std::cin,line);
+
+    l->rets.push_back(line.c_str());
+
+    return EL_OK;
 }
 
 BASE_LIB::BASE_LIB() {
@@ -154,9 +165,12 @@ BASE_LIB::~BASE_LIB() {
 
 void BASE_LIB::load_lib() {
     funs["print"]  = print;
+    funs["println"]= println;
     funs["type"]   = type;
     funs["error"]  = error;
     funs["assert"] = assert;
+    funs["input"]  = input;
+    
     funs["len"]    = len;
 }
 

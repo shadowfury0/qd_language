@@ -47,15 +47,19 @@ struct DParser{
     size_t statement(FunHead& fun);
     //赋值表达式
     size_t assign_expr(Instruction& inc,FunHead& fun);
-    //运算表达式
-    size_t simple_expr(FunHead& fun);
+    //运算表达式,inc.rpos会被更改注意
+    size_t simple_expr(Instruction& inc,FunHead& fun);
 
     //跳转表达式
     size_t jump_expr(FunHead& fun);
     //数组元素赋值
     size_t array_element_expr(const std::string& name,FunHead& fun);
-    //数组表达式
+    //联合赋值表达式
+    size_t union_expr(const std::string& name,FunHead& fun);
+    //数组赋值表达式
     size_t array_expr(const std::string& name,FunHead& fun);
+    //数组运算表达式
+    size_t array_opr(Instruction& inc,FunHead& fun);
     //if表达式,返回值0运行正确
     size_t if_expr(FunHead& func);
     //elif表达式,

@@ -1,0 +1,11 @@
+len = 0
+f = io.open('../test/1')
+while true:
+    if io.eof():
+        break
+    pass
+    io.read()
+    global len = len + 1
+pass
+sys.println(len)
+io.close(f)

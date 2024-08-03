@@ -1,5 +1,5 @@
-#ifndef __QD_HEADER_H_
-#define __QD_HEADER_H_
+#ifndef __QD_HEADER_H__
+#define __QD_HEADER_H__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,11 +11,15 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <array>
 #include <vector>
 #include <list>
 #include <deque>
 #include <queue>
 #include <algorithm>
+
+
+#include "qd_err.h"
 
 
 #define _QD_BEGIN namespace qd_header{
@@ -30,6 +34,7 @@ _QD_BEGIN
 #define FIN_END  SIZE_MAX - 1
 #define ERR_END  SIZE_MAX
 #define QD_SIZE_MAX  SIZE_MAX
+#define QD_INT32_MAX  INT32_MAX
 
 
 // KEY WORD
@@ -46,6 +51,7 @@ _QD_BEGIN
 #define QD_KYW_LOCAL    "local"
 #define QD_KYW_FUNC     "fun"
 #define QD_KYW_RET      "ret"
+#define QD_KYW_BRK      "break"
 #define QD_KYW_IN       "in"
 #define QD_KYW_DEFINE   "def"
 #define QD_KYW_USING    "using"

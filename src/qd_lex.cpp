@@ -61,19 +61,25 @@ int LexState::llex(){
     case '\0':
         return T_EOF;//文件结束会打印两次？？
     case ';':{
-        printf("end \n");
+        // printf("end \n");
         this->next();
 
         return T_END;
     }
     case ':':{
-        printf(": ");
         this->next();
-        return T_COLON;
+        if (check1_next('=')) {
+            // printf(":= ");
+            return T_CEQ;  /* ':=' */
+        }
+        else {
+            // printf(": ");
+            return T_COLON;
+        }
     }
     /* line breaks */
     case '\n': case '\r':{
-        printf("line \n");
+        // printf("line \n");
 
         if(this->remove_line()) {
             return T_ERR;
@@ -87,7 +93,7 @@ int LexState::llex(){
     }
      /* spaces */
     case ' ': case '\f': case '\t': case '\v':{
-        printf("blank ");
+        // printf("blank ");
         this->remove_blank();
         return T_BLANK;
     }  
@@ -102,127 +108,126 @@ int LexState::llex(){
         return T_COMMENT;
     }
     case ',':{
-        printf(", ");
+        // printf(", ");
         this->next();
         return T_COMMA;
     }
     case '"': case '\'':{
-        printf("string ");
+        // printf("string ");
         return  read_string(this->cur);
     }
     case '.': {  /* '.', '..', '...', or number */
         this->next();
-        // logger->error("undefine lexical type period");
-        printf(". ");
+        // printf(". ");
         //暂时不需要
         return T_PERIOD;
     }
     case '=': {
         this->next();
         if (check1_next('=')) {
-            printf("== ");
+            // printf("== ");
             return T_DEQ;  /* '==' */
         }
         else {
-            printf("= ");
+            // printf("= ");
             return T_EQ;
         }
     }
     case '>':{
         this->next();
         if (check1_next('=')) {
-            printf(">= ");
+            // printf(">= ");
             return T_GE;  /* '>=' */
         }
         else {
-            printf("> ");
+            // printf("> ");
             return T_GN;
         }
     }
     case '<':{
         this->next();
         if (check1_next('=')) {
-            printf("<= ");
+            // printf("<= ");
             return T_LE;  /* '<=' */
         }
         else {
-            printf("< ");
+            // printf("< ");
             return T_LN;
         }
     }
     case '!':{
         this->next();
         if (check1_next('=')) {
-            printf(" != ");
+            // printf(" != ");
             return T_NEQ;  /* '!=' */
         }
         else {
-            printf(" ! ");
+            // printf(" ! ");
             return T_EXCLAMATION;
         }
     }
     case '+':{
         this->next();
-        printf("+ ");
+        // printf("+ ");
         return T_PLUS;
     }
     case '-':{
         this->next();
-        printf("- ");
+        // printf("- ");
         return T_MINUS;
     }
     case '*':{
         this->next();
-        printf("* ");
+        // printf("* ");
         return T_MUL;
     }
     case '%':{
         this->next();
-        printf("% ");
+        // printf("% ");
         return T_MOD;
     }
     case '/':{
         this->next();
-        printf("/ ");
+        // printf("/ ");
         return T_DIV;
     }
     case '(':{
-        printf(" ( ");
+        // printf(" ( ");
         this->next();
         return T_LPARENTH;        
     }
     case ')':{
         this->next();
-        printf(" ) ");
+        // printf(" ) ");
         return T_RPARENTH;
     }
     case '&':{
-        printf("& ");
+        // printf("& ");
         this->next();
         return T_AMPERSAND;
     }
     case '|':{
-        printf("| ");
+        // printf("| ");
         this->next();
         return T_VERTICAL_BAR;
     }
     case '{':{
-        printf("{ ");
+        // printf("{ ");
         this->next();
         return T_LBRACE;
     }
     case '}':{
-        printf("} ");
+        // printf("} ");
         this->next();
         return T_RBRACE;
     }
     case '[':{
-        printf("[ ");
+        // printf("[ ");
         this->next();
         return T_LBRACKET;
     }
     case ']':{
-        printf("] ");
+        // printf("] ");
         this->next();
         return T_RBRACKET;
     }
@@ -241,24 +246,24 @@ int LexState::llex(){
             read_decimal();//读取小数部分            
             tmp += dvar.var.dv;
             dvar = tmp;
-            printf("decimal ");
+            // printf("decimal ");
             return T_DECIMAL;
         }
-        printf("int ");
+        // printf("int ");
         return T_INT;
     }
     default:{
     //解析字母
-        if (this->islalpha(this->cur) || '_' == this->cur){
+        if (this->isalpha(this->cur) || '_' == this->cur){
             std::string data;
             do{
                 data.push_back(this->cur);
                 next();
-            }while( this->islalpha(this->cur) || this->isdigit(this->cur) || '_' == this->cur );
+            }while( this->isalpha(this->cur) || this->isdigit(this->cur) || '_' == this->cur );
             //判断关键字
             int keyw = is_keyword(data.c_str());
             if ( -1 !=  keyw ) {
-                printf("keyword ");
+                // printf("keyword ");
                 // dvar = data.c_str();
                 if ( T_TRUE == keyw ) {
                     dvar = true;
@@ -268,7 +273,7 @@ int LexState::llex(){
                 return keyw;
             } else {
                 dvar = data.c_str();//用户变量
-                printf("user_data ");
+                // printf("user_data ");
                 dvar.type = VE_USER;
                 return T_UDATA;
             }
@@ -309,7 +314,7 @@ bool LexState::isdigit(size_t c){
     return false;    
 }
 
-bool LexState::islalpha(size_t a){
+bool LexState::isalpha(size_t a){
     // 'a' -'z'
     if ( (a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') ) {
         return true;

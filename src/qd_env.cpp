@@ -25,7 +25,6 @@ D_ENV::D_ENV(const D_ENV& func){
 
 D_ENV::~D_ENV(){
     // if (cur != nullptr){
-    // // std::cout << "____________________ " << std::endl;        
     //     delete cur;
     //     cur = nullptr;
     // }

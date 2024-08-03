@@ -128,6 +128,9 @@ int _dvar_eq(D_VAR& result,const D_VAR& left,const D_VAR& right){
     case VE_FLT:
         result = left.var.dv == right.var.dv;
         break;
+    case VE_STR:
+        result = !strcmp(left.var.chv,right.var.chv);
+        break;
     default:
         return 1;
     }
@@ -152,6 +155,9 @@ int _dvar_ne(D_VAR& result,const D_VAR& left,const D_VAR& right){
         break;
     case VE_FLT:
         result = left.var.dv != right.var.dv;
+        break;
+    case VE_STR:
+        result = strcmp(left.var.chv,right.var.chv);
         break;
     default:
         return 1;

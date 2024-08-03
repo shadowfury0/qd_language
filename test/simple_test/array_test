@@ -1,0 +1,14 @@
+#warning out of range test
+a = { 'asd','qwe' }
+
+#错误
+#a[2] = 'asd'
+
+i = 0
+
+#打印值
+while i < 2:
+    val = a[i];
+    sys.println(val)
+    i = i + 1
+pass

@@ -1,5 +1,5 @@
-#ifndef __QD_STATE_H__
-#define __QD_STATE_H__
+#ifndef __QD_CALL_INFO_H__
+#define __QD_CALL_INFO_H__
 
 #include "qd_header.h"
 #include "qd_obj.h"
@@ -24,6 +24,8 @@ struct CallInfo
 
     //匿名 if for else while 
     bool anonymous;
+    //循环体
+    bool loop;
     //上一个条件判断是否为true，例如if elif ，如果为true则不执行
     bool ifstate;
     size_t pos;

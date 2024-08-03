@@ -1,6 +1,9 @@
+# C++ implementation of an interpreted programming language
+
 # qd_language
     Imitation from language Lua 
-    my first language
+    Only relying on standard libraries, not relying on other third-party libraries
+    My first language
 
 ### How-To-Build
 use cmake:
@@ -47,4 +50,10 @@ is not support printing datetime formatted
 - [If Statements]()
 - [While Loops]()
 - [Functions]()
+
+### Local Lib
+- [Base Lib](tutorials/base.md)
+- IO Lib  see   test/lib_test/iolib_test
+- [Math Lib](tutorials/math.md)
+- [String Lib](tutorials/string.md)
 

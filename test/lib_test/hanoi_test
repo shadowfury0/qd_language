@@ -1,0 +1,13 @@
+#汉诺塔
+
+fun hanoi(n, source, target, auxiliary):  
+    if n > 0:
+        t = n - 1
+        hanoi(t, source, auxiliary, target)  
+        sys.print('Move disk ',n , ' from ',source , ' to ',target)  
+        hanoi(t, auxiliary, target, source) 
+    pass
+pass
+  
+# 调用函数，移动 3 个盘子从 'A' 移动到 'C'，'B' 是辅助塔  
+hanoi(5, 'A', 'C', 'B')

@@ -3,7 +3,6 @@
 
 #include "qd_log.h"
 #include "qd_call.h"
-#include "qd_state.h"
 #include "qd_lib.h"
 
 _QD_BEGIN
@@ -22,7 +21,7 @@ struct D_VM
     //保留全局栈信息
     void reserve_global();
 
-    _qd_uint size_call();
+    size_t size_call();
 
     size_t init_fun(FunHead* fun);
     size_t init_lib(D_LIB* l);
@@ -57,14 +56,22 @@ struct D_VM
     size_t input_args(const Instruction& inc,CallInfo* cur,CallInfo* push);
     //查找函数
     FunHead* find_function(const std::string& name);
+
     //上一级，非匿名函数位置
-    CallInfo* last_function(CallInfo* info);
+    CallInfo* last_return();
+    //上一级，返回匿名函数
+    void last_break();
     //上一级变量位置，(local位置查找)
     CallInfo* last_var(CallInfo* info);
-    
+
+    //按作用域给变量赋值
+    size_t assing_variable(const Instruction& inc,const D_OBJ& var,CallInfo* const info);
+    size_t assing_variable(const Instruction& inc,const D_VAR& var,CallInfo* const info);
+
     D_OBJ* find_variable(const std::string& name);
     //打印所有变量
     void print_variables(const CallInfo* call);
+
 
     Logger* logger;
 

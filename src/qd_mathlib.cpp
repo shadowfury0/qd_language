@@ -11,74 +11,70 @@ size_t len = l->v_pos;\
 D_OBJ& v = l->vars.front();\
 if ( VE_INT == v.type ) {l->rets.push_back(f(v.var.iv));}\
 else if ( VE_FLT == v.type ) {l->rets.push_back(f(v.var.dv));}\
-else {return 1;}\
-l->vars.pop_front();\
-while (--len)\
-{l->vars.pop_front();}\
-return 0;\
-} while (0);
+else {return EL_TYPE;}\
+D_STA_CLEAN_(len)\
+return EL_OK;\
+} while (0)
 
 #define MATH_FUN2_(f)\
 do{\
 size_t len = l->v_pos;\
-if ( l->vars.size() < 2 ) {return 1;}\
+if ( l->vars.size() < 2 ) {return EL_ARG_NUM;}\
 D_OBJ v1 = l->vars.front();\
-l->vars.pop_front();\
+l->vars.pop_front();--len;\
 D_OBJ v2 = l->vars.front();\
-l->vars.pop_front();\
+l->vars.pop_front();--len;\
 if ( VE_INT == v1.type && VE_INT == v2.type ) {l->rets.push_back(f(v1.var.iv,v2.var.iv));}\
 else if ( VE_FLT == v1.type && VE_INT == v2.type ) {l->rets.push_back(f(v1.var.dv,v2.var.iv));}\
 else if ( VE_INT == v1.type && VE_FLT == v2.type ) {l->rets.push_back(f(v1.var.iv,v2.var.dv));}\
 else if ( VE_FLT == v1.type && VE_FLT == v2.type ) {l->rets.push_back(f(v1.var.dv,v2.var.dv));}\
-else {return 1;}\
---len;\
-while (--len)\
-{l->vars.pop_front();}\
-return 0;\
-} while (0);
+else {return EL_TYPE;}\
+D_STA_CLEAN_(len)\
+return EL_OK;\
+} while (0)
 
 
 
 size_t abs(D_State* l) {
-    MATH_FUN_(std::abs)
+    MATH_FUN_(std::abs);
 }
 
 size_t ceil(D_State* l) {
-    MATH_FUN_(std::ceil)
+    MATH_FUN_(std::ceil);
 }
 
 size_t floor(D_State* l) {
-    MATH_FUN_(std::floor)
+    MATH_FUN_(std::floor);
 }
 
 size_t round(D_State* l) {
-    MATH_FUN_(std::round)
+    MATH_FUN_(std::round);
 }
 // 可能会小于0
 size_t log(D_State* l) {
-    MATH_FUN_(std::log)
+    MATH_FUN_(std::log);
 }
 
 size_t log2(D_State* l) {
-    MATH_FUN_(std::log2)
+    MATH_FUN_(std::log2);
 }
 
 // 如果结果的大小太大而无法用返回类型的值表示，则该函数将返回带有正确符号的HUGE_VAL，并且会发生溢出范围错误。
 size_t exp(D_State* l) {
-    MATH_FUN_(std::exp)
+    MATH_FUN_(std::exp);
 }
 
 // 可能存在小于0的值
 size_t sqrt(D_State* l) {
-    MATH_FUN_(std::sqrt)
+    MATH_FUN_(std::sqrt);
 }
 
 size_t cbrt(D_State* l) {
-    MATH_FUN_(std::cbrt)
+    MATH_FUN_(std::cbrt);
 }
 
 size_t pow(D_State* l) {
-    MATH_FUN2_(std::pow)
+    MATH_FUN2_(std::pow);
 }
 
 /**
@@ -98,20 +94,17 @@ size_t random(D_State* l) {
         len--;
         D_OBJ& obj = l->vars.front();
         if ( VE_INT != obj.type ) {
-            return 1;
+            return EL_TYPE;
         }
         //数学错误
         if ( 0 == obj.var.iv) {
-            return 1;
+            return EL_MATH;
         }
         mod = obj.var.iv;
         l->vars.pop_front();
     }
 
-    while (len--)
-    {
-        l->vars.pop_front();
-    }
+    D_STA_CLEAN_(len)
 
 
     //XORshift算法
@@ -123,16 +116,18 @@ size_t random(D_State* l) {
     r ^= r << 5;
     r = r % mod;
 
+    r = std::abs(r);
+
     l->rets.push_back( r ) ;
-    return 0;
+    return EL_OK;
 }
 
 size_t sin(D_State* l) {
-    MATH_FUN_(std::sin)
+    MATH_FUN_(std::sin);
 }
 
 size_t cos(D_State* l) {
-    MATH_FUN_(std::cos)
+    MATH_FUN_(std::cos);
 }
 
 /**
@@ -140,52 +135,52 @@ size_t cos(D_State* l) {
  *         到时候在这里进行超出阈值的判断
  */
 size_t tan(D_State* l) {
-    MATH_FUN_(std::tan)
+    MATH_FUN_(std::tan);
 }
 
 /**
  * @brief  asin()函数  [-1，1]范围内
  */
 size_t asin(D_State* l) {
-    MATH_FUN_(std::asin)
+    MATH_FUN_(std::asin);
 }
 
 /**
  * @brief  acos()函数  [-1，1]范围内
  */
 size_t acos(D_State* l) {
-    MATH_FUN_(std::acos)
+    MATH_FUN_(std::acos);
 }
 
 /**
  * @brief 跟tan性质一样
  */
 size_t atan(D_State* l) {
-    MATH_FUN_(std::atan)
+    MATH_FUN_(std::atan);
 }
 
 size_t sinh(D_State* l) {
-    MATH_FUN_(std::sinh)
+    MATH_FUN_(std::sinh);
 }
 
 size_t cosh(D_State* l) {
-    MATH_FUN_(std::cosh)
+    MATH_FUN_(std::cosh);
 }
 
 size_t tanh(D_State* l) {
-    MATH_FUN_(std::tanh)
+    MATH_FUN_(std::tanh);
 }
 
 size_t asinh(D_State* l) {
-    MATH_FUN_(std::asinh)
+    MATH_FUN_(std::asinh);
 }
 
 size_t acosh(D_State* l) {
-    MATH_FUN_(std::acosh)
+    MATH_FUN_(std::acosh);
 }
 
 size_t atanh(D_State* l) {
-    MATH_FUN_(std::atanh)
+    MATH_FUN_(std::atanh);
 }
 
 MATH_LIB::MATH_LIB() {
